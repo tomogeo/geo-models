@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>等高線地形圖：從 3D 地形到平面地圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ECEEE6; --panel:#FAF9F3; --ink:#232A22; --muted:#5E665C; --line:#C8CCBE;
+  --brown:#8B5A2B; --brown-2:#6E4521; --sea:#2C6E9B;
+  --peak:#C0392B; --saddle:#7B4FA0; --ridge:#D97706; --valley:#1F78B4; --cliff:#333;
+  --t-plain:#3F8F3A; --t-basin:#7B4FA0; --t-table:#C2410C; --t-hill:#0F7C74; --t-mount:#8B3A2B;
+  --ok:#2E7D32; --bad:#C0392B; --accent:#C0392B;
+  --g1:#D1495B; --g2:#E09F3E; --g3:#2A9D8F; --g4:#3D5A98; --g5:#7A9E4B;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --serif:"Noto Serif TC","PMingLiU","MingLiU",serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --paper:#161A16; --panel:#20251F; --ink:#E6E9E1; --muted:#A3AB9F; --line:#3A4238; }
+}
+:root[data-theme="dark"]{ --paper:#161A16; --panel:#20251F; --ink:#E6E9E1; --muted:#A3AB9F; --line:#3A4238; }
+html{height:100%; scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0; height:100%; background:var(--paper); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased}
+button{font:inherit; color:inherit; cursor:pointer}
+button:focus-visible{outline:3px solid var(--valley); outline-offset:2px}
+
+.app{height:100%; display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:10px; padding:12px clamp(10px,1.6vw,24px); max-width:1900px; margin:0 auto}
+header{display:flex; align-items:center; gap:12px 22px; flex-wrap:wrap}
+h1{font-family:var(--serif); font-weight:900; font-size:clamp(22px,2.3vw,36px); margin:0; line-height:1.2; letter-spacing:.02em}
+.seg{display:flex; border:2px solid var(--ink); border-radius:8px; overflow:hidden}
+.seg button{border:0; background:transparent; padding:.42em .9em; font-size:clamp(14px,1.15vw,18px); font-weight:700; border-left:1.5px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--ink); color:var(--paper)}
+.modes button{padding:.5em 1em}
+.opts{display:flex; gap:10px; align-items:center; margin-left:auto; flex-wrap:wrap}
+.opts .lbl{font-size:14px; color:var(--muted)}
+.opts .seg{border-width:1.5px}
+.opts .seg button{font-size:14px; padding:.35em .7em}
+
+main{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; min-height:0}
+.left{display:flex; flex-direction:column; gap:12px; min-height:0; min-width:0}
+.card{background:var(--panel); border:1.5px solid var(--line); border-radius:8px; position:relative; min-height:0}
+#v3d{flex:1 1 auto; min-height:160px; overflow:hidden}
+#v3d canvas{display:block; width:100%; height:100%; touch-action:none; cursor:grab}
+#v3d canvas:active{cursor:grabbing}
+.v3tools{position:absolute; top:8px; right:8px; display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end}
+.v3tools button{background:var(--panel); border:1.5px solid var(--line); border-radius:6px; padding:.3em .7em; font-size:14px; font-weight:700}
+.v3tools button[aria-pressed="true"]{border-color:var(--ink); background:var(--ink); color:var(--paper)}
+.v3hint{position:absolute; left:10px; bottom:8px; font-size:13px; color:var(--muted); pointer-events:none}
+.v3tag{position:absolute; left:10px; top:8px; font-weight:700; font-size:15px; color:var(--muted); pointer-events:none}
+.veil{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--panel); color:var(--muted); font-size:18px; border-radius:8px; text-align:center; padding:20px}
+.veil[hidden]{display:none}
+
+#prof{flex:0 0 40%; display:none}
+#prof canvas{display:block; width:100%; height:100%}
+body.m-profile #prof{display:block}
+
+#game{display:none; flex:0 0 auto; padding:14px 16px}
+body.m-game #game{display:block}
+body.m-game #v3d{flex-basis:38%}
+
+.mapcol{height:100%; aspect-ratio:1/1; max-width:58vw; min-height:0}
+#mapcard{width:100%; height:100%}
+#map{display:block; width:100%; height:100%; touch-action:none; border-radius:8px}
+body.m-slope #map, body.m-profile #map, body.m-game.pick #map{cursor:crosshair}
+
+.bar{display:flex; gap:14px 22px; align-items:center; flex-wrap:wrap; min-height:64px}
+#cap{flex:1 1 420px; margin:0; font-size:clamp(16px,1.45vw,23px); line-height:1.6; max-width:60em}
+#cap b{color:var(--accent)}
+#ctl{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.btn{border:2px solid var(--ink); background:transparent; border-radius:7px; padding:.45em 1.05em; font-size:clamp(15px,1.2vw,19px); font-weight:700; white-space:nowrap}
+.btn.primary{background:var(--ink); color:var(--paper)}
+.btn:disabled{opacity:.35; cursor:default}
+.range{display:flex; align-items:center; gap:10px; font-weight:700; font-size:clamp(15px,1.2vw,19px); font-variant-numeric:tabular-nums}
+.range input{width:clamp(140px,16vw,260px); accent-color:var(--valley)}
+.fbtn{border:2px solid var(--c); color:var(--c); background:transparent; border-radius:7px; padding:.42em .95em; font-size:clamp(15px,1.25vw,20px); font-weight:700}
+.fbtn[aria-pressed="true"]{background:var(--c); color:#fff}
+.scards{display:flex; gap:10px; flex-wrap:wrap}
+.sc{border:1.5px solid var(--line); background:var(--panel); border-radius:8px; padding:6px 12px; display:flex; gap:10px; align-items:center; font-size:15px; line-height:1.35}
+.sc .nm{font-family:var(--serif); font-weight:900; font-size:24px; width:1.2em; text-align:center}
+.sc b{font-size:18px}
+.sc svg{width:64px; height:40px}
+
+/* game */
+.board{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px}
+.grp{border:2px solid var(--c); border-radius:8px; padding:6px 4px 4px; text-align:center; background:transparent; position:relative}
+.grp .gn{font-weight:700; font-size:clamp(14px,1.1vw,17px); color:var(--c)}
+.grp .gs{font-family:var(--serif); font-weight:900; font-size:clamp(26px,2.4vw,40px); line-height:1.1; font-variant-numeric:tabular-nums}
+.grp .adj{display:flex; justify-content:center; gap:6px}
+.grp .adj button{border:1px solid var(--line); background:var(--panel); border-radius:4px; width:26px; height:22px; line-height:1; padding:0; font-size:15px}
+.grp.on{background:var(--c); color:#fff}
+.grp.on .gn{color:#fff}
+.grp.on .adj button{color:var(--ink)}
+.grp.on::after{content:"作答中"; position:absolute; top:-11px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--paper); font-size:12px; font-weight:700; padding:1px 8px; border-radius:10px; white-space:nowrap}
+.qmeta{margin:14px 0 4px; color:var(--muted); font-weight:700; font-size:15px}
+.qtext{font-size:clamp(20px,1.9vw,30px); font-weight:700; line-height:1.45; margin:0 0 10px}
+.qopts{display:flex; flex-wrap:wrap; gap:10px}
+.qopt{border:2px solid var(--ink); background:transparent; border-radius:8px; padding:.4em 1.1em; font-size:clamp(17px,1.5vw,24px); font-weight:700}
+.qopt.right{border-color:var(--ok); background:var(--ok); color:#fff}
+.qopt.wrong{border-color:var(--bad); color:var(--bad); text-decoration:line-through}
+.qopt.pf{padding:6px; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:18px}
+.qopt.pf canvas{width:clamp(150px,13vw,230px); height:clamp(78px,6.6vw,118px); display:block}
+.qopt.pf.right canvas{background:#fff; border-radius:4px}
+.fb{margin-top:10px; font-size:clamp(16px,1.35vw,21px); line-height:1.55; min-height:1.6em}
+.fb .r{color:var(--ok); font-weight:700} .fb .w{color:var(--bad); font-weight:700}
+.stage-card{text-align:center; padding:12px 0}
+.stage-card h2{font-family:var(--serif); font-size:clamp(26px,2.6vw,42px); margin:6px 0}
+.stage-card p{font-size:clamp(17px,1.4vw,22px); color:var(--muted); margin:6px 0}
+.lvpick{display:flex; flex-direction:column; gap:8px; align-items:stretch; max-width:520px; margin:12px auto 0; text-align:left}
+.lvpick label{display:flex; gap:12px; align-items:center; border:1.5px solid var(--line); border-radius:8px; padding:8px 12px; font-size:clamp(15px,1.2vw,19px); cursor:pointer}
+.lvpick input{width:22px; height:22px; accent-color:var(--ink)}
+.lvpick b{margin-right:10px}
+.podium{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:10px}
+.podium div{border:2px solid var(--c); border-radius:8px; padding:6px 14px; font-weight:700; font-size:20px}
+.podium div.top{background:var(--c); color:#fff; font-size:26px}
+
+@media (max-width:860px){
+  html,body{height:auto}
+  .app{height:auto; grid-template-rows:auto auto auto}
+  main{grid-template-columns:1fr}
+  .left{min-height:auto}
+  .mapcol{height:auto; width:100%; max-width:none; order:-1}
+  #v3d{flex:none; height:52vh; min-height:280px}
+  body.m-game #v3d{height:40vh}
+  body.m-profile #prof{flex:none; height:280px}
+  .opts{margin-left:0}
+  .board{gap:5px}
+}
+</style>
+</head>
+<body class="m-origin">
+<div class="app">
+  <header>
+    <h1>等高線地形圖</h1>
+    <nav class="seg modes" id="modes" aria-label="教學單元">
+      <button data-m="origin" aria-pressed="true">等高線怎麼來</button>
+      <button data-m="slope" aria-pressed="false">疏密與坡度</button>
+      <button data-m="landform" aria-pressed="false">地形判讀</button>
+      <button data-m="types" aria-pressed="false">五大地形</button>
+      <button data-m="profile" aria-pressed="false">畫剖面圖</button>
+      <button data-m="game" aria-pressed="false">闖關遊戲</button>
+    </nav>
+    <div class="opts" id="opts">
+      <span class="lbl" id="terrLbl">地形</span>
+      <div class="seg" id="terr">
+        <button data-t="A" aria-pressed="true">練習 A</button>
+        <button data-t="B" aria-pressed="false">練習 B</button>
+        <button data-t="C" aria-pressed="false">五大地形區</button>
+        <button data-t="G" aria-pressed="false">仿龜山島</button>
+      </div>
+      <span class="lbl">等高距</span>
+      <div class="seg" id="ivl"></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="left">
+      <section class="card" id="game" aria-live="polite"></section>
+      <section class="card" id="v3d" aria-label="3D 地形">
+        <canvas id="c3d"></canvas>
+        <div class="v3tag" id="v3tag">3D 地形</div>
+        <div class="v3tools">
+          <button id="bTop" type="button">從正上方看</button>
+          <button id="bSide" type="button">斜斜地看</button>
+          <button id="bSpin" type="button" aria-pressed="false">自動旋轉</button>
+          <button id="bLines" type="button" aria-pressed="true">3D 等高線</button>
+        </div>
+        <div class="v3hint" id="v3hint">拖曳旋轉、滾輪縮放</div>
+        <div class="veil" id="veil3d" hidden></div>
+      </section>
+      <section class="card" id="prof" aria-label="地形剖面圖"><canvas id="cprof"></canvas></section>
+    </div>
+    <div class="mapcol"><section class="card" id="mapcard" aria-label="等高線地形圖"><canvas id="map"></canvas></section></div>
+  </main>
+
+  <div class="bar">
+    <p id="cap"></p>
+    <div id="ctl"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================= 地形資料 ================= */
+const N=161;
+const TER={
+  A:{name:'練習地形 A', size:4, base:40, max:620,
+     g:[[560,.36,.44,.12,.12,0],[420,.70,.40,.10,.10,0],[260,.20,.66,.22,.055,55],[240,.80,.68,.22,.055,110],[120,.52,.42,.10,.05,0]],
+     cliff:[[.47,.335,.25,.345,.8,.010]],
+     f:{peak:[.375,.431], peak2:[.681,.406], saddle:[.569,.419],
+        ridge:[[.35,.465],[.29,.51],[.23,.56],[.19,.625],[.14,.71]],
+        valley:[[.57,.47],[.565,.6],[.56,.72],[.555,.84],[.55,.96]],
+        cliff:[[.27,.342],[.36,.338],[.45,.336]]},
+     slope:{A:[.30,.46],B:[.46,.72]}, pline:[[.08,.455],[.94,.39]]},
+  B:{name:'練習地形 B', size:4.5, base:30, max:780,
+     g:[[640,.60,.56,.12,.12,0],[400,.28,.32,.10,.10,0],[200,.44,.44,.12,.05,40],[280,.86,.48,.22,.05,-10],[250,.44,.76,.2,.05,131]],
+     cliff:[[.58,.70,.82,.59,.8,.010]],
+     f:{peak:[.594,.55], peak2:[.30,.331], saddle:[.40,.406],
+        ridge:[[.555,.605],[.50,.67],[.44,.74],[.38,.81],[.32,.885]],
+        valley:[[.41,.47],[.37,.53],[.32,.59],[.27,.66],[.22,.73]],
+        cliff:[[.63,.685],[.70,.652],[.77,.622]]},
+     slope:{A:[.52,.47],B:[.80,.33]}, pline:[[.14,.2],[.9,.84]]},
+  C:{name:'五大地形示範區', size:24, max:3000, ve:3, ivs:[100,200],
+     fn:(x,y)=>{
+       const g=(a,cx,cy,sa,sb,ang)=>{const c=Math.cos((ang||0)*Math.PI/180), s=Math.sin((ang||0)*Math.PI/180), u=(x-cx)*c+(y-cy)*s, v=-(x-cx)*s+(y-cy)*c; return a*Math.exp(-(u*u/(2*sa*sa)+v*v/(2*sb*sb)));};
+       let h=15+70*(1-y)*(1-y);
+       for(const p of [[1900,.72,.12,.16,.07,-25],[2300,.86,.2,.1,.08,0],[1500,.60,.08,.08,.06,0],[1400,.94,.36,.07,.1,0],[900,.78,.3,.1,.05,-30]]) h+=g(...p);
+       for(const p of [[380,.10,.14,.05,.05],[450,.22,.09,.05,.04],[330,.18,.27,.05,.05],[420,.34,.18,.05,.05],[300,.06,.32,.04,.05],[350,.30,.33,.05,.04],[260,.44,.28,.04,.04]]) h+=g(...p);
+       const d=Math.hypot(x-.64,(y-.58)/.9), R=.12, w=.035;
+       h+=900*Math.exp(-(d-R)*(d-R)/(2*w*w))*(1+.25*Math.sin(Math.atan2(y-.58,x-.64)*3));
+       h+=160*sig((R-d)/.02);
+       const d2=Math.hypot(x-.24,(y-.62)/.8);
+       h+=(330+40*(.62-y))*sig((.11-d2)/.007);
+       return h;},
+     types:{plain:{c:[.36,.87],rx:.26,ry:.085,rot:0}, basin:{c:[.64,.58],rx:.165,ry:.155,rot:0}, table:{c:[.24,.62],rx:.125,ry:.1,rot:0},
+            hill:{c:[.23,.2],rx:.21,ry:.14,rot:0}, mount:{c:[.79,.2],rx:.2,ry:.14,rot:-25}},
+     slope:{A:[.72,.27],B:[.40,.86]}, pline:[[.03,.645],[.97,.54]]},
+  G:{name:'仿龜山島', size:4.2, base:-120, max:401, island:true,
+     g:[[480,.44,.50,.20,.11,-4],[160,.40,.47,.06,.05,0],[230,.80,.52,.07,.06,0],[160,.18,.58,.12,.04,-12]],
+     cliff:[[.2,.612,.7,.615,1.08,.009]],
+     f:{peak:[.406,.488], peak2:[.781,.513], saddle:[.688,.506],
+        ridge:[[.37,.50],[.30,.52],[.24,.548],[.18,.575]],
+        valley:[[.686,.48],[.681,.43],[.676,.38]],
+        cliff:[[.28,.608],[.40,.609],[.51,.61],[.62,.611]]},
+     slope:{A:[.42,.605],B:[.60,.47]}, pline:[[.406,.28],[.406,.72]],
+     names:[['龜首',.80,.44],['龜尾',.11,.62]]}
+};
+const FEAT={
+  peak:{n:'山峰',c:'--peak',d:'等高線一圈一圈<b>封閉</b>，數字由外往內愈來愈大，最中間就是最高點。'},
+  saddle:{n:'鞍部',c:'--saddle',d:'<b>兩個山峰之間</b>相對低下的地方，形狀像馬鞍。在圖上夾在兩組封閉等高線中間。'},
+  ridge:{n:'山脊',c:'--ridge',d:'從山頂往外延伸的高處，像山的背脊。等高線<b>凸向低處</b>（尖端指向數字小的一邊）。'},
+  valley:{n:'山谷',c:'--valley',d:'兩條山脊之間的低處，常有河流。等高線<b>凸向高處</b>（尖端指向數字大的一邊）。'},
+  cliff:{n:'陡崖',c:'--cliff',d:'非常陡峭的崖壁，好幾條等高線<b>擠在一起</b>，甚至看起來像重疊。'}
+};
+const FORDER=['peak','saddle','ridge','valley','cliff'];
+const TYPES={
+  plain:{n:'平原',c:'--t-plain',d:'地勢<b>低平</b>、海拔低。等高線<b>很少又很稀疏</b>，大多在最低的等高線以下。例：嘉南平原。'},
+  basin:{n:'盆地',c:'--t-basin',d:'<b>四周高、中間低平</b>。等高線圍成一圈，<b>外圈數字大、中間數字小</b>。例：臺北盆地。'},
+  table:{n:'台地',c:'--t-table',d:'<b>頂部平坦、四周陡峭</b>。邊緣等高線很密，頂上幾乎沒有等高線。海拔更高的叫<b>高原</b>。例：林口台地。'},
+  hill:{n:'丘陵',c:'--t-hill',d:'高度<b>不高</b>、起伏<b>和緩</b>。有許多小小的封閉等高線，數字不大。例：竹苗丘陵。'},
+  mount:{n:'山地',c:'--t-mount',d:'海拔<b>高</b>、起伏<b>大</b>。等高線<b>又多又密</b>，數字很大。例：中央山脈。'}
+};
+const TORDER=['plain','basin','table','hill','mount'];
+function ellD(e,x,y){const a=-(e.rot||0)*Math.PI/180, dx=x-e.c[0], dy=y-e.c[1], u=dx*Math.cos(a)-dy*Math.sin(a), v=dx*Math.sin(a)+dy*Math.cos(a); return Math.hypot(u/e.rx,v/e.ry);}
+function ellPts(e,n){const a=(e.rot||0)*Math.PI/180, out=[]; for(let k=0;k<=n;k++){const t=k/n*Math.PI*2, u=Math.cos(t)*e.rx, v=Math.sin(t)*e.ry; out.push([e.c[0]+u*Math.cos(a)-v*Math.sin(a), e.c[1]+u*Math.sin(a)+v*Math.cos(a)]);} return out;}
+
+function sig(z){return 1/(1+Math.exp(-z));}
+function rawH(T,x,y){
+  if(T.fn) return T.fn(x,y);
+  let h=T.base;
+  for(const [a,cx,cy,sa,sb,ang] of T.g){
+    const c=Math.cos(ang*Math.PI/180), s=Math.sin(ang*Math.PI/180);
+    const u=(x-cx)*c+(y-cy)*s, v=-(x-cx)*s+(y-cy)*c;
+    h+=a*Math.exp(-(u*u/(2*sa*sa)+v*v/(2*sb*sb)));
+  }
+  for(const [x0,y0,x1,y1,k,w] of T.cliff){
+    const dx=x1-x0, dy=y1-y0, L=Math.hypot(dx,dy), ux=dx/L, uy=dy/L;
+    const t=((x-x0)*ux+(y-y0)*uy)/L, d=(x-x0)*(-uy)+(y-y0)*ux;
+    const tap=sig((t-.05)/.04)*sig((.95-t)/.04);
+    if(h>0) h*=1-k*sig(d/w)*tap;
+  }
+  return h;
+}
+function prep(T){
+  const H=new Float32Array(N*N); let mx=-1e9, mn=1e9;
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){const v=rawH(T,j/(N-1),i/(N-1)); H[i*N+j]=v; if(v>mx)mx=v;}
+  const k=T.max/mx;
+  for(let q=0;q<H.length;q++){ if(H[q]>0) H[q]*=k; if(H[q]<mn) mn=H[q]; }
+  T.H=H; T.hmin=mn; T.cache={};
+}
+Object.values(TER).forEach(prep);
+
+function hAt(T,x,y){
+  const fx=Math.max(0,Math.min(N-1.0001,x*(N-1))), fy=Math.max(0,Math.min(N-1.0001,y*(N-1)));
+  const j=fx|0, i=fy|0, a=fx-j, b=fy-i, H=T.H;
+  return (H[i*N+j]*(1-a)+H[i*N+j+1]*a)*(1-b)+(H[(i+1)*N+j]*(1-a)+H[(i+1)*N+j+1]*a)*b;
+}
+function grad(T,x,y){ // 每公尺升高幾公尺
+  const e=1.2/(N-1), m=T.size*1000;
+  return [(hAt(T,x+e,y)-hAt(T,x-e,y))/(2*e*m),(hAt(T,x,y+e)-hAt(T,x,y-e))/(2*e*m)];
+}
+function slopeDeg(T,x,y){const g=grad(T,x,y); return Math.atan(Math.hypot(g[0],g[1]))*180/Math.PI;}
+
+/* ---------- 等高線（marching squares） ---------- */
+function contourAt(T,L,chain){
+  const H=T.H, segs=[], pts={};
+  const ep=(key,x,y)=>{pts[key]=[x,y]; return key;};
+  const hE=(i,j)=>{const a=H[i*N+j], b=H[i*N+j+1]; const t=(L-a)/(b-a); return ep(i*N+j,(j+t)/(N-1),i/(N-1));};
+  const vE=(i,j)=>{const a=H[i*N+j], b=H[(i+1)*N+j]; const t=(L-a)/(b-a); return ep(N*N+i*N+j,j/(N-1),(i+t)/(N-1));};
+  for(let i=0;i<N-1;i++)for(let j=0;j<N-1;j++){
+    const tl=H[i*N+j], tr=H[i*N+j+1], br=H[(i+1)*N+j+1], bl=H[(i+1)*N+j];
+    const c=(tl>L?8:0)|(tr>L?4:0)|(br>L?2:0)|(bl>L?1:0);
+    if(c===0||c===15) continue;
+    const T_=()=>hE(i,j), R=()=>vE(i,j+1), B=()=>hE(i+1,j), Lf=()=>vE(i,j);
+    const ctr=(tl+tr+br+bl)/4>L;
+    switch(c){
+      case 1: case 14: segs.push([Lf(),B()]); break;
+      case 2: case 13: segs.push([B(),R()]); break;
+      case 3: case 12: segs.push([Lf(),R()]); break;
+      case 4: case 11: segs.push([T_(),R()]); break;
+      case 6: case 9: segs.push([T_(),B()]); break;
+      case 7: case 8: segs.push([Lf(),T_()]); break;
+      case 5: if(ctr){segs.push([Lf(),T_()]);segs.push([B(),R()]);}else{segs.push([T_(),R()]);segs.push([Lf(),B()]);} break;
+      case 10: if(ctr){segs.push([T_(),R()]);segs.push([Lf(),B()]);}else{segs.push([Lf(),T_()]);segs.push([B(),R()]);} break;
+    }
+  }
+  if(!chain) return segs.map(s=>[pts[s[0]],pts[s[1]]]);
+  const adj=new Map();
+  segs.forEach((s,k)=>{for(const e of s){if(!adj.has(e))adj.set(e,[]); adj.get(e).push(k);}});
+  const used=new Uint8Array(segs.length), lines=[];
+  const walk=(start,from)=>{const out=[]; let cur=start, e=from;
+    while(true){ used[cur]=1; const s=segs[cur]; const nx=s[0]===e?s[1]:s[0]; out.push(nx);
+      const nb=adj.get(nx).find(k=>!used[k]); if(nb===undefined) break; cur=nb; e=nx; }
+    return out;};
+  for(let k=0;k<segs.length;k++){ if(used[k]) continue;
+    const s=segs[k]; used[k]=1;
+    const fwd=[]; let nb=adj.get(s[1]).find(q=>!used[q]); if(nb!==undefined) fwd.push(...walk(nb,s[1]));
+    const back=[]; nb=adj.get(s[0]).find(q=>!used[q]); if(nb!==undefined) back.push(...walk(nb,s[0]));
+    const keys=[...back.reverse(),s[0],s[1],...fwd];
+    lines.push(keys.map(q=>pts[q]));
+  }
+  return lines;
+}
+function levelsOf(T,iv){const a=[]; for(let L=T.island?0:iv; L<T.max; L+=iv) a.push(L); return a;}
+function contours(T,iv){
+  const k='c'+iv; if(T.cache[k]) return T.cache[k];
+  return T.cache[k]=levelsOf(T,iv).map(L=>({L, lines:contourAt(T,L===0?0.0001:L,true)}));
+}
+
+/* ---------- 顏色 ---------- */
+const TINT=[[-150,[120,170,206]],[-1,[170,208,232]],[0,[186,215,168]],[100,[207,226,169]],[250,[232,225,165]],[400,[226,197,143]],[550,[207,165,122]],[700,[184,136,106]],[1000,[164,123,100]],[1600,[146,108,92]],[2200,[160,140,132]],[3000,[222,216,210]]];
+function tint(h){
+  if(h<=TINT[0][0]) return TINT[0][1];
+  for(let k=1;k<TINT.length;k++){ if(h<=TINT[k][0]){const [h0,c0]=TINT[k-1],[h1,c1]=TINT[k], t=(h-h0)/(h1-h0); return c0.map((v,q)=>v+(c1[q]-v)*t);} }
+  return TINT[TINT.length-1][1];
+}
+
+/* ================= 狀態 ================= */
+const S={mode:'origin', t:'A', iv:50, tintOn:true,
+  water:{lv:0, playing:false, done:false},
+  slopeC:null,
+  feat:null,
+  prof:{a:null,b:null,step:0,drag:false},
+  game:null};
+const T=()=>TER[S.t];
+
+/* ================= 2D 地圖 ================= */
+const mapC=$('map'), mctx=mapC.getContext('2d');
+let MS=500, dpr=1;
+const tintCache={};
+function tintCanvas(t){
+  if(tintCache[t]) return tintCache[t];
+  const Tt=TER[t], c=document.createElement('canvas'); c.width=c.height=N;
+  const x=c.getContext('2d'), im=x.createImageData(N,N);
+  for(let q=0;q<N*N;q++){const col=tint(Tt.H[q]); im.data[q*4]=col[0]; im.data[q*4+1]=col[1]; im.data[q*4+2]=col[2]; im.data[q*4+3]=255;}
+  x.putImageData(im,0,0); return tintCache[t]=c;
+}
+const P=(x,y)=>[x*MS,y*MS];
+function sizeMap(){
+  const r=mapC.getBoundingClientRect(); dpr=Math.min(2,window.devicePixelRatio||1);
+  MS=Math.max(50,Math.min(r.width,r.height));
+  mapC.width=Math.round(r.width*dpr); mapC.height=Math.round(r.height*dpr);
+}
+function strokeLine(ctx,pts){ctx.beginPath(); pts.forEach((p,k)=>{const q=P(p[0],p[1]); k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);}); ctx.stroke();}
+function labelFont(px,w){return `${w||700} ${px}px ${css('--sans')}`;}
+function haloText(ctx,txt,x,y,color,px,align){
+  ctx.font=labelFont(px); ctx.textAlign=align||'center'; ctx.textBaseline='middle';
+  ctx.lineJoin='round'; ctx.lineWidth=Math.max(3,px*.32); ctx.strokeStyle='rgba(255,255,255,.92)'; ctx.strokeText(txt,x,y);
+  ctx.fillStyle=color; ctx.fillText(txt,x,y);
+}
+function drawContours(ctx,Tt,iv,maxLevel){
+  const cs=contours(Tt,iv), brown=css('--brown');
+  const lblEvery=iv*2;
+  for(const {L,lines} of cs){
+    if(maxLevel!=null && L>maxLevel+0.01) continue;
+    const coast=Tt.island&&L===0;
+    ctx.strokeStyle=coast?css('--sea'):brown;
+    ctx.lineWidth=coast?2.4:(L%lblEvery===0?2.1:1.25);
+    ctx.lineJoin='round';
+    for(const ln of lines) strokeLine(ctx,ln);
+  }
+  // 標高數字：放在等高線最稀疏的位置
+  const placed=[];
+  const fs=Math.max(11,Math.round(MS/46));
+  for(const {L,lines} of cs){
+    if(maxLevel!=null && L>maxLevel+0.01) continue;
+    if(L%lblEvery!==0 || L===0) continue;
+    for(const ln of lines){
+      if(ln.length<30) continue;
+      let best=null, bs=1e9;
+      for(let k=8;k<ln.length-8;k+=4){
+        const [x,y]=ln[k]; if(x<.04||x>.96||y<.04||y>.96||(y>.86&&x<.36)) continue;
+        const g=grad(Tt,x,y), s=Math.hypot(g[0],g[1]);
+        const q=P(x,y); if(placed.some(p=>Math.hypot(p[0]-q[0],p[1]-q[1])<fs*(Tt.size>10?4.6:3.2))) continue;
+        if(s<bs){bs=s; best=k;}
+      }
+      if(best==null) continue;
+      const a=P(...ln[best-3]), b=P(...ln[best+3]), q=P(...ln[best]);
+      let ang=Math.atan2(b[1]-a[1],b[0]-a[0]); if(ang>Math.PI/2)ang-=Math.PI; if(ang<-Math.PI/2)ang+=Math.PI;
+      ctx.save(); ctx.translate(q[0],q[1]); ctx.rotate(ang);
+      ctx.font=labelFont(fs,700); const w=ctx.measureText(String(L)).width;
+      ctx.fillStyle='rgba(250,249,243,.95)'; ctx.fillRect(-w/2-3,-fs*.62,w+6,fs*1.24);
+      ctx.fillStyle=css('--brown-2'); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(String(L),0,1);
+      ctx.restore(); placed.push(q);
+    }
+  }
+}
+function drawDecor(ctx,Tt){
+  const fs=Math.max(11,Math.round(MS/48));
+  // 指北
+  const nx=MS-fs*2.2, ny=fs*2.4;
+  ctx.fillStyle=css('--ink'); ctx.beginPath(); ctx.moveTo(nx,ny-fs*1.3); ctx.lineTo(nx+fs*.55,ny+fs*.3); ctx.lineTo(nx,ny); ctx.lineTo(nx-fs*.55,ny+fs*.3); ctx.closePath(); ctx.fill();
+  haloText(ctx,'N',nx,ny+fs*1.1,css('--ink'),fs);
+  // 比例尺
+  const m=Tt.size*1000, seg=m>15000?5000:m>3000?1000:500, len=seg/m*MS, x0=fs*1.2, y0=MS-fs*1.3;
+  ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fillRect(x0-6,y0-fs*1.6,len+fs*4.2,fs*2.3);
+  ctx.strokeStyle=css('--ink'); ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x0,y0-5); ctx.lineTo(x0,y0); ctx.lineTo(x0+len,y0); ctx.lineTo(x0+len,y0-5); ctx.stroke();
+  ctx.font=labelFont(fs*.9,500); ctx.fillStyle=css('--ink'); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText('0',x0-2,y0-fs*.5); ctx.fillText(seg+' 公尺',x0+len-fs*.3,y0-fs*.5);
+  if(Tt.names) for(const [n,x,y] of Tt.names){const q=P(x,y); haloText(ctx,n,q[0],q[1],css('--sea'),fs*1.05);}
+  if(Tt.island){const q=P(.88,.2); haloText(ctx,'太平洋',q[0],q[1],css('--sea'),fs*1.1);}
+}
+function mark(ctx,x,y,color,r,label,shape){
+  const q=P(x,y); r=r||MS/70;
+  ctx.fillStyle=color; ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; ctx.beginPath();
+  if(shape==='tri'){ctx.moveTo(q[0],q[1]-r*1.2); ctx.lineTo(q[0]+r,q[1]+r*.7); ctx.lineTo(q[0]-r,q[1]+r*.7); ctx.closePath();}
+  else if(shape==='x'){ctx.lineWidth=4; ctx.strokeStyle=color; ctx.moveTo(q[0]-r,q[1]-r); ctx.lineTo(q[0]+r,q[1]+r); ctx.moveTo(q[0]+r,q[1]-r); ctx.lineTo(q[0]-r,q[1]+r); ctx.stroke(); r=r;}
+  else ctx.arc(q[0],q[1],r,0,Math.PI*2);
+  if(shape!=='x'){ctx.stroke(); ctx.fill();}
+  if(label) haloText(ctx,label,q[0],q[1]-r*2.3,color,Math.max(13,MS/38));
+}
+function drawFeature(ctx,Tt,key,label){
+  const f=Tt.f[key], color=css(FEAT[key].c), w=Math.max(4,MS/110), fs=Math.max(13,MS/36);
+  const nm=label===false?'':FEAT[key].n;
+  if(key==='peak'){mark(ctx,f[0],f[1],color,MS/60,nm?`${nm} ${Math.round(hAt(Tt,f[0],f[1]))} 公尺`:'','tri'); return;}
+  if(key==='saddle'){
+    const q=P(f[0],f[1]), r=MS/42; ctx.strokeStyle=color; ctx.lineWidth=w;
+    ctx.beginPath(); ctx.arc(q[0]-r*1.25,q[1],r,-.9,.9); ctx.stroke(); ctx.beginPath(); ctx.arc(q[0]+r*1.25,q[1],r,Math.PI-.9,Math.PI+.9); ctx.stroke();
+    if(nm) haloText(ctx,nm,q[0],q[1]+r*2.1,color,fs); return;
+  }
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  if(key==='ridge'){ctx.strokeStyle=color; ctx.lineWidth=w; ctx.setLineDash([w*2.4,w*1.6]); strokeLine(ctx,f); ctx.setLineDash([]);}
+  if(key==='valley'){ctx.strokeStyle=color; ctx.lineWidth=w*1.05; strokeLine(ctx,f);
+    const a=P(...f[f.length-2]), b=P(...f[f.length-1]), an=Math.atan2(b[1]-a[1],b[0]-a[0]);
+    ctx.fillStyle=color; ctx.beginPath(); ctx.moveTo(b[0]+Math.cos(an)*w*2,b[1]+Math.sin(an)*w*2); ctx.lineTo(b[0]+Math.cos(an+2.4)*w*2.4,b[1]+Math.sin(an+2.4)*w*2.4); ctx.lineTo(b[0]+Math.cos(an-2.4)*w*2.4,b[1]+Math.sin(an-2.4)*w*2.4); ctx.fill();}
+  if(key==='cliff'){ctx.strokeStyle=color; ctx.lineWidth=w*.8; strokeLine(ctx,f);
+    // 崖齒：朝下坡方向
+    for(let k=0;k<f.length-1;k++){const [x0,y0]=f[k],[x1,y1]=f[k+1];
+      for(let t=0;t<1;t+=.2){const x=x0+(x1-x0)*t, y=y0+(y1-y0)*t, g=grad(Tt,x,y), gl=Math.hypot(g[0],g[1])||1, q=P(x,y);
+        ctx.beginPath(); ctx.moveTo(q[0],q[1]); ctx.lineTo(q[0]-g[0]/gl*MS/55,q[1]-g[1]/gl*MS/55); ctx.stroke();}}}
+  if(nm){const mid=f[key==='valley'?f.length-2:Math.floor(f.length/2)], q=P(mid[0],mid[1]);
+    const off=key==='cliff'?-MS/22:MS/22; haloText(ctx,nm,q[0]+off*.2,q[1]+(key==='cliff'?-MS/30:0)+(key==='valley'?0:0),color,fs,'center');
+  }
+}
+function drawMap(){
+  const Tt=T(), ctx=mctx, r=mapC.getBoundingClientRect();
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,r.width,r.height);
+  const ox=(r.width-MS)/2, oy=(r.height-MS)/2; ctx.translate(ox,oy);
+  ctx.save(); ctx.beginPath(); ctx.rect(0,0,MS,MS); ctx.clip();
+  ctx.fillStyle='#F7F5EC'; ctx.fillRect(0,0,MS,MS);
+  if(S.tintOn){ctx.imageSmoothingEnabled=true; ctx.globalAlpha=Tt.island?1:.9; ctx.drawImage(tintCanvas(S.t),0,0,MS,MS); ctx.globalAlpha=1;}
+  let maxL=null;
+  if(S.mode==='origin') maxL=S.water.done?null:S.water.lv;
+  if(S.mode==='origin' && !S.water.done){
+    // 未淹到的高度先畫淡淡的輪廓，讓學生看得到山的位置
+    ctx.globalAlpha=.18; drawContours(ctx,Tt,S.iv,null); ctx.globalAlpha=1;
+  }
+  drawContours(ctx,Tt,S.iv,maxL);
+  if(S.mode==='origin' && !S.water.done && S.water.lv>0){
+    ctx.strokeStyle=css('--valley'); ctx.lineWidth=Math.max(3,MS/150);
+    for(const ln of contourAt(Tt,S.water.lv,true)) strokeLine(ctx,ln);
+  }
+  drawDecor(ctx,Tt);
+  overlay2D[S.mode] && overlay2D[S.mode](ctx,Tt);
+  ctx.restore();
+  ctx.strokeStyle=css('--line'); ctx.lineWidth=1.5; ctx.strokeRect(.75,.75,MS-1.5,MS-1.5);
+  ctx.setTransform(1,0,0,1,0,0);
+}
+function mapToUnit(e){
+  const r=mapC.getBoundingClientRect(), ox=(r.width-MS)/2, oy=(r.height-MS)/2;
+  return [(e.clientX-r.left-ox)/MS,(e.clientY-r.top-oy)/MS];
+}
+
+/* 坡度：沿最陡方向取一段，數跨過幾條等高線 */
+function slopeProbe(Tt,x,y){
+  const g=grad(Tt,x,y), gl=Math.hypot(g[0],g[1])||1e-9, ux=g[0]/gl, uy=g[1]/gl;
+  const Lm=Tt.island?200:Tt.size>10?2000:400, Lu=Lm/(Tt.size*1000);
+  const a=[x-ux*Lu/2,y-uy*Lu/2], b=[x+ux*Lu/2,y+uy*Lu/2];
+  const pts=[]; let prev=hAt(Tt,...a), n=0;
+  for(let k=1;k<=120;k++){const t=k/120, px=a[0]+(b[0]-a[0])*t, py=a[1]+(b[1]-a[1])*t, h=hAt(Tt,px,py);
+    for(const L of levelsOf(Tt,S.iv)){ if((prev<L)!==(h<L)){n++; pts.push([px,py]);} } prev=h;}
+  const deg=slopeDeg(Tt,x,y);
+  return {a,b,n,pts,deg,Lm,h:hAt(Tt,x,y)};
+}
+function slopeWord(d){return d<5?'平緩':d<15?'中等':d<30?'陡':'非常陡';}
+function drawProbe(ctx,Tt,pt,name,color){
+  const p=slopeProbe(Tt,pt[0],pt[1]);
+  const A=P(...p.a), B=P(...p.b);
+  ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=MS/80; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B); ctx.stroke();
+  ctx.strokeStyle=color; ctx.lineWidth=MS/180; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B); ctx.stroke();
+  ctx.fillStyle=color; for(const q of p.pts){const c=P(...q); ctx.beginPath(); ctx.arc(c[0],c[1],MS/170,0,7); ctx.fill();}
+  mark(ctx,pt[0],pt[1],color,MS/75,name);
+  return p;
+}
+
+function drawType(ctx,Tt,key){
+  const e=Tt.types[key], color=css(TYPES[key].c), fs=Math.max(15,MS/30);
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=Math.max(3,MS/150); ctx.setLineDash([12,8]);
+  ctx.beginPath(); ellPts(e,80).forEach((p,k)=>{const q=P(...p); k?ctx.lineTo(...q):ctx.moveTo(...q);}); ctx.closePath();
+  ctx.globalAlpha=.13; ctx.fillStyle=color; ctx.fill(); ctx.globalAlpha=1; ctx.stroke(); ctx.restore();
+  const q=P(...e.c); haloText(ctx,TYPES[key].n,q[0],q[1],color,fs);
+}
+const overlay2D={
+  origin(){},
+  slope(ctx,Tt){
+    drawProbe(ctx,Tt,Tt.slope.A,'A',css('--peak'));
+    drawProbe(ctx,Tt,Tt.slope.B,'B',css('--valley'));
+    if(S.slopeC) drawProbe(ctx,Tt,S.slopeC,'C',css('--saddle'));
+  },
+  landform(ctx,Tt){
+    const keys=S.feat==='all'?FORDER:(S.feat?[S.feat]:[]);
+    if(keys.includes('peak') && Tt.f.peak2){const q=Tt.f.peak2; mark(ctx,q[0],q[1],css('--peak'),MS/85,'','tri');}
+    for(const k of keys) drawFeature(ctx,Tt,k,true);
+  },
+  types(ctx,Tt){ const keys=S.ttype==='all'?TORDER:(S.ttype?[S.ttype]:[]); keys.forEach(k=>drawType(ctx,Tt,k)); },
+  profile(ctx,Tt){
+    const pr=S.prof; if(!pr.a||!pr.b) return;
+    const A=P(...pr.a), B=P(...pr.b), acc=css('--accent'), fs=Math.max(13,MS/36);
+    ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=MS/90; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B); ctx.stroke();
+    ctx.strokeStyle=acc; ctx.lineWidth=MS/200+1; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B); ctx.stroke();
+    haloText(ctx,'A',A[0],A[1]-fs,acc,fs*1.15); haloText(ctx,'B',B[0],B[1]-fs,acc,fs*1.15);
+    if(pr.step>=2 && !pr.drag){ const xs=crossings(Tt,pr.a,pr.b);
+      xs.forEach(c=>{const q=P(c.x,c.y); ctx.fillStyle=acc; ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(q[0],q[1],MS/150+2,0,7); ctx.fill(); ctx.stroke();});
+    }
+  },
+  game(ctx,Tt){ gameOverlay(ctx,Tt); }
+};
+
+/* ================= 剖面 ================= */
+function sampleLine(Tt,a,b,n){n=n||300; const out=[]; for(let k=0;k<=n;k++){const t=k/n; out.push({t,h:hAt(Tt,a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t)});} return out;}
+function crossings(Tt,a,b){
+  const s=sampleLine(Tt,a,b,600), lv=levelsOf(Tt,S.iv), out=[];
+  for(let k=1;k<s.length;k++) for(const L of lv){ const h0=s[k-1].h, h1=s[k].h;
+    if((h0<L)!==(h1<L)){const t=s[k-1].t+(s[k].t-s[k-1].t)*(L-h0)/(h1-h0); out.push({t,L,x:a[0]+(b[0]-a[0])*t,y:a[1]+(b[1]-a[1])*t});}}
+  return out.sort((p,q)=>p.t-q.t);
+}
+const profC=$('cprof'), pctx=profC.getContext('2d');
+function drawProfilePanel(){
+  if(S.mode!=='profile') return;
+  const r=profC.getBoundingClientRect(); if(r.width<10) return;
+  profC.width=Math.round(r.width*dpr); profC.height=Math.round(r.height*dpr);
+  const ctx=pctx; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,r.width,r.height);
+  const pr=S.prof, Tt=T(), W=r.width, H=r.height, fs=Math.max(12,Math.min(18,W/55));
+  const ml=fs*4.2, mr=fs*1.6, mt=fs*5, mb=fs*2.6, pw=W-ml-mr, ph=H-mt-mb;
+  ctx.font=labelFont(fs,700); ctx.fillStyle=css('--ink'); ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('地形剖面圖',fs*.8,fs*.5);
+  if(!pr.a||!pr.b||pr.step<1){ctx.fillStyle=css('--muted'); ctx.font=labelFont(fs,500); ctx.fillText('在右邊地圖上拖曳，畫出一條剖面線 A→B。',fs*.8,fs*2.4); return;}
+  const s=sampleLine(Tt,pr.a,pr.b,400), xs=crossings(Tt,pr.a,pr.b);
+  const D=Math.hypot(pr.b[0]-pr.a[0],pr.b[1]-pr.a[1])*Tt.size*1000;
+  const lv=levelsOf(Tt,S.iv), top=Math.max(S.iv,Math.ceil((Math.max(...s.map(p=>p.h))+1)/S.iv)*S.iv);
+  const bot=Tt.island?Math.min(0,Math.floor(Math.min(...s.map(p=>p.h))/S.iv)*S.iv):0;
+  const X=t=>ml+t*pw, Y=h=>mt+ph*(1-(h-bot)/(top-bot));
+  // 格線
+  ctx.font=labelFont(fs*.85,500); ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let L=bot;L<=top;L+=S.iv){ctx.strokeStyle=L===0&&Tt.island?css('--sea'):css('--line'); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(ml,Y(L)); ctx.lineTo(ml+pw,Y(L)); ctx.stroke();
+    if((L-bot)%(S.iv*(ph/((top-bot)/S.iv)<fs*1.3?2:1))===0){ctx.fillStyle=css('--muted'); ctx.fillText(L,ml-6,Y(L));}}
+  ctx.save(); ctx.translate(fs*.9,mt+ph/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillStyle=css('--muted'); ctx.fillText('海拔（公尺）',0,0); ctx.restore();
+  ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillStyle=css('--muted'); ctx.fillText(`水平距離約 ${Math.round(D/10)*10} 公尺`,ml+pw/2,mt+ph+fs*1.1);
+  // 剖面線紙條
+  const acc=css('--accent'), sy=mt-fs*1.7;
+  ctx.strokeStyle=acc; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(X(0),sy); ctx.lineTo(X(1),sy); ctx.stroke();
+  ctx.font=labelFont(fs*1.1,900); ctx.fillStyle=acc; ctx.textBaseline='middle'; ctx.fillText('A',X(0)-fs*.9,sy); ctx.fillText('B',X(1)+fs*.8,sy);
+  if(pr.step>=2){ ctx.font=labelFont(fs*.75,700); const lastX=[-1e9,-1e9];
+    xs.forEach(c=>{const x=X(c.t); ctx.strokeStyle=acc; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,sy-6); ctx.lineTo(x,sy+6); ctx.stroke();
+      const w=ctx.measureText(String(c.L)).width+4; let row=-1; for(let q=0;q<2;q++){ if(x-w/2>lastX[q]){row=q;break;} }
+      if(row<0) return; lastX[row]=x+w/2; ctx.fillStyle=css('--brown-2'); ctx.fillText(c.L,x,sy-fs*(row?1.75:.85));}); }
+  if(pr.step>=3){
+    ctx.setLineDash([4,5]); ctx.strokeStyle=css('--muted'); ctx.lineWidth=1.2;
+    xs.forEach(c=>{ctx.beginPath(); ctx.moveTo(X(c.t),sy+6); ctx.lineTo(X(c.t),Y(c.L)); ctx.stroke();});
+    ctx.setLineDash([]);
+  }
+  if(pr.step>=4){
+    ctx.beginPath(); s.forEach((p,k)=>{k?ctx.lineTo(X(p.t),Y(p.h)):ctx.moveTo(X(p.t),Y(p.h));});
+    ctx.lineTo(X(1),Y(bot)); ctx.lineTo(X(0),Y(bot)); ctx.closePath(); ctx.fillStyle='rgba(185,142,104,.35)'; ctx.fill();
+    if(Tt.island){ctx.save(); ctx.beginPath(); ctx.rect(ml,Y(0),pw,Y(bot)-Y(0)); ctx.clip(); ctx.fillStyle='rgba(44,110,155,.25)'; ctx.fillRect(ml,Y(0),pw,Y(bot)-Y(0)); ctx.restore();}
+    ctx.beginPath(); s.forEach((p,k)=>{k?ctx.lineTo(X(p.t),Y(p.h)):ctx.moveTo(X(p.t),Y(p.h));});
+    ctx.strokeStyle=css('--brown-2'); ctx.lineWidth=3; ctx.lineJoin='round'; ctx.stroke();
+  }
+  if(pr.step>=3){ xs.forEach(c=>{ctx.fillStyle=acc; ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(X(c.t),Y(c.L),5,0,7); ctx.fill(); ctx.stroke();}); }
+  ctx.strokeStyle=css('--ink'); ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(ml,mt); ctx.lineTo(ml,mt+ph); ctx.lineTo(ml+pw,mt+ph); ctx.stroke();
+}
+function drawMiniProfile(cv,Tt,a,b,top,bot){
+  const r=cv.getBoundingClientRect(); cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=r.width, H=r.height, m=16, s=sampleLine(Tt,a,b,200);
+  const X=t=>m+t*(W-2*m), Y=h=>6+(H-24)*(1-(h-bot)/(top-bot));
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#DDD'; ctx.lineWidth=1; for(let L=bot;L<=top;L+=100){ctx.beginPath(); ctx.moveTo(m,Y(L)); ctx.lineTo(W-m,Y(L)); ctx.stroke();}
+  ctx.beginPath(); s.forEach((p,k)=>{k?ctx.lineTo(X(p.t),Y(Math.max(bot,p.h))):ctx.moveTo(X(p.t),Y(Math.max(bot,p.h)));});
+  ctx.lineTo(X(1),Y(bot)); ctx.lineTo(X(0),Y(bot)); ctx.closePath(); ctx.fillStyle='rgba(185,142,104,.45)'; ctx.fill();
+  ctx.beginPath(); s.forEach((p,k)=>{k?ctx.lineTo(X(p.t),Y(Math.max(bot,p.h))):ctx.moveTo(X(p.t),Y(Math.max(bot,p.h)));});
+  ctx.strokeStyle='#6E4521'; ctx.lineWidth=2.2; ctx.stroke();
+  ctx.fillStyle='#C0392B'; ctx.font=labelFont(13,900); ctx.textBaseline='bottom'; ctx.textAlign='left'; ctx.fillText('A',3,H-2); ctx.textAlign='right'; ctx.fillText('B',W-3,H-2);
+}
+
+/* ================= 3D ================= */
+const has3D=!!window.THREE;
+const W3=10;
+const VEof=Tt=>Tt.ve||Math.round(.75*Tt.size*10)/10;
+let R3=null;
+const hy=(Tt,h)=>h/1000*(W3/Tt.size)*VEof(Tt);
+const to3=(Tt,x,y,lift)=>new THREE.Vector3((x-.5)*W3, hy(Tt,Math.max(Tt.island?-9999:0,hAt(Tt,x,y)))+(lift||0), (y-.5)*W3);
+function init3D(){
+  if(!has3D){ $('veil3d').hidden=false; $('veil3d').textContent='3D 需要網路載入繪圖元件，請確認網路後重新整理。'; return; }
+  const canvas=$('c3d');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(34,1,.1,200);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x8a7a66,.58));
+  const sun=new THREE.DirectionalLight(0xffffff,.55); sun.position.set(-6,10,4); scene.add(sun);
+  const world=new THREE.Group(), lines=new THREE.Group(), over=new THREE.Group(), dyn=new THREE.Group();
+  scene.add(world,lines,over,dyn);
+  R3={renderer,scene,camera,world,lines,over,dyn,cam:{th:.3,ph:.95,r:23,fov:34},tw:null,spin:false,dirty:true,built:null};
+  // 拖曳旋轉
+  let drag=null;
+  canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,th:R3.cam.th,ph:R3.cam.ph}; canvas.setPointerCapture(e.pointerId); R3.tw=null;});
+  canvas.addEventListener('pointermove',e=>{ if(!drag) return; const r=canvas.getBoundingClientRect();
+    R3.cam.th=drag.th-(e.clientX-drag.x)/r.width*4; R3.cam.ph=Math.max(.03,Math.min(1.45,drag.ph-(e.clientY-drag.y)/r.height*2.4)); R3.dirty=true;});
+  canvas.addEventListener('pointerup',()=>drag=null); canvas.addEventListener('pointercancel',()=>drag=null);
+  canvas.addEventListener('wheel',e=>{e.preventDefault(); R3.cam.r=Math.max(9,Math.min(80,R3.cam.r*(1+Math.sign(e.deltaY)*.08))); R3.dirty=true;},{passive:false});
+  new ResizeObserver(()=>{R3.dirty=true; resize3D();}).observe($('v3d'));
+}
+function resize3D(){ if(!R3) return; const r=$('v3d').getBoundingClientRect(); if(r.width<2||r.height<2) return;
+  R3.renderer.setSize(r.width,r.height,false); R3.camera.aspect=r.width/r.height; R3.camera.updateProjectionMatrix(); R3.dirty=true; }
+function clearGroup(g){ while(g.children.length){const o=g.children.pop(); o.traverse(q=>{q.geometry&&q.geometry.dispose(); if(q.material){(Array.isArray(q.material)?q.material:[q.material]).forEach(m=>{m.map&&m.map.dispose(); m.dispose();});}});} }
+function build3D(){
+  if(!R3) return; const Tt=T(); clearGroup(R3.world);
+  const pos=new Float32Array(N*N*3), col=new Float32Array(N*N*3), idx=[];
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){const q=i*N+j, h=Tt.H[q];
+    pos[q*3]=(j/(N-1)-.5)*W3; pos[q*3+1]=hy(Tt,h); pos[q*3+2]=(i/(N-1)-.5)*W3;
+    const c=tint(h); col[q*3]=c[0]/255; col[q*3+1]=c[1]/255; col[q*3+2]=c[2]/255;}
+  for(let i=0;i<N-1;i++)for(let j=0;j<N-1;j++){const a=i*N+j,b=a+1,c=a+N,d=c+1; idx.push(a,c,b,b,c,d);}
+  const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3)); geo.setAttribute('color',new THREE.BufferAttribute(col,3)); geo.setIndex(idx); geo.computeVertexNormals();
+  R3.world.add(new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true})));
+  // 土壤側面
+  const base=hy(Tt,Math.min(0,Tt.hmin))-.35, wp=[], wi=[];
+  const edge=(get)=>{const s=wp.length/3; for(let k=0;k<N;k++){const [x,z,h]=get(k); wp.push(x,hy(Tt,h),z, x,base,z);} for(let k=0;k<N-1;k++){const a=s+k*2; wi.push(a,a+1,a+2,a+2,a+1,a+3);}};
+  edge(k=>[(k/(N-1)-.5)*W3,-W3/2,Tt.H[k]]); edge(k=>[(k/(N-1)-.5)*W3,W3/2,Tt.H[(N-1)*N+k]]);
+  edge(k=>[-W3/2,(k/(N-1)-.5)*W3,Tt.H[k*N]]); edge(k=>[W3/2,(k/(N-1)-.5)*W3,Tt.H[k*N+N-1]]);
+  const wg=new THREE.BufferGeometry(); wg.setAttribute('position',new THREE.Float32BufferAttribute(wp,3)); wg.setIndex(wi); wg.computeVertexNormals();
+  R3.world.add(new THREE.Mesh(wg,new THREE.MeshLambertMaterial({color:0x9a8266,side:THREE.DoubleSide})));
+  if(Tt.island){ const sea=new THREE.Mesh(new THREE.PlaneGeometry(W3,W3),new THREE.MeshLambertMaterial({color:0x4d93c4,transparent:true,opacity:.72,depthWrite:false}));
+    sea.rotation.x=-Math.PI/2; sea.position.y=.002; R3.world.add(sea); }
+  R3.built=S.t; build3DLines(); R3.dirty=true;
+}
+function build3DLines(maxL){
+  if(!R3) return; clearGroup(R3.lines); if(!$('bLines').getAttribute('aria-pressed').includes('true')) {R3.dirty=true; return;}
+  const Tt=T(), p=[];
+  for(const {L} of contours(Tt,S.iv)){ if(maxL!=null && L>maxL+.01) continue;
+    for(const [a,b] of contourAt(Tt,L===0?.0001:L,false)){const y=hy(Tt,L)+.015; p.push((a[0]-.5)*W3,y,(a[1]-.5)*W3,(b[0]-.5)*W3,y,(b[1]-.5)*W3);} }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));
+  R3.lines.add(new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:0x5b3a1c})));
+  R3.dirty=true;
+}
+function tube(Tt,pts,color,rad,lift){
+  const v=[]; for(let k=0;k<pts.length-1;k++){const [x0,y0]=pts[k],[x1,y1]=pts[k+1], n=Math.max(2,Math.ceil(Math.hypot(x1-x0,y1-y0)/.01));
+    for(let s=0;s<n;s++){const t=s/n; v.push(to3(Tt,x0+(x1-x0)*t,y0+(y1-y0)*t,lift==null?.06:lift));}}
+  v.push(to3(Tt,...pts[pts.length-1],lift==null?.06:lift));
+  const curve=new THREE.CatmullRomCurve3(v);
+  return new THREE.Mesh(new THREE.TubeGeometry(curve,v.length*2,rad||.06,6,false),new THREE.MeshBasicMaterial({color}));
+}
+function textSprite(txt,color,scale){
+  const c=document.createElement('canvas'), x=c.getContext('2d'), fs=64;
+  x.font=`700 ${fs}px ${css('--sans')}`; const w=Math.ceil(x.measureText(txt).width)+36; c.width=w; c.height=fs+28;
+  x.font=`700 ${fs}px ${css('--sans')}`; x.fillStyle='rgba(255,255,255,.93)';
+  const r=16; x.beginPath(); x.moveTo(r,0); x.lineTo(w-r,0); x.quadraticCurveTo(w,0,w,r); x.lineTo(w,c.height-r); x.quadraticCurveTo(w,c.height,w-r,c.height); x.lineTo(r,c.height); x.quadraticCurveTo(0,c.height,0,c.height-r); x.lineTo(0,r); x.quadraticCurveTo(0,0,r,0); x.fill();
+  x.fillStyle=color; x.textBaseline='middle'; x.textAlign='center'; x.fillText(txt,w/2,c.height/2+2);
+  const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true}));
+  const s=(scale||.55); sp.scale.set(s*w/c.height,s,1); sp.renderOrder=10; return sp;
+}
+function pin(Tt,x,y,color,label){
+  const g=new THREE.Group(), base=to3(Tt,x,y,0), hgt=1.1;
+  const stick=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,hgt,6),new THREE.MeshBasicMaterial({color}));
+  stick.position.copy(base).add(new THREE.Vector3(0,hgt/2,0)); g.add(stick);
+  const ball=new THREE.Mesh(new THREE.SphereGeometry(.12,16,12),new THREE.MeshBasicMaterial({color})); ball.position.copy(base).add(new THREE.Vector3(0,hgt,0)); g.add(ball);
+  if(label){const sp=textSprite(label,color); sp.position.copy(base).add(new THREE.Vector3(0,hgt+.45,0)); g.add(sp);}
+  return g;
+}
+function feature3D(Tt,key,label){
+  const f=Tt.f[key], color=css(FEAT[key].c), g=new THREE.Group(), nm=label===false?'':FEAT[key].n;
+  if(key==='peak'||key==='saddle'){ g.add(pin(Tt,f[0],f[1],color,nm)); return g; }
+  g.add(tube(Tt,f,color,key==='cliff'?.07:.065));
+  if(nm){const m=f[key==='valley'?f.length-1:Math.floor(f.length/2)], sp=textSprite(nm,color); sp.position.copy(to3(Tt,m[0],m[1],key==='valley'?.4:.9)); g.add(sp);}
+  return g;
+}
+function type3D(Tt,key){
+  const e=Tt.types[key], color=css(TYPES[key].c), g=new THREE.Group();
+  g.add(tube(Tt,ellPts(e,60),color,.05,.08));
+  const sp=textSprite(TYPES[key].n,color,.7); sp.position.copy(key==='basin'?to3(Tt,e.c[0],e.c[1]-e.ry,1.2):to3(Tt,e.c[0],e.c[1],1.1)); g.add(sp);
+  return g;
+}
+function curtain(Tt,a,b,color){
+  const s=sampleLine(Tt,a,b,160), p=[], ix=[], base=hy(Tt,Math.min(0,Tt.hmin))-.35;
+  s.forEach(q=>{const x=a[0]+(b[0]-a[0])*q.t, y=a[1]+(b[1]-a[1])*q.t; const v=to3(Tt,x,y,.03); p.push(v.x,v.y,v.z, v.x,base,v.z);});
+  for(let k=0;k<s.length-1;k++){const i=k*2; ix.push(i,i+1,i+2,i+2,i+1,i+3);}
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); g.setIndex(ix);
+  const grp=new THREE.Group();
+  grp.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:new THREE.Color(color),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false})));
+  grp.add(tube(Tt,[a,b],color,.05,.05));
+  const sa=textSprite('A',color,.6), sb=textSprite('B',color,.6); sa.position.copy(to3(Tt,a[0],a[1],.6)); sb.position.copy(to3(Tt,b[0],b[1],.6)); grp.add(sa,sb);
+  return grp;
+}
+function camFeature(key){
+  const Tt=T(), f=Tt.f[key], p=Array.isArray(f[0])?f[Math.floor(f.length/2)]:f;
+  if(key==='peak'){camTo(.3,.95,19,900); return;}
+  let g=grad(Tt,p[0],p[1]);
+  if(key==='saddle'){ const q=Tt.f.peak, v=[q[0]-p[0],q[1]-p[1]]; g=[-v[1],v[0]]; }
+  if(key==='ridge'||key==='valley'){ const a=f[0], b=f[f.length-1]; g=[a[0]-b[0],a[1]-b[1]]; }
+  camTo(Math.atan2(-g[0],-g[1]),.9,19,1100);
+}
+function refresh3DOverlay(){
+  if(!R3) return; clearGroup(R3.over); const Tt=T();
+  if(S.mode==='types'){ const keys=S.ttype==='all'?TORDER:(S.ttype?[S.ttype]:[]); keys.forEach(k=>R3.over.add(type3D(Tt,k))); }
+  if(S.mode==='landform'){ const keys=S.feat==='all'?FORDER:(S.feat?[S.feat]:[]); keys.forEach(k=>R3.over.add(feature3D(Tt,k,true))); }
+  if(S.mode==='slope'){ R3.over.add(pin(Tt,...Tt.slope.A,css('--peak'),'A')); R3.over.add(pin(Tt,...Tt.slope.B,css('--valley'),'B')); if(S.slopeC) R3.over.add(pin(Tt,...S.slopeC,css('--saddle'),'C')); }
+  if(S.mode==='profile' && S.prof.a && S.prof.b && !S.prof.drag){ if(S.prof.step>=4) R3.over.add(curtain(Tt,S.prof.a,S.prof.b,css('--accent'))); else R3.over.add(tube(Tt,[S.prof.a,S.prof.b],css('--accent'),.05,.05)); }
+  if(S.mode==='game') game3D(Tt);
+  if(Tt.names && S.mode!=='game') for(const [n,x,y] of Tt.names){const sp=textSprite(n,css('--sea'),.45); sp.position.copy(to3(Tt,x,y,.5)); R3.over.add(sp);}
+  R3.dirty=true;
+}
+function setWaterPlane(lv){
+  if(!R3) return; clearGroup(R3.dyn); if(S.mode!=='origin'||S.water.done||lv<=0) {R3.dirty=true; return;}
+  const Tt=T(), w=new THREE.Mesh(new THREE.PlaneGeometry(W3*1.001,W3*1.001),new THREE.MeshLambertMaterial({color:0x5aa6d6,transparent:true,opacity:.55,depthWrite:false,side:THREE.DoubleSide}));
+  w.rotation.x=-Math.PI/2; w.position.y=hy(Tt,lv); R3.dyn.add(w);
+  // 水箱側壁
+  const base=hy(Tt,Math.min(0,Tt.hmin))-.35, hgt=hy(Tt,lv)-base;
+  const box=new THREE.Mesh(new THREE.BoxGeometry(W3*1.002,hgt,W3*1.002),new THREE.MeshLambertMaterial({color:0x5aa6d6,transparent:true,opacity:.18,depthWrite:false}));
+  box.position.y=base+hgt/2; R3.dyn.add(box);
+  R3.dirty=true;
+}
+function camTo(th,ph,r,ms,fov){ if(!R3) return; const c=R3.cam; fov=fov||34; r=r*1.08;
+  // 走最短的方向轉
+  while(th-c.th>Math.PI) th-=2*Math.PI; while(c.th-th>Math.PI) th+=2*Math.PI;
+  if(reduce||!ms){c.th=th;c.ph=ph;c.r=r;c.fov=fov;R3.dirty=true;return;}
+  R3.tw={from:{...c},to:{th,ph,r,fov},t0:performance.now(),ms}; }
+function tick(now){
+  if(R3){
+    if(R3.tw){const k=Math.min(1,(now-R3.tw.t0)/R3.tw.ms), e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2; for(const q of ['th','ph','r','fov']) R3.cam[q]=R3.tw.from[q]+(R3.tw.to[q]-R3.tw.from[q])*e; if(k>=1)R3.tw=null; R3.dirty=true;}
+    if(R3.spin){R3.cam.th+=.004; R3.dirty=true;}
+    if(R3.dirty){const c=R3.cam, Tt=T(), ty=hy(Tt,Tt.max)*.25;
+      if(Math.abs(R3.camera.fov-c.fov)>.01){R3.camera.fov=c.fov; R3.camera.updateProjectionMatrix();}
+      R3.camera.position.set(c.r*Math.sin(c.ph)*Math.sin(c.th), ty+c.r*Math.cos(c.ph), c.r*Math.sin(c.ph)*Math.cos(c.th));
+      R3.camera.up.set(0,1,0); if(c.ph<.12){R3.camera.up.set(-Math.sin(c.th),0,-Math.cos(c.th));}
+      R3.camera.lookAt(0,ty,0); R3.renderer.render(R3.scene,R3.camera); R3.dirty=false;}
+  }
+  waterStep(now);
+  requestAnimationFrame(tick);
+}
+
+/* ================= 單元一：水面上升 ================= */
+let wLast=0;
+function waterStep(now){
+  const w=S.water; if(S.mode!=='origin'||!w.playing){wLast=now; return;}
+  const dt=Math.min(.1,(now-wLast)/1000); wLast=now;
+  const Tt=T(), prev=w.lv; w.lv=Math.min(Tt.max+5,w.lv+dt*(Tt.max/9));
+  if(Math.floor(prev/S.iv)!==Math.floor(w.lv/S.iv)) build3DLines(w.lv);
+  if(w.lv>=Tt.max+5){w.playing=false; w.lv=Tt.max; finishWater(); return;}
+  setWaterPlane(w.lv); drawMap(); syncWaterUI();
+}
+function finishWater(){ S.water.done=true; setWaterPlane(0); build3DLines(); drawMap(); syncWaterUI();
+  setCap('水退了，一圈圈水痕留在山坡上。按<b>「從正上方看」</b>，3D 地形就會變成跟右邊一樣的等高線地形圖。'); }
+function syncWaterUI(){ const r=$('wRange'), v=$('wVal'), b=$('wPlay'); if(!r) return;
+  r.value=S.water.done?T().max:Math.round(S.water.lv); v.textContent=S.water.done?'水已退去':`水面 ${Math.round(S.water.lv)} 公尺`;
+  b.textContent=S.water.playing?'暫停':(S.water.lv>0&&!S.water.done?'繼續上升':'讓水面上升'); }
+
+/* ================= UI ================= */
+const cap=$('cap'), ctl=$('ctl');
+function setCap(h){cap.innerHTML=h;}
+function svgSlope(deg,color){ const a=Math.min(80,deg)*Math.PI/180, w=60, h=Math.min(36,Math.tan(a)*w);
+  const x=h<36?60:36/Math.tan(a); return `<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M2 38 L${(2+x).toFixed(1)} 38 L${(2+x).toFixed(1)} ${(38-h).toFixed(1)} Z" fill="${color}" opacity=".25"/><path d="M2 38 L${(2+x).toFixed(1)} ${(38-h).toFixed(1)}" stroke="${color}" stroke-width="3" stroke-linecap="round"/><path d="M2 38 H62" stroke="#999" stroke-width="1.5"/></svg>`; }
+function slopeCards(){ const Tt=T(), box=$('scards'); if(!box) return;
+  const items=[['A',Tt.slope.A,css('--peak')],['B',Tt.slope.B,css('--valley')]]; if(S.slopeC) items.push(['C',S.slopeC,css('--saddle')]);
+  box.innerHTML=items.map(([n,p,c])=>{const q=slopeProbe(Tt,p[0],p[1]); return `<div class="sc"><span class="nm" style="color:${c}">${n}</span>${svgSlope(q.deg,c)}<div>走 ${q.Lm} 公尺跨過 <b>${q.n}</b> 條線<br>坡度約 ${Math.round(q.deg)}°，<b style="color:${c}">${slopeWord(q.deg)}</b></div></div>`;}).join(''); }
+
+function setupMode(){
+  if(S.mode==='types'&&S.t!=='C') setTerrain('C');
+  if(S.mode==='landform'&&!T().f) setTerrain('A');
+  const m=S.mode, Tt=T();
+  document.body.className='m-'+m;
+  $('terr').style.display=$('terrLbl').style.display=(m==='types')?'none':''; S.water.playing=false; S.water.done=true; setWaterPlane(0);
+  document.querySelectorAll('#modes button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m));
+  $('opts').style.visibility=m==='game'?'hidden':'visible';
+  $('veil3d').hidden=has3D; $('v3tag').textContent=m==='game'?'3D 對照':'3D 地形';
+  $('v3hint').textContent=`高度放大約 ${VEof(Tt)} 倍，方便觀察・拖曳旋轉、滾輪縮放`;
+  ctl.innerHTML='';
+  if(m==='origin'){
+    S.water={lv:0,playing:false,done:false};
+    setCap('想像把山泡進水裡：水面每升高 '+S.iv+' 公尺，就在山坡上留下一圈<b>水痕</b>。同一圈水痕上，每一點的高度都一樣，這就是<b>等高線</b>。');
+    ctl.innerHTML=`<button class="btn primary" id="wPlay">讓水面上升</button><label class="range"><input type="range" id="wRange" min="0" max="${Tt.max}" step="1" value="0" aria-label="水面高度"><span id="wVal">水面 0 公尺</span></label><button class="btn" id="wReset">重來</button>`;
+    $('wPlay').onclick=()=>{ if(S.water.done){S.water={lv:0,playing:false,done:false}; build3DLines(0);} S.water.playing=!S.water.playing; syncWaterUI(); };
+    $('wRange').oninput=e=>{S.water.playing=false; S.water.done=false; S.water.lv=+e.target.value; build3DLines(S.water.lv); setWaterPlane(S.water.lv); drawMap(); syncWaterUI();};
+    $('wReset').onclick=()=>{setupMode();};
+    build3DLines(0); setWaterPlane(0); camTo(.3,.95,19,700);
+  }
+  if(m==='slope'){
+    S.slopeC=null; build3DLines();
+    setCap('等高線<b>愈密</b>，坡度<b>愈陡</b>；<b>愈疏</b>，坡度<b>愈緩</b>。點地圖任一處放上 C 點，比比看。');
+    ctl.innerHTML='<div class="scards" id="scards"></div>'; slopeCards(); camTo(.3,.95,19,700);
+  }
+  if(m==='landform'){
+    S.feat=null; build3DLines();
+    setCap('點下面的按鈕，看看每種地形在 3D 和等高線圖上的樣子。口訣：<b>等高線凸向低處是山脊，凸向高處是山谷</b>。');
+    ctl.innerHTML=FORDER.map(k=>`<button class="fbtn" data-f="${k}" style="--c:var(${FEAT[k].c})" aria-pressed="false">${FEAT[k].n}</button>`).join('')+`<button class="btn" data-f="all">全部</button>`;
+    ctl.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{S.feat=S.feat===b.dataset.f?null:b.dataset.f; ctl.querySelectorAll('.fbtn').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===S.feat));
+      setCap(S.feat&&S.feat!=='all'?`<b style="color:var(${FEAT[S.feat].c})">${FEAT[S.feat].n}</b>：${FEAT[S.feat].d}`:(S.feat==='all'?'五種地形一次看：山峰、鞍部、山脊、山谷、陡崖。轉動 3D 地形，找找它們在哪裡。':'點下面的按鈕，看看每種地形在 3D 和等高線圖上的樣子。'));
+      if(S.feat&&S.feat!=='all') camFeature(S.feat);
+      refresh3DOverlay(); drawMap();});
+    camTo(.3,.95,19,700);
+  }
+  if(m==='types'){
+    build3DLines(); S.ttype=null;
+    setCap('這一區把五大地形放在一起：平原、盆地、台地、丘陵、山地。點下面的按鈕，看看每一種的<b>等高線長什麼樣子</b>。');
+    ctl.innerHTML=TORDER.map(k=>`<button class="fbtn" data-y="${k}" style="--c:var(${TYPES[k].c})" aria-pressed="false">${TYPES[k].n}</button>`).join('')+`<button class="btn" data-y="all">全部</button>`;
+    ctl.querySelectorAll('[data-y]').forEach(b=>b.onclick=()=>{S.ttype=S.ttype===b.dataset.y?null:b.dataset.y; ctl.querySelectorAll('.fbtn').forEach(x=>x.setAttribute('aria-pressed',x.dataset.y===S.ttype));
+      setCap(S.ttype&&S.ttype!=='all'?`<b style="color:var(${TYPES[S.ttype].c})">${TYPES[S.ttype].n}</b>：${TYPES[S.ttype].d}`:(S.ttype==='all'?'五大地形一次看。比比看：哪一種等高線最密？哪一種幾乎沒有等高線？':'點下面的按鈕，看看每一種的等高線長什麼樣子。'));
+      if(S.ttype&&S.ttype!=='all'){const c=Tt.types[S.ttype].c; camTo(Math.atan2(c[0]-.5,c[1]-.5),S.ttype==='basin'?.6:.85,17,1000);} else camTo(.3,.95,19,900);
+      refresh3DOverlay(); drawMap();});
+    camTo(.3,.95,19,700);
+  }
+  if(m==='profile'){
+    build3DLines();
+    S.prof={a:Tt.pline[0],b:Tt.pline[1],step:1,drag:false};
+    ctl.innerHTML='<button class="btn" id="pPrev">上一步</button><button class="btn primary" id="pNext">下一步</button><button class="btn" id="pDemo">範例剖面線</button>';
+    $('pPrev').onclick=()=>{S.prof.step=Math.max(1,S.prof.step-1); profStep();};
+    $('pNext').onclick=()=>{S.prof.step=Math.min(4,S.prof.step+1); profStep();};
+    $('pDemo').onclick=()=>{S.prof={a:Tt.pline[0],b:Tt.pline[1],step:1,drag:false}; profStep();};
+    profStep(); camTo(.35,1.0,19,700);
+  }
+  if(m==='game'){ build3DLines(); gameStart(); }
+  refresh3DOverlay(); drawMap(); requestAnimationFrame(()=>{resize3D(); drawProfilePanel();});
+}
+const PSTEP=['',
+  '<b>步驟 1</b>　在地圖上畫一條剖面線 A→B（可以自己拖曳重畫）。',
+  '<b>步驟 2</b>　找出剖面線和每條等高線的<b>交點</b>，記下它們的高度。',
+  '<b>步驟 3</b>　把每個交點<b>往下對</b>到剖面圖上相同高度的位置。',
+  '<b>步驟 4</b>　把點用<b>平滑的曲線</b>連起來，就是剖面圖。看左上的 3D：就像把山沿著 A→B 切開來看側面。'];
+function profStep(){ setCap(PSTEP[S.prof.step]); $('pPrev').disabled=S.prof.step<=1; $('pNext').disabled=S.prof.step>=4; drawMap(); drawProfilePanel(); refresh3DOverlay(); }
+
+/* ---------- 地圖互動 ---------- */
+mapC.addEventListener('pointerdown',e=>{
+  const [x,y]=mapToUnit(e); if(x<0||x>1||y<0||y>1) return;
+  if(S.mode==='slope'){S.slopeC=[x,y]; slopeCards(); refresh3DOverlay(); drawMap();}
+  if(S.mode==='profile'){S.prof={a:[x,y],b:[x,y],step:1,drag:true}; mapC.setPointerCapture(e.pointerId); drawMap();}
+  if(S.mode==='game') gameMapClick(x,y);
+});
+mapC.addEventListener('pointermove',e=>{ if(S.mode==='profile'&&S.prof.drag){const [x,y]=mapToUnit(e); S.prof.b=[Math.max(0,Math.min(1,x)),Math.max(0,Math.min(1,y))]; drawMap();} });
+const endDrag=()=>{ if(S.mode==='profile'&&S.prof.drag){ S.prof.drag=false;
+  if(Math.hypot(S.prof.b[0]-S.prof.a[0],S.prof.b[1]-S.prof.a[1])<.08){S.prof.a=T().pline[0]; S.prof.b=T().pline[1];}
+  S.prof.step=1; profStep(); } };
+mapC.addEventListener('pointerup',endDrag); mapC.addEventListener('pointercancel',endDrag);
+
+/* ================= 闖關遊戲 ================= */
+const GROUPS=['第 1 組','第 2 組','第 3 組','第 4 組','第 5 組'];
+const NAMES=FORDER.map(k=>FEAT[k].n);
+function heightQ(t,p){const Tt=TER[t], h=hAt(Tt,p[0],p[1]), r=Math.round(h/50)*50; const opts=[r-100,r-50,r,r+50,r+100].filter(v=>v>=0).slice(0,4); if(!opts.includes(r)) opts.push(r); return {type:'height',t,P:p,opts:opts.sort((a,b)=>a-b),ans:r,h};}
+const LEVELS=[
+  {t:'A',name:'練習地形 A',sub:'判讀山峰、鞍部、山谷和坡度',qs:[
+    {type:'point',key:'peak',q:'請到地圖上點出<b>最高的山峰</b>。',tol:.06},
+    {type:'slope',A:[.37,.34],B:[.47,.66]},
+    {type:'name',key:'valley',at:[.56,.74]},
+    {type:'point',key:'saddle',q:'請到地圖上點出<b>鞍部</b>。',tol:.055},
+    {type:'profile',a:[.08,.455],b:[.94,.39],d1:[[.94,.39],[.08,.455]],d2:[[.08,.8],[.94,.8]]}]},
+  {t:'C',name:'五大地形',sub:'平原、盆地、台地、丘陵、山地',qs:[
+    {type:'tname',key:'basin'},
+    {type:'tpoint',key:'table',q:'請到地圖上點出<b>台地</b>。'},
+    {type:'tname',key:'hill'},
+    {type:'tpoint',key:'mount',q:'請到地圖上點出<b>山地</b>。'},
+    {type:'tname',key:'plain'}]},
+  {t:'B',name:'練習地形 B',sub:'換一座山，看圖要更仔細',qs:[
+    {type:'heightP',p:[.47,.36]},
+    {type:'point',key:'valley',q:'請到地圖上點出<b>山谷</b>（點在山谷裡的任一處）。',tol:.045},
+    {type:'name',key:'cliff',at:[.70,.652]},
+    {type:'point',key:'ridge',q:'請到地圖上點出<b>山脊</b>（點在山脊上的任一處）。',tol:.045},
+    {type:'profile',a:[.14,.2],b:[.9,.84],d1:[[.9,.84],[.14,.2]],d2:[[.14,.84],[.9,.2]]}]},
+  {t:'G',name:'挑戰：仿龜山島',sub:'依龜山島輪廓仿製的島嶼地形',qs:[
+    {type:'point',key:'peak',q:'龜山島最高點約 401 公尺。請在地圖上點出<b>最高點</b>。',tol:.06},
+    {type:'heightP',p:[.80,.515]},
+    {type:'slope',A:[.42,.605],B:[.60,.47]},
+    {type:'name',key:'saddle',at:[.688,.506]},
+    {type:'profile',a:[.406,.28],b:[.406,.72],d1:[[.406,.72],[.406,.28]],d2:[[.1,.5],[.9,.5]]}]}
+];
+let gameSel=[0,1,2,3];
+function buildIvl(){ const ivs=T().ivs||[50,100]; if(!ivs.includes(S.iv)) S.iv=ivs[0];
+  $('ivl').innerHTML=ivs.map(v=>`<button data-i="${v}" aria-pressed="${v===S.iv}">${v} 公尺</button>`).join('');
+  $('ivl').querySelectorAll('button').forEach(b=>b.onclick=()=>{ S.iv=+b.dataset.i; buildIvl(); setupMode(); }); }
+function setTerrain(t){ if(S.t===t) return; S.t=t; document.querySelectorAll('#terr button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t)); buildIvl(); build3D(); }
+function gameStart(){
+  S.game={score:[0,0,0,0,0],cur:0,sel:[],li:0,qi:-1,answered:false,phase:'setup',pick:null};
+  gameRender();
+}
+function curLv(){const g=S.game; return g.sel[g.li];}
+function gameQ(){const g=S.game; return LEVELS[curLv()].qs[g.qi];}
+function isPointQ(q){return q.type==='point'||q.type==='tpoint';}
+function gameNext(){
+  const g=S.game; g.pick=null;
+  if(g.phase==='setup'){ g.sel=gameSel.slice().sort(); if(!g.sel.length) return; g.li=0; g.phase='intro'; }
+  else if(g.phase==='intro'){g.phase='q'; g.qi=0;}
+  else if(g.phase==='q'){ g.cur=(g.cur+1)%5; if(g.qi<LEVELS[curLv()].qs.length-1) g.qi++; else if(g.li<g.sel.length-1){g.li++; g.qi=-1; g.phase='intro';} else g.phase='end'; }
+  g.answered=false; gameRender();
+}
+function gameRender(){
+  const g=S.game, box=$('game');
+  const L=g.phase==='setup'?LEVELS[0]:LEVELS[curLv()];
+  setTerrain(g.phase==='setup'?'A':L.t); buildIvl();
+  const ltitle=`第 ${g.li+1} 關　${L.name}`;
+  const board=`<div class="board">${GROUPS.map((n,k)=>`<div class="grp ${k===g.cur&&g.phase==='q'?'on':''}" style="--c:var(--g${k+1})" data-g="${k}"><div class="gn">${n}</div><div class="gs">${g.score[k]}</div><div class="adj"><button data-d="-5" aria-label="${n} 減 5 分">−</button><button data-d="5" aria-label="${n} 加 5 分">＋</button></div></div>`).join('')}</div>`;
+  let body='';
+  if(g.phase==='setup'){ body=`<div class="stage-card"><h2>選擇要玩的關卡</h2><p>每關 5 題，各組輪流派一位同學上台作答，答對 +10 分。</p><div class="lvpick">${LEVELS.map((l,k)=>`<label><input type="checkbox" data-k="${k}" ${gameSel.includes(k)?'checked':''}><span><b>${l.name}</b>${l.sub}</span></label>`).join('')}</div></div>`; }
+  else if(g.phase==='intro'){ body=`<div class="stage-card"><h2>${ltitle}</h2><p>${L.sub}，共 ${L.qs.length} 題。</p><p>各組輪流派一位同學上台作答，答對 +10 分。</p></div>`; }
+  else if(g.phase==='end'){ const rank=g.score.map((s,k)=>[s,k]).sort((a,b)=>b[0]-a[0]); const best=rank[0][0];
+    body=`<div class="stage-card"><h2>闖關完成！</h2><div class="podium">${rank.map(([s,k])=>`<div class="${s===best?'top':''}" style="--c:var(--g${k+1})">${GROUPS[k]}　${s} 分</div>`).join('')}</div></div>`; }
+  else { const q=gameQ(); body=`<div class="qmeta">第 ${g.li+1} 關・第 ${g.qi+1} / ${L.qs.length} 題　輪到 <span style="color:var(--g${g.cur+1})">${GROUPS[g.cur]}</span></div>`+qHTML(q)+`<div class="fb" id="fb"></div>`; }
+  box.innerHTML=board+body;
+  box.querySelectorAll('.lvpick input').forEach(i=>i.onchange=()=>{ gameSel=[...box.querySelectorAll('.lvpick input')].filter(x=>x.checked).map(x=>+x.dataset.k); $('gNext').disabled=!gameSel.length; });
+  box.querySelectorAll('.adj button').forEach(b=>b.onclick=e=>{e.stopPropagation(); const k=+b.closest('.grp').dataset.g; g.score[k]=Math.max(0,g.score[k]+(+b.dataset.d)); box.querySelectorAll('.gs')[k].textContent=g.score[k];});
+  box.querySelectorAll('.grp').forEach(el=>el.onclick=()=>{ if(g.phase!=='q'||g.answered) return; g.cur=+el.dataset.g; box.querySelectorAll('.grp').forEach((x,k)=>x.classList.toggle('on',k===g.cur)); const m=box.querySelector('.qmeta span'); if(m){m.textContent=GROUPS[g.cur]; m.style.color=`var(--g${g.cur+1})`;} });
+  if(g.phase==='q') bindQ(gameQ());
+  const lastQ=g.phase==='q'&&g.li===g.sel.length-1&&g.qi===L.qs.length-1;
+  const nextTxt=g.phase==='setup'?'開始闖關':g.phase==='intro'?'開始':(lastQ?'看結果':'下一題');
+  ctl.innerHTML=g.phase==='end'?'<button class="btn primary" id="gAgain">再玩一次</button>':`<button class="btn primary" id="gNext" ${(g.phase==='q'&&!g.answered)||(g.phase==='setup'&&!gameSel.length)?'disabled':''}>${nextTxt}</button>`+(g.phase==='setup'?'':`<button class="btn" id="gSkip">${g.phase==='q'&&!g.answered?'公布答案':'重新開始'}</button>`);
+  if($('gAgain')) $('gAgain').onclick=gameStart;
+  if($('gNext')) $('gNext').onclick=gameNext;
+  if($('gSkip')) $('gSkip').onclick=()=>{ if(g.phase==='q'&&!g.answered) answer(null); else if(confirm('分數會歸零，確定重新開始？')) gameStart(); };
+  setCap(g.phase==='q'?(isPointQ(gameQ())?'請上台的同學<b>直接點右邊的地圖</b>作答。':'請上台的同學點選答案。3D 對照會在作答後出現。'):(g.phase==='end'?'恭喜各組！可以按「再玩一次」重新挑戰。':g.phase==='setup'?'勾選這節課要玩的關卡，再按「開始闖關」。':'3D 對照會在每題作答後出現，幫大家確認答案。'));
+  document.body.classList.toggle('pick',g.phase==='q'&&isPointQ(gameQ())&&!g.answered);
+  if(has3D){ $('veil3d').hidden=g.answered||g.phase==='end'; $('veil3d').textContent='作答後顯示 3D 對照'; }
+  refresh3DOverlay(); drawMap(); camTo(.3,.92,15,0);
+}
+function qHTML(q){
+  const Tt=T();
+  if(q.type==='point') return `<p class="qtext">${q.q}</p>`;
+  if(q.type==='slope') return `<p class="qtext">地圖上的 A、B 兩點，哪一點附近的坡度<b>比較陡</b>？</p><div class="qopts"><button class="qopt" data-v="A">A 比較陡</button><button class="qopt" data-v="B">B 比較陡</button></div>`;
+  if(q.type==='tpoint') return `<p class="qtext">${q.q}</p>`;
+  if(q.type==='tname') return `<p class="qtext">地圖上圈起來的地方是五大地形中的哪一種？</p><div class="qopts">${TORDER.map(k=>`<button class="qopt" data-v="${TYPES[k].n}">${TYPES[k].n}</button>`).join('')}</div>`;
+  if(q.type==='name') return `<p class="qtext">地圖上圈起來的地方是哪一種地形？</p><div class="qopts">${NAMES.map(n=>`<button class="qopt" data-v="${n}">${n}</button>`).join('')}</div>`;
+  if(q.type==='heightP'){ if(!q.h){Object.assign(q,heightQ(S.t,q.p));} return `<p class="qtext">地圖上 P 點的海拔高度，最接近多少公尺？</p><div class="qopts">${q.opts.map(v=>`<button class="qopt" data-v="${v}">${v} 公尺</button>`).join('')}</div>`; }
+  if(q.type==='profile') return `<p class="qtext">沿著地圖上的紅線 A→B 切開，剖面圖會是哪一個？</p><div class="qopts">${['甲','乙','丙'].map((n,k)=>`<button class="qopt pf" data-v="${k}"><canvas></canvas>${n}</button>`).join('')}</div>`;
+  return '';
+}
+function bindQ(q){
+  const box=$('game'), Tt=T();
+  if(q.type==='slope'){ const sa=slopeDeg(Tt,...q.A), sb=slopeDeg(Tt,...q.B); q.ans=sa>sb?'A':'B'; }
+  if(q.type==='name') q.ans=FEAT[q.key].n;
+  if(q.type==='tname') q.ans=TYPES[q.key].n;
+  if(q.type==='profile'){
+    if(!q.order){ // 固定亂數排列，讓每次重玩順序一致
+      const lines=[[q.a,q.b],q.d1,q.d2], seed=(5-curLv())%3, ord=[0,1,2].map(k=>(k+seed)%3); q.order=ord.map(k=>lines[k]); q.ans=String(ord.indexOf(0)); }
+    const all=q.order.flatMap(l=>sampleLine(Tt,l[0],l[1],100).map(p=>p.h)), top=Math.ceil(Math.max(...all)/100)*100+50, bot=Tt.island?-50:0;
+    requestAnimationFrame(()=>box.querySelectorAll('.qopt.pf canvas').forEach((cv,k)=>drawMiniProfile(cv,Tt,q.order[k][0],q.order[k][1],top,bot)));
+  }
+  if(q.type==='heightP') q.ans=String(q.ans);
+  box.querySelectorAll('.qopt').forEach(b=>b.onclick=()=>{ if(!S.game.answered) answer(b.dataset.v); });
+}
+function answer(v){
+  const g=S.game, q=gameQ(), box=$('game'); g.answered=true;
+  let ok=false;
+  if(isPointQ(q)){ ok=v===true; }
+  else ok=v!=null && String(v)===String(q.ans);
+  if(ok) g.score[g.cur]+=10;
+  box.querySelectorAll('.gs')[g.cur].textContent=g.score[g.cur];
+  box.querySelectorAll('.qopt').forEach(b=>{ if(b.dataset.v===String(q.ans)) b.classList.add('right'); else if(v!=null&&b.dataset.v===String(v)) b.classList.add('wrong'); });
+  const Tt=T(); let why='';
+  if(q.type==='point') why=FEAT[q.key].d;
+  if(q.type==='slope'){ const a=slopeProbe(Tt,...q.A), b=slopeProbe(Tt,...q.B); why=`A 點附近走 ${a.Lm} 公尺跨過 ${a.n} 條等高線，B 點跨過 ${b.n} 條。等高線愈密，坡度愈陡。`; }
+  if(q.type==='name') why=FEAT[q.key].d;
+  if(q.type==='tname'||q.type==='tpoint') why=TYPES[q.key].d;
+  if(q.type==='heightP') why=`P 點大約 ${Math.round(q.h)} 公尺。先找 P 兩側的等高線，再看看它比較靠近哪一條。`;
+  if(q.type==='profile') why='先看 A 端和 B 端各是高還是低，再看中間有幾個山頭、哪一個比較高；方向相反的剖面圖會左右顛倒。';
+  $('fb').innerHTML=(ok?`<span class="r">答對了！${GROUPS[g.cur]} +10 分。</span> `:(v==null?'<span class="w">公布答案：</span> ':'<span class="w">差一點！</span> '))+why;
+  document.body.classList.remove('pick');
+  $('gNext').disabled=false; $('gSkip').textContent='重新開始';
+  $('veil3d').hidden=true;
+  const nq=LEVELS[curLv()].qs.length, lastQ=g.li===g.sel.length-1&&g.qi===nq-1;
+  $('gNext').textContent=lastQ?'看結果':(g.qi===nq-1?'下一關':'下一題');
+  setCap('按<b>「'+$('gNext').textContent+'」</b>繼續。可以拖曳左邊的 3D 地形，和全班一起確認答案。');
+  refresh3DOverlay(); drawMap();
+}
+function distToPoly(p,poly){ let best=1e9; for(let k=0;k<poly.length-1;k++){const a=poly[k], b=poly[k+1], dx=b[0]-a[0], dy=b[1]-a[1]; const t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy))); best=Math.min(best,Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy));} return best; }
+function gameMapClick(x,y){
+  const g=S.game; if(!g||g.phase!=='q'||g.answered) return; const q=gameQ(); if(!isPointQ(q)) return;
+  if(q.type==='tpoint'){ g.pick=[x,y]; answer(ellD(T().types[q.key],x,y)<=1.1); return; }
+  const f=T().f[q.key], d=Array.isArray(f[0])?distToPoly([x,y],f):Math.hypot(x-f[0],y-f[1]);
+  g.pick=[x,y]; answer(d<=q.tol);
+}
+function gameOverlay(ctx,Tt){
+  const g=S.game; if(!g||g.phase!=='q') return; const q=gameQ();
+  if(q.type==='slope'){ mark(ctx,...q.A,css('--peak'),MS/70,'A'); mark(ctx,...q.B,css('--valley'),MS/70,'B'); if(g.answered){drawProbe(ctx,Tt,q.A,'A',css('--peak')); drawProbe(ctx,Tt,q.B,'B',css('--valley'));} }
+  if(q.type==='name'){ const c=P(...q.at); ctx.strokeStyle=css('--accent'); ctx.lineWidth=Math.max(3,MS/150); ctx.setLineDash([10,7]); ctx.beginPath(); ctx.arc(c[0],c[1],MS*.075,0,7); ctx.stroke(); ctx.setLineDash([]); if(g.answered) drawFeature(ctx,Tt,q.key,true); }
+  if(q.type==='heightP'){ mark(ctx,...q.p,css('--saddle'),MS/70,'P'); }
+  if(q.type==='profile'){ const a=P(...q.a), b=P(...q.b), acc=css('--accent'), fs=Math.max(14,MS/34); ctx.strokeStyle=acc; ctx.lineWidth=MS/200+1.5; ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke(); haloText(ctx,'A',a[0],a[1]-fs,acc,fs); haloText(ctx,'B',b[0],b[1]-fs,acc,fs); }
+  if(q.type==='tname'){ const e=Tt.types[q.key], c=P(...e.c); ctx.strokeStyle=css('--accent'); ctx.lineWidth=Math.max(3,MS/150); ctx.setLineDash([10,7]); ctx.beginPath(); ctx.arc(c[0],c[1],MS*.07,0,7); ctx.stroke(); ctx.setLineDash([]); if(g.answered) drawType(ctx,Tt,q.key); }
+  if(q.type==='tpoint' && g.answered){ drawType(ctx,Tt,q.key); if(g.pick) mark(ctx,g.pick[0],g.pick[1],css('--ink'),MS/80,'','x'); }
+  if(q.type==='point' && g.answered){ drawFeature(ctx,Tt,q.key,true); if(g.pick) mark(ctx,g.pick[0],g.pick[1],css('--ink'),MS/80,'','x'); }
+}
+function game3D(Tt){
+  const g=S.game; if(!g||g.phase!=='q'||!g.answered) return; const q=gameQ();
+  if(q.type==='point'||q.type==='name') R3.over.add(feature3D(Tt,q.key,true));
+  if(q.type==='tname'||q.type==='tpoint') R3.over.add(type3D(Tt,q.key));
+  if(q.type==='slope'){ R3.over.add(pin(Tt,...q.A,css('--peak'),'A')); R3.over.add(pin(Tt,...q.B,css('--valley'),'B')); }
+  if(q.type==='heightP') R3.over.add(pin(Tt,...q.p,css('--saddle'),`P 約 ${Math.round(q.h)} 公尺`));
+  if(q.type==='profile') R3.over.add(curtain(Tt,q.a,q.b,css('--accent')));
+}
+
+/* ---------- 上方按鈕 ---------- */
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>{ if(S.mode===b.dataset.m) return; S.mode=b.dataset.m; if(S.mode!=='game'&&S.game){S.game=null;} setupMode(); });
+document.querySelectorAll('#terr button').forEach(b=>b.onclick=()=>{ if(S.t===b.dataset.t) return; setTerrain(b.dataset.t); setupMode(); });
+
+$('bTop').onclick=()=>{R3&&(R3.spin=false,$('bSpin').setAttribute('aria-pressed','false')); camTo(0,.03,44,1400,13);};
+$('bSide').onclick=()=>camTo(.3,.95,19,900);
+$('bSpin').onclick=()=>{ if(!R3) return; R3.spin=!R3.spin; $('bSpin').setAttribute('aria-pressed',R3.spin); };
+$('bLines').onclick=()=>{ const on=$('bLines').getAttribute('aria-pressed')!=='true'; $('bLines').setAttribute('aria-pressed',on); build3DLines(S.mode==='origin'&&!S.water.done?S.water.lv:undefined); };
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey||e.target.tagName==='INPUT') return;
+  const ms=['origin','slope','landform','types','profile','game'];
+  if(/^[1-6]$/.test(e.key) && S.mode!=='game'){ S.mode=ms[+e.key-1]; setupMode(); }
+  else if(e.key==='t'||e.key==='T') $('bTop').click();
+  else if(S.mode==='game' && (e.key==='ArrowRight'||e.key==='Enter') && $('gNext') && !$('gNext').disabled){ e.preventDefault(); gameNext(); }
+  else if(S.mode==='profile' && e.key==='ArrowRight') $('pNext').click();
+  else if(S.mode==='profile' && e.key==='ArrowLeft') $('pPrev').click();
+});
+
+/* ---------- 啟動 ---------- */
+function relayout(){ sizeMap(); drawMap(); drawProfilePanel(); if(S.mode==='game'&&S.game&&S.game.phase==='q'&&gameQ().type==='profile'){ const q=gameQ(), Tt=T(); const all=q.order.flatMap(l=>sampleLine(Tt,l[0],l[1],100).map(p=>p.h)), top=Math.ceil(Math.max(...all)/100)*100+50, bot=Tt.island?-50:0; document.querySelectorAll('.qopt.pf canvas').forEach((cv,k)=>drawMiniProfile(cv,Tt,q.order[k][0],q.order[k][1],top,bot)); } }
+new ResizeObserver(relayout).observe($('mapcard'));
+new ResizeObserver(()=>drawProfilePanel()).observe($('prof'));
+buildIvl(); init3D(); build3D(); sizeMap(); setupMode(); requestAnimationFrame(tick);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{drawMap(); drawProfilePanel(); refresh3DOverlay();});
+})();
+</script>
+</body>
+</html>

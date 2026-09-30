@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>地理模型教室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF1EE; --panel:#FFFFFF; --ink:#1D2B28; --muted:#586864; --line:#C9D3CF;
+  --contour:#AFC3BA; --contour-strong:#7F9C90;
+  --t-hydro:#1D6E93; --t-climate:#B06E12; --t-landform:#7A5638; --t-human:#6B4E8C;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --serif:"Noto Serif TC","PMingLiU","MingLiU",serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111917; --panel:#18221F; --ink:#E3EBE7; --muted:#9AADA6; --line:#2C3A36;
+    --contour:#26352F; --contour-strong:#3E5A50;
+    --t-hydro:#5CB2D9; --t-climate:#E0A04A; --t-landform:#C49A74; --t-human:#A98BD0;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111917; --panel:#18221F; --ink:#E3EBE7; --muted:#9AADA6; --line:#2C3A36;
+  --contour:#26352F; --contour-strong:#3E5A50;
+  --t-hydro:#5CB2D9; --t-climate:#E0A04A; --t-landform:#C49A74; --t-human:#A98BD0;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.7;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--t-hydro);outline-offset:3px;border-radius:4px}
+
+/* ---------- 首頁 ---------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.hero svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero svg path{fill:none;stroke:var(--contour);stroke-width:1.2}
+.hero svg path.idx{stroke:var(--contour-strong);stroke-width:1.8}
+.hero-inner{position:relative;max-width:1120px;margin:0 auto;padding:clamp(48px,9vw,112px) clamp(20px,5vw,48px) clamp(36px,6vw,64px)}
+h1{font-family:var(--serif);font-weight:900;font-size:clamp(44px,8vw,96px);line-height:1.05;letter-spacing:.04em;margin:0}
+.lede{margin:18px 0 0;max-width:30em;color:var(--muted);font-size:clamp(16px,1.6vw,19px)}
+
+.wrap{max-width:1120px;margin:0 auto;padding:28px clamp(20px,5vw,48px) 72px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 8px}
+.tab{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.tab .n{color:var(--muted);font-size:14px}
+.tab .dot{width:9px;height:9px;border-radius:50%;background:var(--c,var(--ink))}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tab[aria-pressed="true"] .n{color:inherit;opacity:.7}
+
+.group{margin-top:36px}
+.group h2{font-family:var(--serif);font-weight:700;font-size:26px;margin:0 0 4px;display:flex;align-items:baseline;gap:12px}
+.group h2::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--c);align-self:center}
+.group h2 small{font-family:var(--sans);font-weight:400;font-size:15px;color:var(--muted)}
+.list{list-style:none;margin:0;padding:0;border-top:2px solid var(--c)}
+.item{display:grid;grid-template-columns:52px 1fr auto;gap:4px 20px;align-items:center;padding:20px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.item:hover{background:color-mix(in srgb,var(--c) 6%,transparent)}
+.item .ico{font-size:34px;line-height:1;text-align:center}
+.item h3{margin:0;font-family:var(--serif);font-weight:700;font-size:22px;line-height:1.35}
+.item p{margin:4px 0 0;color:var(--muted);max-width:40em}
+.item .keys{margin-top:6px;font-size:14px;color:var(--muted)}
+kbd{font-family:inherit;font-size:13px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 6px;background:var(--panel);color:var(--ink)}
+.open{border:0;background:var(--c);color:#fff;border-radius:8px;padding:10px 20px;font-weight:700;cursor:pointer;white-space:nowrap}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .open{color:#0E1614}}
+:root[data-theme="dark"] .open{color:#0E1614}
+@media (max-width:640px){
+  .item{grid-template-columns:40px 1fr}
+  .item .ico{font-size:28px;align-self:start;padding-top:4px}
+  .item .open{grid-column:2;justify-self:start;margin-top:8px}
+  .item .keys{display:none}
+}
+footer{max-width:1120px;margin:0 auto;padding:0 clamp(20px,5vw,48px) 40px;color:var(--muted);font-size:14px}
+
+/* ---------- 模型播放畫面 ---------- */
+.viewer{position:fixed;inset:0;z-index:10;background:var(--paper);display:none;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.viewer.on{display:flex}
+.bar{flex:none;display:flex;align-items:center;gap:12px;height:48px;padding:0 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.bar button{border:1px solid var(--line);background:transparent;border-radius:8px;padding:4px 14px;cursor:pointer;white-space:nowrap}
+.bar .ttl{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .ttl i{font-style:normal;display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:8px}
+.bar .hint{color:var(--muted);font-size:13px}
+@media (max-width:640px){.bar .hint{display:none}}
+.viewer iframe{flex:1;width:100%;border:0;background:var(--paper)}
+body.viewing{overflow:hidden}
+@media (prefers-reduced-motion:no-preference){
+  .hero svg path{stroke-dasharray:2400;stroke-dashoffset:2400;animation:draw 2.4s ease-out forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+}
+</style>
+</head>
+<body>
+<header class="hero">
+  <svg id="contours" aria-hidden="true"></svg>
+  <div class="hero-inner">
+    <h1>地理模型教室</h1>
+    <p class="lede">國中、高中地理課堂用的互動模型與動畫。選一個主題，點開就能直接投影講解。</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <nav class="tabs" id="tabs" aria-label="依主題篩選"></nav>
+  <div id="groups"></div>
+</main>
+<footer id="foot"></footer>
+
+<section class="viewer" id="viewer" aria-label="模型">
+  <div class="bar">
+    <button id="back" type="button">← 回首頁</button>
+    <div class="ttl" id="vtitle"></div>
+    <span class="hint"><kbd>Esc</kbd> 回首頁</span>
+    <button id="fs" type="button">全螢幕</button>
+  </div>
+  <iframe id="frame" title="模型內容" allow="fullscreen" allowfullscreen></iframe>
+</section>
+
+<!-- 主題與模型清單：新增模型時只要在這裡加一筆 -->
+<script id="registry" type="application/json">__REGISTRY__</script>
+<script id="payload" type="application/json">__PAYLOAD__</script>
+<script>
+(function(){
+const REG=JSON.parse(document.getElementById('registry').textContent);
+const SRC=JSON.parse(document.getElementById('payload').textContent);
+const $=id=>document.getElementById(id);
+const topicOf=id=>REG.topics.find(t=>t.id===id);
+let filter='all';
+
+/* 首頁等高線 */
+(function(){
+  const svg=$('contours'); const W=1200,H=520; svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('preserveAspectRatio','xMaxYMid slice');
+  let seed=7; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const waves=[...Array(4)].map((_,k)=>({f:k+2,a:rnd()*6.28,m:(0.10/(k+1))}));
+  const cx=W*0.80,cy=H*0.52; let d='';
+  for(let i=1;i<=16;i++){
+    const r=26*i, pts=[];
+    for(let s=0;s<=120;s++){
+      const th=s/120*Math.PI*2; let k=1;
+      waves.forEach(w=>k+=w.m*Math.sin(w.f*th+w.a+i*0.18));
+      pts.push([cx+Math.cos(th)*r*k*1.35, cy+Math.sin(th)*r*k]);
+    }
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d','M'+pts.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join('L')+'Z');
+    if(i%5===0)p.setAttribute('class','idx');
+    p.style.animationDelay=(i*0.06)+'s';
+    svg.appendChild(p);
+  }
+})();
+
+/* 主題篩選 */
+function renderTabs(){
+  const used=REG.topics.filter(t=>REG.models.some(m=>m.topic===t.id));
+  const btn=(id,label,n,c)=>`<button class="tab" type="button" data-f="${id}" aria-pressed="${filter===id}" ${c?`style="--c:var(${c})"`:''}>${c?'<span class="dot"></span>':''}${label}<span class="n">${n}</span></button>`;
+  $('tabs').innerHTML=btn('all','全部',REG.models.length)+used.map(t=>btn(t.id,t.name,REG.models.filter(m=>m.topic===t.id).length,t.color)).join('');
+  $('tabs').querySelectorAll('.tab').forEach(b=>b.onclick=()=>{filter=b.dataset.f;renderTabs();renderList();});
+}
+function renderList(){
+  const topics=REG.topics.filter(t=>(filter==='all'||filter===t.id)&&REG.models.some(m=>m.topic===t.id));
+  $('groups').innerHTML=topics.map(t=>{
+    const ms=REG.models.filter(m=>m.topic===t.id);
+    return `<section class="group" style="--c:var(${t.color})"><h2>${t.name}<small>${ms.length} 個模型</small></h2><ul class="list">`+
+      ms.map(m=>`<li class="item" data-id="${m.id}"><div class="ico" aria-hidden="true">${m.icon}</div><div><h3>${m.title}</h3><p>${m.desc}</p>${m.keys?`<div class="keys">上課操作：${m.keys}</div>`:''}</div><button class="open" type="button" data-id="${m.id}">開啟</button></li>`).join('')+
+      `</ul></section>`;
+  }).join('');
+  $('groups').querySelectorAll('.item').forEach(li=>li.onclick=()=>{location.hash=li.dataset.id;});
+}
+$('foot').textContent=`目前共 ${REG.models.length} 個模型，會持續增加。`;
+
+/* 播放模型 */
+let current=null;
+function openModel(id){
+  const m=REG.models.find(x=>x.id===id); if(!m||!SRC[id]){closeModel();return;}
+  if(current===id)return; current=id;
+  const t=topicOf(m.topic);
+  $('vtitle').innerHTML=`<i style="--c:var(${t.color})"></i>${m.title}`;
+  $('viewer').style.setProperty('--c',`var(${t.color})`);
+  const f=$('frame'); f.srcdoc=SRC[id];
+  $('viewer').classList.add('on'); document.body.classList.add('viewing');
+  document.title=m.title+'｜地理模型教室';
+}
+function closeModel(){
+  current=null; $('viewer').classList.remove('on'); document.body.classList.remove('viewing');
+  $('frame').srcdoc=''; document.title='地理模型教室';
+  if(document.fullscreenElement)try{document.exitFullscreen();}catch(_){}
+}
+$('frame').addEventListener('load',()=>{
+  const f=$('frame'); if(!current)return;
+  try{
+    f.contentWindow.focus();
+    f.contentDocument.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!f.contentDocument.fullscreenElement) goHome(); });
+  }catch(_){}
+});
+function goHome(){
+  closeModel();
+  if(!location.hash) return;
+  try{ history.pushState(null,'',location.href.split('#')[0]); }
+  catch(_){ location.hash=''; }
+}
+$('back').onclick=goHome;
+$('fs').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():$('viewer').requestFullscreen();}catch(_){} setTimeout(()=>{try{$('frame').contentWindow.focus();}catch(_){}},200);};
+document.addEventListener('fullscreenchange',()=>{$('fs').textContent=document.fullscreenElement?'離開全螢幕':'全螢幕';});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&current&&!document.fullscreenElement) goHome(); });
+function route(){ const id=decodeURIComponent(location.hash.slice(1)); id?openModel(id):closeModel(); }
+window.addEventListener('hashchange',route);
+
+renderTabs(); renderList(); route();
+})();
+</script>
+</body>
+</html>

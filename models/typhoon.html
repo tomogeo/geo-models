@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>颱風路徑與迎風、背風</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{
+  --paper:#E8EEF1; --panel:#F6F9FA; --ink:#14304A; --ink2:#50677A; --line:#C4D1D8;
+  --sea:#CADCE4; --grat:#AFC4CF; --land-halo:#FFFFFF;
+  --wind:#1E5DAF; --lee:#DD8A1F; --foehn:#C42E27; --ty:#D0202B;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D1822; --panel:#12212D; --ink:#DCE6ED; --ink2:#95AABA; --line:#274050;
+    --sea:#173041; --grat:#2A4659; --land-halo:#0D1822;
+    --wind:#5B9CEB; --lee:#F0A445; --foehn:#F0584C; --ty:#FF4F58;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D1822; --panel:#12212D; --ink:#DCE6ED; --ink2:#95AABA; --line:#274050;
+  --sea:#173041; --grat:#2A4659; --land-halo:#0D1822;
+  --wind:#5B9CEB; --lee:#F0A445; --foehn:#F0584C; --ty:#FF4F58;
+}
+[hidden]{display:none!important}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;font-size:15px;line-height:1.6}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--wind);outline-offset:2px}
+
+.top{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding:16px 22px 6px}
+.top h1{margin:0;font-size:28px;font-weight:900;letter-spacing:.02em;line-height:1.2}
+.top p{margin:0;color:var(--ink2);max-width:46em}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;padding:10px 22px 16px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:1fr}}
+
+.stagewrap{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.stagebar{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:5px 16px;cursor:pointer;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.nowname{font-weight:700;font-size:17px}
+.nowname small{font-weight:400;color:var(--ink2);margin-left:6px;font-size:14px}
+
+.stage{position:relative;width:min(100%, calc((100vh - 170px) * 0.845));min-width:280px;aspect-ratio:0.845/1;
+  border:1.5px solid var(--ink);background:var(--sea);overflow:hidden;touch-action:none}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#c3d{position:absolute;inset:0}
+#c3d canvas{cursor:grab}
+.hint{position:absolute;left:10px;right:10px;bottom:10px;background:var(--panel);border:1.5px solid var(--ink);
+  padding:7px 12px;font-size:14px;pointer-events:none}
+.hint[hidden]{display:none}
+.stage.drawing canvas{cursor:crosshair}
+
+.player{width:100%;display:flex;gap:12px;align-items:center}
+.play{width:44px;height:44px;border-radius:50%;border:0;background:var(--ty);color:#fff;cursor:pointer;display:grid;place-items:center;flex:none}
+.play svg{width:18px;height:18px;fill:#fff}
+#slider{flex:1;accent-color:var(--ty);min-width:0}
+.player select{border:1.5px solid var(--line);background:var(--panel);border-radius:6px;padding:4px 6px}
+
+.panel{background:var(--panel);border:1.5px solid var(--ink);padding:0 0 6px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1.5px solid var(--ink)}
+.tabs button{border:0;background:transparent;padding:10px 4px;cursor:pointer;font-weight:700;color:var(--ink2);border-bottom:4px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ty)}
+.sec{padding:12px 16px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec h2{font-size:15px;margin:0 0 8px;font-weight:900}
+.paths{display:flex;flex-direction:column;gap:6px}
+.paths button{text-align:left;border:1.5px solid var(--line);background:transparent;border-radius:8px;padding:7px 10px;cursor:pointer;display:flex;gap:10px;align-items:baseline}
+.paths button b{min-width:4.2em}
+.paths button span{color:var(--ink2);font-size:14px}
+.paths button[aria-pressed="true"]{border-color:var(--ty);background:color-mix(in srgb,var(--ty) 9%,transparent)}
+.note{margin:10px 0 0;font-size:14px;color:var(--ink2)}
+.drawbtns{display:flex;gap:8px;margin-top:10px}
+.btn{border:1.5px solid var(--ink);background:transparent;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+#explain{margin:0;font-size:15px}
+.cities{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:14px}
+.cities li{display:flex;align-items:center;gap:7px}
+.cities em{font-style:normal;color:var(--ink2);margin-left:auto;font-size:13px}
+.dot{width:11px;height:11px;border-radius:50%;flex:none;border:1.5px solid var(--ink2);background:transparent}
+.lv2 .dot{background:var(--wind);border-color:var(--wind)}
+.lv1 .dot{background:color-mix(in srgb,var(--wind) 45%,transparent);border-color:var(--wind)}
+.lv-1 .dot{background:var(--lee);border-color:var(--lee)}
+.lv-2 .dot{background:var(--foehn);border-color:var(--foehn)}
+
+.toggles label{display:flex;gap:10px;align-items:flex-start;padding:4px 0;cursor:pointer}
+.toggles input{width:18px;height:18px;margin-top:3px;accent-color:var(--ink)}
+.toggles small{display:block;color:var(--ink2);font-size:13px;line-height:1.5}
+
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px}
+.legend span{display:flex;align-items:center;gap:8px}
+.sw{width:22px;height:14px;border-radius:3px;flex:none}
+.arrowkey svg{width:22px;height:14px;flex:none}
+
+details{margin-top:4px}
+details summary{cursor:pointer;font-weight:700;padding:4px 0}
+details p{margin:4px 0 8px;font-size:14px;color:var(--ink2)}
+
+footer{padding:0 22px 20px;color:var(--ink2);font-size:13px}
+@media (max-width:600px){.top h1{font-size:23px}.layout,.top,footer{padding-left:12px;padding-right:12px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>颱風路徑與迎風、背風</h1>
+  <p>選一條路徑，看颱風的逆時針環流吹到臺灣時，哪裡是迎風面、哪裡是背風面。</p>
+</header>
+<main class="layout">
+  <section class="stagewrap">
+    <div class="stagebar">
+      <div class="seg" role="group" aria-label="顯示方式">
+        <button id="v2" aria-pressed="true">2D 地圖</button>
+        <button id="v3" aria-pressed="false">3D 地形</button>
+      </div>
+      <div class="nowname" id="nowname"></div>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="c2d" aria-label="颱風路徑地圖"></canvas>
+      <div id="c3d" hidden></div>
+      <div class="hint" id="hint" hidden></div>
+    </div>
+    <div class="player">
+      <button class="play" id="play" aria-label="播放"><svg viewBox="0 0 20 20" id="playIcon"><path d="M5 3l12 7-12 7z"/></svg></button>
+      <input type="range" id="slider" min="0" max="1000" value="450" aria-label="颱風移動進度">
+      <select id="speed" aria-label="播放速度"><option value="36">慢</option><option value="20" selected>中</option><option value="11">快</option></select>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="t-preset" aria-selected="true">代表路徑</button>
+      <button role="tab" id="t-case" aria-selected="false">歷史颱風</button>
+      <button role="tab" id="t-draw" aria-selected="false">自己畫路徑</button>
+    </div>
+    <div class="sec" id="pathSec">
+      <div class="paths" id="pathList"></div>
+      <div id="drawCtl" hidden>
+        <p class="note" style="margin-top:0">在地圖上依序點出颱風中心經過的位置，至少 2 點。畫好之後按「開始模擬」。</p>
+        <div class="drawbtns">
+          <button class="btn primary" id="drawGo" disabled>開始模擬</button>
+          <button class="btn" id="drawUndo" disabled>復原一點</button>
+          <button class="btn" id="drawClear" disabled>清除</button>
+        </div>
+      </div>
+      <p class="note" id="pathNote"></p>
+    </div>
+    <div class="sec">
+      <h2>現在的情況</h2>
+      <p id="explain"></p>
+      <ul class="cities" id="cities"></ul>
+    </div>
+    <div class="sec toggles">
+      <h2>加入其他因素</h2>
+      <label><input type="checkbox" id="o-sw"><span>西南氣流<small>颱風把南海的西南季風水氣拉向臺灣</small></span></label>
+      <label><input type="checkbox" id="o-ne"><span>東北季風（共伴效應）<small>秋颱的外圍環流與東北季風疊加</small></span></label>
+      <label><input type="checkbox" id="o-foehn" checked><span>標示可能出現焚風的地方<small>氣流翻過高山後，在背風側下沉增溫</small></span></label>
+    </div>
+    <div class="sec">
+      <h2>圖例</h2>
+      <div class="legend" id="legend">
+        <span><i class="sw" style="background:var(--wind)"></i>迎風面，雨很大</span>
+        <span><i class="sw" style="background:color-mix(in srgb,var(--wind) 45%,#b9cfa0)"></i>迎風面，多雨</span>
+        <span><i class="sw" style="background:var(--lee)"></i>背風面，雨少</span>
+        <span><i class="sw" style="background:var(--foehn)"></i>可能出現焚風</span>
+        <span class="arrowkey"><svg viewBox="0 0 22 14"><path d="M2 7h15M12 2l6 5-6 5" stroke="currentColor" stroke-width="2" fill="none"/></svg>風吹的方向</span>
+        <span><svg width="22" height="14" viewBox="0 0 22 14"><circle cx="11" cy="7" r="5.5" fill="none" stroke="var(--ty)" stroke-width="1.5" stroke-dasharray="3 2"/></svg>七級風暴風圈</span>
+      </div>
+    </div>
+    <div class="sec">
+      <h2>觀念補充</h2>
+      <details><summary>迎風面、背風面怎麼判斷</summary><p>先看颱風中心在臺灣的哪個方位，依逆時針環流推出臺灣吹什麼風。風從海上吹向山坡的那一側是迎風面，空氣被迫抬升、成雲致雨；翻過山脊之後的另一側是背風面，空氣下沉，雨量少。</p></details>
+      <details><summary>西南氣流</summary><p>颱風位在臺灣北方、西北方或已進入臺灣海峽時，南側環流會把南海一帶的西南季風水氣往臺灣拉。西南部山區正對西南風，成為迎風面，常出現極端豪雨，例如莫拉克颱風。</p></details>
+      <details><summary>共伴效應</summary><p>秋季東北季風南下時，若颱風經過臺灣東方或東南方，颱風外圍的東北風和季風疊加，北部、東北部的迎風坡雨量暴增，例如象神颱風。</p></details>
+      <details><summary>焚風</summary><p>氣流在迎風坡上升時降下大量雨水，翻過高山後沿背風坡下沉，空氣被壓縮增溫，變得又乾又熱。颱風在臺灣北方或西北方、吹西風時，臺東一帶最常出現。</p></details>
+    </div>
+  </aside>
+</main>
+<footer>路徑依中央氣象署颱風資料庫簡化繪製；風場與地形為理想化模型，實際風向還會受地形阻擋、繞流影響，僅供教學示意。</footer>
+<script>
+// ===== 核心模型：地形、颱風風場、迎風/背風判斷 =====
+const DEG = Math.PI / 180, KX = 111 * Math.cos(23.7 * DEG), KY = 111;
+const VIEW = { lon0: 118.5, lon1: 124.5, lat0: 20.3, lat1: 26.8 };
+
+// 臺灣本島海岸線（簡化）
+const TW = [[121.54,25.30],[121.64,25.21],[121.74,25.15],[121.87,25.12],[122.00,25.01],[121.90,24.93],[121.83,24.85],[121.80,24.72],[121.87,24.60],[121.83,24.45],[121.72,24.27],[121.63,24.05],[121.61,23.95],[121.52,23.70],[121.45,23.40],[121.38,23.12],[121.25,22.87],[121.19,22.78],[121.02,22.57],[120.91,22.36],[120.87,22.15],[120.85,21.91],[120.74,21.92],[120.70,22.05],[120.62,22.28],[120.50,22.42],[120.40,22.51],[120.28,22.60],[120.24,22.72],[120.15,22.95],[120.08,23.12],[120.10,23.30],[120.14,23.50],[120.20,23.72],[120.28,23.87],[120.40,24.05],[120.50,24.25],[120.62,24.44],[120.75,24.60],[120.86,24.72],[120.94,24.85],[121.04,24.97],[121.14,25.05],[121.30,25.12],[121.40,25.18],[121.47,25.25]];
+
+// 山脈脊線 [lon, lat, 高度m]，w = 山體半寬(km)
+const RIDGES = [
+  { w: 19, p: [[121.78,24.86,900],[121.50,24.62,2600],[121.23,24.38,3800],[121.05,24.12,2600],[120.90,23.95,1200]] }, // 雪山山脈
+  { w: 25, p: [[121.60,24.55,2200],[121.42,24.30,3300],[121.26,24.00,3300],[121.18,23.70,3200],[121.05,23.40,3300],[120.95,23.15,3100],[120.80,22.62,2800],[120.80,22.30,1500],[120.82,22.00,300]] }, // 中央山脈
+  { w: 12, p: [[120.97,23.72,2300],[120.96,23.47,3900],[120.92,23.25,2600]] }, // 玉山山脈
+  { w: 12, p: [[120.90,23.80,1700],[120.80,23.50,2500],[120.68,23.15,1500],[120.62,22.95,700]] }, // 阿里山山脈
+  { w: 8,  p: [[121.53,23.93,700],[121.42,23.55,1500],[121.30,23.20,1400],[121.18,22.85,600]] }, // 海岸山脈
+  { w: 8,  p: [[121.55,25.17,1100],[121.57,25.19,1100]] } // 大屯火山群
+];
+
+const G = { lon0: 119.9, lat0: 21.8, d: 0.025, nc: 89, nr: 145 };
+const N = G.nc * G.nr;
+const GXs = new Float32Array(N), GYs = new Float32Array(N);
+const E = new Float32Array(N), LAND = new Uint8Array(N), SHADE = new Float32Array(N), LV = new Int8Array(N);
+
+function pip(x, y, poly) {
+  let ins = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) ins = !ins;
+  }
+  return ins;
+}
+function segDist(px, py, ax, ay, bx, by) {
+  const vx = bx - ax, vy = by - ay, wx = px - ax, wy = py - ay, L = vx * vx + vy * vy;
+  let t = L ? (wx * vx + wy * vy) / L : 0; t = Math.max(0, Math.min(1, t));
+  return [Math.hypot(px - (ax + t * vx), py - (ay + t * vy)), t];
+}
+function coastDist(lon, lat) {
+  const px = lon * KX, py = lat * KY; let m = 1e9;
+  for (let i = 0, j = TW.length - 1; i < TW.length; j = i++) {
+    const d = segDist(px, py, TW[j][0] * KX, TW[j][1] * KY, TW[i][0] * KX, TW[i][1] * KY)[0];
+    if (d < m) m = d;
+  }
+  return m;
+}
+function ridgeHeight(lon, lat) {
+  const px = lon * KX, py = lat * KY; let h = 0;
+  for (const R of RIDGES) for (let k = 0; k < R.p.length - 1; k++) {
+    const a = R.p[k], b = R.p[k + 1];
+    const [d, t] = segDist(px, py, a[0] * KX, a[1] * KY, b[0] * KX, b[1] * KY);
+    const H = a[2] + (b[2] - a[2]) * t, q = (d / R.w) * (d / R.w), v = H * (0.8 * Math.exp(-q * q) + 0.2 * Math.exp(-q));
+    if (v > h) h = v;
+  }
+  return h;
+}
+function buildTerrain() {
+  for (let r = 0; r < G.nr; r++) for (let c = 0; c < G.nc; c++) {
+    const i = r * G.nc + c, lon = G.lon0 + c * G.d, lat = G.lat0 + r * G.d;
+    const inside = pip(lon, lat, TW), cd = coastDist(lon, lat);
+    if (!inside && cd > 2.2) continue;
+    LAND[i] = 1;
+    const di = inside ? cd : 0;
+    let h = ridgeHeight(lon, lat) * Math.min(1, di / 9);
+    E[i] = Math.max(h, Math.min(120, di * 3)) + 3;
+  }
+  // 大尺度地形坡向（平滑約 30 km），用來判斷風是「橫越」山脈還是「平行」山脈
+  let S = Float32Array.from(E);
+  for (let pass = 0; pass < 3; pass++) {
+    const T = new Float32Array(N), R = 5;
+    for (let r = 0; r < G.nr; r++) for (let c = 0; c < G.nc; c++) {
+      let sum = 0, n = 0;
+      for (let k = -R; k <= R; k++) { const cc = c + k; if (cc >= 0 && cc < G.nc) { sum += S[r * G.nc + cc]; n++; } }
+      T[r * G.nc + c] = sum / n;
+    }
+    for (let r = 0; r < G.nr; r++) for (let c = 0; c < G.nc; c++) {
+      let sum = 0, n = 0;
+      for (let k = -R; k <= R; k++) { const rr = r + k; if (rr >= 0 && rr < G.nr) { sum += T[rr * G.nc + c]; n++; } }
+      S[r * G.nc + c] = sum / n;
+    }
+  }
+  for (let r = 1; r < G.nr - 1; r++) for (let c = 1; c < G.nc - 1; c++) {
+    const i = r * G.nc + c;
+    const gx = (S[i + 1] - S[i - 1]) / (2 * G.d * KX), gy = (S[i + G.nc] - S[i - G.nc]) / (2 * G.d * KY), m = Math.hypot(gx, gy);
+    if (m > 4) { GXs[i] = gx / m; GYs[i] = gy / m; }
+  }
+  const dxk = G.d * KX, dyk = G.d * KY, lx = -0.5, ly = 0.6, lz = 0.62; // 光源：西北
+  for (let r = 1; r < G.nr - 1; r++) for (let c = 1; c < G.nc - 1; c++) {
+    const i = r * G.nc + c; if (!LAND[i]) continue;
+    const gx = (E[i + 1] - E[i - 1]) / 1000 / (2 * dxk) * 6, gy = (E[i + G.nc] - E[i - G.nc]) / 1000 / (2 * dyk) * 6;
+    const n = Math.hypot(gx, gy, 1), dot = (-gx * lx - gy * ly + lz) / n;
+    SHADE[i] = Math.max(0.55, Math.min(1.12, 0.45 + dot * 0.75));
+  }
+}
+function elevAt(lon, lat) {
+  const c = Math.round((lon - G.lon0) / G.d), r = Math.round((lat - G.lat0) / G.d);
+  if (c < 0 || r < 0 || c >= G.nc || r >= G.nr) return 0;
+  const i = r * G.nc + c; return LAND[i] ? E[i] : 0;
+}
+function isLandPt(lon, lat) { return pip(lon, lat, TW); }
+function isLandCell(lon, lat) {
+  const c = Math.round((lon - G.lon0) / G.d), r = Math.round((lat - G.lat0) / G.d);
+  if (c < 0 || r < 0 || c >= G.nc || r >= G.nr) return false;
+  return LAND[r * G.nc + c] === 1;
+}
+
+// ===== 風場 =====
+const VMAX = 45, RM = 50, INFLOW = 20 * DEG, R7 = RM * Math.pow(VMAX / 17.2, 1 / 0.6); // 七級風半徑
+const TWC = { lon: 121.0, lat: 23.7 };
+function typhoonWind(lon, lat, c) {
+  const dx = (lon - c.lon) * KX, dy = (lat - c.lat) * KY, r = Math.hypot(dx, dy);
+  if (r < 1) return [0, 0];
+  let V = r < RM ? VMAX * r / RM : VMAX * Math.pow(RM / r, 0.6);
+  if (r > 450) V *= Math.max(0, 1 - (r - 450) / 450);
+  const ca = Math.cos(INFLOW), sa = Math.sin(INFLOW);
+  return [V * (ca * (-dy / r) + sa * (-dx / r)), V * (ca * (dx / r) + sa * (-dy / r))];
+}
+// 颱風離臺灣較遠時，整座島大致吹同一個方向的風（由颱風中心相對臺灣的方位決定）；
+// 颱風很近或在陸地上時，改用各地實際的環流風向。
+function blendWind(lon, lat, c) {
+  const loc = typhoonWind(lon, lat, c), sp = Math.hypot(loc[0], loc[1]);
+  const dx = (TWC.lon - c.lon) * KX, dy = (TWC.lat - c.lat) * KY, rd = Math.hypot(dx, dy);
+  if (rd < 1) return loc;
+  const big = [-dy / rd * sp, dx / rd * sp];
+  const a = Math.max(0, Math.min(1, 1 - (rd - 120) / 200));
+  return [a * loc[0] + (1 - a) * big[0], a * loc[1] + (1 - a) * big[1]];
+}
+function wind(lon, lat, c, o) {
+  let u = 0, v = 0;
+  if (c) { const w = isLandCell(lon, lat) ? blendWind(lon, lat, c) : typhoonWind(lon, lat, c); u += w[0]; v += w[1]; }
+  if (o.sw && c) { // 颱風引進的西南氣流：颱風愈接近臺灣愈明顯
+    const rd = Math.hypot((c.lon - TWC.lon) * KX, (c.lat - TWC.lat) * KY);
+    const k = Math.max(0, Math.min(1, (25.3 - lat) / 2.2)) * Math.max(0, Math.min(1, 1 - (rd - 350) / 500)) * 15;
+    u += k * 0.74; v += k * 0.67;
+  }
+  if (o.ne) { // 東北季風
+    const k = Math.max(0, Math.min(1, (lat - 22.6) / 2)) * 13;
+    u -= k * 0.66; v -= k * 0.75;
+  }
+  return [u, v];
+}
+const LOOK = [5, 10, 16, 22, 29, 36, 44, 52, 60];
+function compute(c, o) {
+  for (let i = 0; i < N; i++) {
+    if (!LAND[i]) { LV[i] = 0; continue; }
+    const r = (i / G.nc) | 0, cc = i - r * G.nc, lon = G.lon0 + cc * G.d, lat = G.lat0 + r * G.d;
+    const [u, v] = wind(lon, lat, c, o), s = Math.hypot(u, v);
+    if (s < 5) { LV[i] = 0; continue; }
+    const ux = u / s / KX, uy = v / s / KY, h0 = E[i];
+    let a = 0, b = 0, bm = 0;
+    for (const L of LOOK) {
+      const ea = elevAt(lon + ux * L, lat + uy * L), eb = elevAt(lon - ux * L, lat - uy * L);
+      a += ea; b += eb; if (eb > bm) bm = eb;
+    }
+    a /= LOOK.length; b /= LOOK.length;
+    let sc = (Math.max(a, h0) - Math.max(b, h0)) / 900 * Math.min(1, s / 20);
+    let cf = 1;
+    if (GXs[i] || GYs[i]) { cf = Math.max(0.1, Math.abs(u / s * GXs[i] + v / s * GYs[i])); sc *= cf; }
+    let lv = 0;
+    if (sc > 0.6) lv = 2; else if (sc > 0.25) lv = 1;
+    else if (sc < -0.25) { lv = -1; if (o.foehn && cf > 0.55 && sc < -0.45 && bm > 1800 && s >= 10 && h0 < 700) lv = -2; }
+    LV[i] = lv;
+  }
+}
+
+// ===== 路徑 =====
+function catmull(pts, seg = 16) {
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || pts[i + 1];
+    for (let k = 0; k < seg; k++) {
+      const t = k / seg, t2 = t * t, t3 = t2 * t;
+      out.push([0, 1].map(j => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3)));
+    }
+  }
+  out.push(pts[pts.length - 1].slice());
+  return out;
+}
+function makeTrack(pts) {
+  const d = catmull(pts), cum = [0];
+  for (let i = 1; i < d.length; i++) cum.push(cum[i - 1] + Math.hypot((d[i][0] - d[i - 1][0]) * KX, (d[i][1] - d[i - 1][1]) * KY));
+  return { d, cum, len: cum[cum.length - 1] };
+}
+function posAt(tr, t) {
+  const s = Math.max(0, Math.min(1, t)) * tr.len; let i = 1;
+  while (i < tr.cum.length - 1 && tr.cum[i] < s) i++;
+  const s0 = tr.cum[i - 1], s1 = tr.cum[i], f = s1 > s0 ? (s - s0) / (s1 - s0) : 0;
+  return { lon: tr.d[i - 1][0] + (tr.d[i][0] - tr.d[i - 1][0]) * f, lat: tr.d[i - 1][1] + (tr.d[i][1] - tr.d[i - 1][1]) * f, idx: i };
+}
+
+const CITIES = [
+  ['臺北', 121.52, 25.04], ['基隆', 121.72, 25.12], ['新竹', 120.97, 24.80], ['宜蘭', 121.75, 24.75], ['臺中', 120.68, 24.15],
+  ['花蓮', 121.59, 23.98], ['嘉義', 120.45, 23.48], ['臺南', 120.21, 22.99], ['高雄', 120.31, 22.63], ['臺東', 121.13, 22.76], ['恆春', 120.75, 22.00]
+];
+function cityLevel(lon, lat) {
+  const c0 = Math.round((lon - G.lon0) / G.d), r0 = Math.round((lat - G.lat0) / G.d);
+  for (let rad = 0; rad < 4; rad++) for (let dr = -rad; dr <= rad; dr++) for (let dc = -rad; dc <= rad; dc++) {
+    const i = (r0 + dr) * G.nc + (c0 + dc); if (LAND[i]) return LV[i];
+  }
+  return 0;
+}
+
+const PRESETS = [
+  { id: 'c1', name: '第 1 類', sub: '通過北部海面向西', pts: [[126.0,23.2],[124.5,24.3],[123.2,25.2],[122.0,25.75],[120.8,26.1],[119.3,26.5],[117.8,27.0]],
+    note: '中心在臺灣北方海面，臺灣位在環流南側，吹偏西風。西半部迎風，東半部背風，臺東一帶容易出現焚風。', opts: {}, t0: 0.58 },
+  { id: 'c2', name: '第 2 類', sub: '通過臺灣北部', pts: [[126.0,22.6],[124.3,23.6],[122.9,24.3],[121.85,24.65],[121.2,25.0],[120.2,25.4],[118.8,26.0],[117.8,26.4]],
+    note: '登陸前東北部、北部先迎風。中心進入臺灣海峽後轉吹西南風，西半部變成迎風面，東部背風。', opts: {} },
+  { id: 'c3', name: '第 3 類', sub: '通過臺灣中部', pts: [[126.0,21.9],[124.2,22.9],[122.7,23.6],[121.6,23.95],[120.8,24.0],[119.7,24.3],[118.5,24.8],[117.6,25.2]],
+    note: '接近時吹東北風，北部、東北部先迎風。中心登陸後風向快速轉變；進入臺灣海峽後轉吹偏南風，南部、東部迎風，中部背風。', opts: {} },
+  { id: 'c6', name: '第 6 類', sub: '沿東岸或東部海面北上', pts: [[123.8,19.6],[122.9,21.0],[122.2,22.3],[121.95,23.4],[122.1,24.4],[122.6,25.4],[123.5,26.5],[124.5,27.4]],
+    note: '中心在東南方時吹東北風，東北部、東部迎風。北上到臺灣東北方後轉吹西北風，換成西半部迎風、東部背風。秋季要留意共伴效應。', opts: {} },
+  { id: 'c7', name: '第 7 類', sub: '沿西岸或臺灣海峽北上', pts: [[117.8,19.8],[118.6,21.2],[119.3,22.4],[119.7,23.4],[120.0,24.4],[120.4,25.4],[121.0,26.4],[121.6,27.4]],
+    note: '中心在臺灣西南方到西方時吹東南風，東部、南部迎風，中部背風。中心北上後容易引進西南氣流，西南部山區雨勢變大。', opts: { sw: true } }
+];
+const CASES = [
+  { id: 'herb', name: '賀伯', sub: '1996 年', pts: [[127.0,21.6],[125.0,22.8],[123.3,23.9],[121.85,24.6],[121.2,25.0],[120.0,25.6],[118.5,26.3]],
+    note: '由宜蘭附近登陸、從北部出海。西南部山區迎風，阿里山出現驚人雨量，中南部山區土石流災情嚴重。', opts: {} },
+  { id: 'xangsane', name: '象神', sub: '2000 年', pts: [[120.3,18.6],[120.4,20.2],[120.9,21.6],[121.8,22.9],[122.3,24.2],[122.9,25.4],[124.0,26.8],[124.8,27.4]],
+    note: '秋颱。由巴士海峽北上、沿臺灣東部海面往東北移動，外圍環流與東北季風疊加產生共伴效應，北部與東北部豪雨。', opts: { ne: true } },
+  { id: 'nari', name: '納莉', sub: '2001 年', pts: [[125.6,25.9],[124.2,25.6],[122.8,25.3],[122.0,25.0],[121.5,24.6],[121.0,24.0],[120.6,23.4],[120.2,22.9],[119.6,22.6]],
+    note: '特殊路徑。由東北角附近登陸，向西南緩慢穿越臺灣，長時間降雨讓臺北嚴重淹水。', opts: {} },
+  { id: 'morakot', name: '莫拉克', sub: '2009 年', pts: [[127.0,23.3],[125.0,23.6],[123.0,23.8],[121.6,23.95],[121.05,24.6],[120.5,25.2],[120.2,25.8],[119.9,26.5]],
+    note: '由花蓮附近登陸、北部出海後北上，移動緩慢。環流引進旺盛西南氣流，南部山區成為迎風面，出現極端豪雨，小林村遭土石流掩埋。', opts: { sw: true } },
+  { id: 'nepartak', name: '尼伯特', sub: '2016 年', pts: [[127.0,19.5],[125.0,20.8],[123.2,21.9],[121.1,22.65],[120.6,22.5],[119.5,23.0],[118.5,23.9]],
+    note: '由臺東太麻里附近登陸，穿越南部後出海。臺東首當其衝，出現極強陣風。', opts: {} }
+];
+
+// ===== 介面 =====
+buildTerrain();
+const $ = s => document.querySelector(s);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const LVTXT = { 2: '雨很大', 1: '多雨', 0: '影響小', '-1': '雨少', '-2': '焚風' };
+const LVLONG = { 2: '迎風面，雨很大', 1: '迎風面，多雨', 0: '影響小', '-1': '背風面，雨少', '-2': '背風面，可能出現焚風' };
+
+const S = {
+  view: '2d', tab: 'preset', path: PRESETS[0], track: null, t: 0.45, playing: false, dur: 20,
+  opts: { sw: false, ne: false, foehn: true }, drawPts: [], center: null
+};
+let three = null;
+let dirty = true, colorsDirty = true, panelDirty = true, lastPanel = 0, spin = 0;
+
+// ---- 色彩 ----
+let T = {};
+function hexRgb(h) { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(x => x + x).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['sea', 'grat', 'ink', 'ink2', 'wind', 'lee', 'foehn', 'ty', 'paper', 'land-halo']) T[k] = cs.getPropertyValue('--' + k).trim();
+  T.rgb = { wind: hexRgb(T.wind), lee: hexRgb(T.lee), foehn: hexRgb(T.foehn), sea: hexRgb(T.sea) };
+  colorsDirty = true;
+}
+readTokens();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+
+const RAMP = [[0, [178, 204, 152]], [250, [204, 214, 158]], [900, [196, 178, 126]], [1800, [162, 134, 100]], [2800, [130, 114, 100]], [3700, [232, 232, 230]]];
+function ramp(h) {
+  for (let k = 1; k < RAMP.length; k++) if (h <= RAMP[k][0]) {
+    const [h0, c0] = RAMP[k - 1], [h1, c1] = RAMP[k], f = (h - h0) / (h1 - h0);
+    return [0, 1, 2].map(j => c0[j] + (c1[j] - c0[j]) * f);
+  }
+  return RAMP[RAMP.length - 1][1];
+}
+const BASE = new Float32Array(N * 3);
+for (let i = 0; i < N; i++) if (LAND[i]) { const c = ramp(E[i]), sh = SHADE[i] || 1; for (let j = 0; j < 3; j++) BASE[i * 3 + j] = Math.min(255, c[j] * sh); }
+function cellColor(i, out) {
+  if (!LAND[i]) { out[0] = T.rgb.sea[0]; out[1] = T.rgb.sea[1]; out[2] = T.rgb.sea[2]; return out; }
+  let r = BASE[i * 3], g = BASE[i * 3 + 1], b = BASE[i * 3 + 2];
+  const lv = LV[i];
+  if (lv) {
+    const col = lv > 0 ? T.rgb.wind : lv === -1 ? T.rgb.lee : T.rgb.foehn;
+    const a = lv === 2 ? 0.78 : lv === 1 ? 0.45 : lv === -1 ? 0.62 : 0.8;
+    const sh = SHADE[i] || 1, k = 0.75 + 0.25 * sh;
+    r = r * (1 - a) + col[0] * a * k; g = g * (1 - a) + col[1] * a * k; b = b * (1 - a) + col[2] * a * k;
+  }
+  out[0] = r; out[1] = g; out[2] = b; return out;
+}
+
+// ---- 路徑設定 ----
+function setPath(p) {
+  S.path = p; S.track = p ? makeTrack(p.pts) : null;
+  if (p && p.opts) { S.opts.sw = !!p.opts.sw; S.opts.ne = !!p.opts.ne; $('#o-sw').checked = S.opts.sw; $('#o-ne').checked = S.opts.ne; }
+  S.t = p && p.custom ? 0 : (p && p.t0) || 0.45; $('#slider').value = Math.round(S.t * 1000);
+  $('#pathNote').textContent = p ? p.note || '' : '';
+  $('#nowname').innerHTML = p ? `${p.name}<small>${p.sub}</small>` : '自己畫路徑<small>在地圖上點出路徑</small>';
+  renderList(); dirty = true; if (three) three.pathDirty = true;
+}
+function renderList() {
+  const box = $('#pathList'); box.innerHTML = '';
+  const list = S.tab === 'preset' ? PRESETS : S.tab === 'case' ? CASES : [];
+  box.hidden = !list.length; $('#drawCtl').hidden = S.tab !== 'draw';
+  for (const p of list) {
+    const b = document.createElement('button');
+    b.setAttribute('aria-pressed', S.path === p ? 'true' : 'false');
+    b.innerHTML = `<b>${p.name}</b><span>${p.sub}</span>`;
+    b.onclick = () => { setPlaying(false); setPath(p); };
+    box.appendChild(b);
+  }
+}
+function setTab(tab) {
+  S.tab = tab;
+  for (const [id, k] of [['#t-preset', 'preset'], ['#t-case', 'case'], ['#t-draw', 'draw']]) $(id).setAttribute('aria-selected', tab === k ? 'true' : 'false');
+  setPlaying(false);
+  if (tab === 'draw') {
+    setView('2d'); S.drawPts = []; S.opts.sw = S.opts.ne = false; $('#o-sw').checked = $('#o-ne').checked = false; setPath(null); syncDraw();
+  } else {
+    $('#stage').classList.remove('drawing'); $('#hint').hidden = true;
+    setPath(tab === 'preset' ? PRESETS[0] : CASES[3]);
+  }
+}
+function syncDraw() {
+  const n = S.drawPts.length, drawing = S.tab === 'draw' && !(S.path && S.path.custom);
+  $('#drawGo').disabled = n < 2 || !drawing; $('#drawUndo').disabled = !n || !drawing; $('#drawClear').disabled = !n && !(S.path && S.path.custom);
+  $('#stage').classList.toggle('drawing', drawing);
+  const h = $('#hint');
+  h.hidden = S.tab !== 'draw';
+  h.textContent = drawing ? (n ? `已點 ${n} 個位置。${n >= 2 ? '可以按「開始模擬」了。' : '再點一個位置。'}` : '在地圖上點一下，放下颱風的第一個位置。') : '模擬中。按「清除」可以重新畫一條。';
+  dirty = true;
+}
+$('#t-preset').onclick = () => setTab('preset');
+$('#t-case').onclick = () => setTab('case');
+$('#t-draw').onclick = () => setTab('draw');
+$('#drawGo').onclick = () => {
+  if (S.drawPts.length < 2) return;
+  setPath({ id: 'custom', custom: true, name: '自訂路徑', sub: `${S.drawPts.length} 個位置`, pts: S.drawPts.slice(), note: '看看你畫的路徑經過時，各地是迎風還是背風。可以試著畫出和課本分類相同的路徑來驗證。' });
+  syncDraw(); setPlaying(true);
+};
+$('#drawUndo').onclick = () => { S.drawPts.pop(); syncDraw(); };
+$('#drawClear').onclick = () => { setPlaying(false); S.drawPts = []; setPath(null); syncDraw(); };
+
+// ---- 播放 ----
+function setPlaying(p) {
+  if (p && !S.track) return;
+  if (p && S.t >= 0.999) S.t = 0;
+  S.playing = p;
+  $('#playIcon').innerHTML = p ? '<path d="M5 3h3.5v14H5zM11.5 3H15v14h-3.5z"/>' : '<path d="M5 3l12 7-12 7z"/>';
+  $('#play').setAttribute('aria-label', p ? '暫停' : '播放');
+}
+$('#play').onclick = () => setPlaying(!S.playing);
+$('#slider').oninput = e => { S.t = e.target.value / 1000; setPlaying(false); dirty = true; };
+$('#speed').onchange = e => S.dur = +e.target.value;
+S.dur = +$('#speed').value;
+$('#o-sw').onchange = e => { S.opts.sw = e.target.checked; dirty = true; };
+$('#o-ne').onchange = e => { S.opts.ne = e.target.checked; dirty = true; };
+$('#o-foehn').onchange = e => { S.opts.foehn = e.target.checked; dirty = true; };
+
+// ---- 2D ----
+const cv = $('#c2d'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+const off = document.createElement('canvas'); off.width = G.nc; off.height = G.nr;
+const octx = off.getContext('2d'), img = octx.createImageData(G.nc, G.nr);
+function px(lon, lat) { return [(lon - VIEW.lon0) / (VIEW.lon1 - VIEW.lon0) * W, (VIEW.lat1 - lat) / (VIEW.lat1 - VIEW.lat0) * H]; }
+function unpx(x, y) { return [VIEW.lon0 + x / W * (VIEW.lon1 - VIEW.lon0), VIEW.lat1 - y / H * (VIEW.lat1 - VIEW.lat0)]; }
+function kmPx(km) { return km / (KX * (VIEW.lon1 - VIEW.lon0)) * W; }
+function resize() {
+  const r = $('#stage').getBoundingClientRect(); W = r.width; H = r.height; DPR = Math.min(2.5, devicePixelRatio || 1);
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  if (three) three.resize(W, H);
+}
+new ResizeObserver(resize).observe($('#stage'));
+resize();
+
+function twPath() { ctx.beginPath(); TW.forEach((p, k) => { const [x, y] = px(p[0], p[1]); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath(); }
+function drawArrow(x, y, ux, uy, L, lw) {
+  const hx = x + ux * L / 2, hy = y + uy * L / 2, tx = x - ux * L / 2, ty = y - uy * L / 2, hs = Math.max(3.5, L * 0.32);
+  ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.lineWidth = lw; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - ux * hs - uy * hs * 0.55, hy - uy * hs + ux * hs * 0.55);
+  ctx.lineTo(hx - ux * hs + uy * hs * 0.55, hy - uy * hs - ux * hs * 0.55); ctx.closePath(); ctx.fill();
+}
+function drawTyphoonSymbol(x, y, s, color) {
+  ctx.save(); ctx.translate(x, y); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.6 * s; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(0, 0, 6.5 * s, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, 2.6 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(5.5 * s, -3.5 * s); ctx.quadraticCurveTo(9 * s, -14 * s, -3 * s, -16 * s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-5.5 * s, 3.5 * s); ctx.quadraticCurveTo(-9 * s, 14 * s, 3 * s, 16 * s); ctx.stroke();
+  ctx.restore();
+}
+function drawClouds(x, y, R, rot, color, alpha) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.strokeStyle = color; ctx.lineCap = 'round';
+  for (let arm = 0; arm < 4; arm++) {
+    const base = arm * Math.PI / 2;
+    for (let k = 0; k < 26; k++) {
+      const f0 = k / 26, f1 = (k + 1) / 26, r0 = R * (0.12 + 0.95 * f0), r1 = R * (0.12 + 0.95 * f1);
+      const a0 = base + 2.6 * f0, a1 = base + 2.6 * f1;
+      ctx.globalAlpha = alpha * (1 - f0) * 0.9; ctx.lineWidth = R * 0.12 * (1 - f0 * 0.6);
+      ctx.beginPath(); ctx.moveTo(Math.cos(a0) * r0, Math.sin(a0) * r0); ctx.lineTo(Math.cos(a1) * r1, Math.sin(a1) * r1); ctx.stroke();
+    }
+  }
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+const tmp = [0, 0, 0];
+function render2D() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = T.sea; ctx.fillRect(0, 0, W, H);
+  // 經緯線
+  ctx.strokeStyle = T.grat; ctx.lineWidth = 1; ctx.fillStyle = T.ink2; ctx.font = `${Math.max(10, W / 64)}px "Noto Sans TC",sans-serif`;
+  for (let lon = 119; lon <= 124; lon++) { const [x] = px(lon, 0); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); ctx.fillText(lon + '°E', x + 3, H - 5); }
+  for (let lat = 21; lat <= 26; lat++) { const [, y] = px(0, lat); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); ctx.fillText(lat + '°N', 4, y - 4); }
+  // 陸地（地形＋迎風背風）
+  if (colorsDirty) {
+    const d = img.data;
+    for (let i = 0; i < N; i++) {
+      const r = (i / G.nc) | 0, c = i - r * G.nc, p = ((G.nr - 1 - r) * G.nc + c) * 4;
+      if (!LAND[i]) { d[p + 3] = 0; continue; }
+      cellColor(i, tmp); d[p] = tmp[0]; d[p + 1] = tmp[1]; d[p + 2] = tmp[2]; d[p + 3] = 255;
+    }
+    octx.putImageData(img, 0, 0); colorsDirty = false;
+  }
+  const [x0, y0] = px(G.lon0 - G.d / 2, G.lat0 + (G.nr - 0.5) * G.d), [x1, y1] = px(G.lon0 + (G.nc - 0.5) * G.d, G.lat0 - G.d / 2);
+  ctx.save(); twPath(); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.drawImage(off, x0, y0, x1 - x0, y1 - y0); ctx.restore();
+  twPath(); ctx.strokeStyle = T.ink; ctx.lineWidth = 1.2; ctx.stroke();
+  // 路徑
+  const c = S.center;
+  if (S.track) {
+    const d = S.track.d, k = c ? c.idx : 0;
+    ctx.setLineDash([5, 5]); ctx.strokeStyle = T.ink2; ctx.lineWidth = 1.6; ctx.beginPath();
+    d.forEach((p, i) => { const [x, y] = px(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.setLineDash([]);
+    if (c) { ctx.strokeStyle = T.ty; ctx.lineWidth = 3; ctx.beginPath(); for (let i = 0; i < k; i++) { const [x, y] = px(d[i][0], d[i][1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } const [cx, cy] = px(c.lon, c.lat); ctx.lineTo(cx, cy); ctx.stroke(); }
+  }
+  // 風向箭頭
+  ctx.strokeStyle = T.ink; ctx.fillStyle = T.ink;
+  const sc = W / 660;
+  for (let lon = 118.75; lon <= 124.3; lon += 0.5) for (let lat = 20.5; lat <= 26.6; lat += 0.5) {
+    const [u, v] = wind(lon, lat, c, S.opts), s = Math.hypot(u, v); if (s < 2) continue;
+    const [x, y] = px(lon, lat); ctx.globalAlpha = Math.min(0.85, 0.3 + s / 45);
+    drawArrow(x, y, u / s, -v / s, Math.min(30, 7 + s * 0.55) * sc, Math.max(1, 1.3 * sc));
+  }
+  ctx.globalAlpha = 1;
+  // 颱風
+  if (c) {
+    const [x, y] = px(c.lon, c.lat), R = kmPx(R7);
+    drawClouds(x, y, R * 0.95, -spin, T['land-halo'] === '#FFFFFF' ? '#ffffff' : '#c9d6df', 0.32);
+    ctx.setLineDash([6, 5]); ctx.strokeStyle = T.ty; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    drawTyphoonSymbol(x, y, Math.max(0.8, sc * 1.05), T.ty);
+  }
+  // 城市
+  const fs = Math.max(11, 13 * sc);
+  ctx.font = `700 ${fs}px "Noto Sans TC",sans-serif`; ctx.lineJoin = 'round';
+  for (const [n, lon, lat] of CITIES) {
+    const [x, y] = px(lon, lat), lv = cityLevel(lon, lat);
+    ctx.beginPath(); ctx.arc(x, y, 3.2 * Math.max(1, sc), 0, Math.PI * 2); ctx.fillStyle = T.ink; ctx.fill();
+    const west = lon < 121.0 || n === '臺北' || n === '恆春';
+    ctx.textAlign = west ? 'right' : 'left'; ctx.textBaseline = 'middle';
+    const tx = x + (west ? -7 : 7);
+    ctx.strokeStyle = T['land-halo']; ctx.lineWidth = 3.5; ctx.strokeText(n, tx, y); ctx.fillStyle = T.ink; ctx.fillText(n, tx, y);
+    if (lv) { const w = ctx.measureText(n).width, bx = west ? tx - w - 10 : tx + w + 6; ctx.beginPath(); ctx.arc(bx + 2, y, 4.5 * Math.max(1, sc), 0, Math.PI * 2); ctx.fillStyle = lv > 0 ? T.wind : lv === -1 ? T.lee : T.foehn; ctx.fill(); ctx.strokeStyle = T['land-halo']; ctx.lineWidth = 1.5; ctx.stroke(); }
+  }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  // 手繪路徑點
+  if (S.tab === 'draw' && S.drawPts.length && !(S.path && S.path.custom)) {
+    ctx.strokeStyle = T.ty; ctx.fillStyle = T.ty; ctx.lineWidth = 2.5; ctx.setLineDash([4, 4]);
+    if (S.drawPts.length > 1) { const d = catmull(S.drawPts); ctx.beginPath(); d.forEach((p, i) => { const [x, y] = px(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); }
+    ctx.setLineDash([]);
+    S.drawPts.forEach((p, i) => { const [x, y] = px(p[0], p[1]); ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '700 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(i + 1, x, y + 0.5); ctx.fillStyle = T.ty; });
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+}
+cv.addEventListener('pointerdown', e => {
+  if (S.tab !== 'draw' || (S.path && S.path.custom) || S.view !== '2d') return;
+  const r = cv.getBoundingClientRect(), [lon, lat] = unpx(e.clientX - r.left, e.clientY - r.top);
+  S.drawPts.push([lon, lat]);
+  if (S.drawPts.length === 1) S.center = null;
+  syncDraw();
+});
+
+// ---- 說明文字 ----
+const DIRS = ['東', '東北', '北', '西北', '西', '西南', '南', '東南'];
+function dir8(dx, dy) { let a = Math.atan2(dy, dx) / DEG; a = (a + 360 + 22.5) % 360; return DIRS[Math.floor(a / 45)]; }
+function updatePanel() {
+  const c = S.center, ul = $('#cities'); ul.innerHTML = '';
+  const lvs = CITIES.map(([n, lon, lat]) => [n, cityLevel(lon, lat)]);
+  for (const [n, lv] of lvs) { const li = document.createElement('li'); li.className = 'lv' + lv; li.innerHTML = `<i class="dot"></i>${n}<em>${LVTXT[lv]}</em>`; ul.appendChild(li); }
+  let txt = '';
+  if (!c) { txt = S.tab === 'draw' ? '還沒有颱風。先在地圖上畫出一條路徑。' : ''; }
+  else {
+    const dx = (c.lon - TWC.lon) * KX, dy = (c.lat - TWC.lat) * KY, dist = Math.hypot(dx, dy);
+    if (dist > 900) txt = '颱風距離臺灣還很遠，環流還吹不到臺灣。';
+    else {
+      if (isLandPt(c.lon, c.lat)) {
+        let best = null, bd = 1e9; for (const [n, lon, lat] of CITIES) { const d = Math.hypot((lon - c.lon) * KX, (lat - c.lat) * KY); if (d < bd) { bd = d; best = n; } }
+        txt = `颱風中心正在臺灣陸地上（${best}附近），各地風向都不一樣，中央山脈也會破壞颱風結構。`;
+      } else {
+        txt = `颱風中心在臺灣${dir8(dx, dy)}方，距離約 ${Math.round(dist / 10) * 10} 公里。`;
+        // 臺灣整體吹的風
+        let su = 0, sv = 0, ss = 0;
+        for (let lat = 22.2; lat <= 25.0; lat += 0.4) for (let lon = 120.3; lon <= 121.7; lon += 0.35) { if (!isLandCell(lon, lat)) continue; const [u, v] = wind(lon, lat, c, S.opts); su += u; sv += v; ss += Math.hypot(u, v); }
+        const coh = ss ? Math.hypot(su, sv) / ss : 0;
+        txt += coh > 0.6 ? `臺灣大部分地區吹${dir8(-su, -sv)}風。` : '颱風環流包住臺灣，各地風向不一樣。';
+      }
+      const ww = lvs.filter(x => x[1] > 0).map(x => x[0]), lw = lvs.filter(x => x[1] === -1).map(x => x[0]), fw = lvs.filter(x => x[1] === -2).map(x => x[0]);
+      if (ww.length) txt += `${ww.join('、')}在迎風面，雨勢大。`;
+      if (lw.length) txt += `${lw.join('、')}在背風面，雨較少。`;
+      if (fw.length) txt += `${fw.join('、')}可能出現焚風，天氣乾熱。`;
+      if (!ww.length && !lw.length && !fw.length) txt += '目前各主要城市受地形影響不明顯。';
+    }
+  }
+  $('#explain').textContent = txt;
+}
+
+// ---- 3D ----
+
+const EXAG = 10;
+function toXYZ(lon, lat, h) { return [(lon - TWC.lon) * KX, h / 1000 * EXAG, -(lat - TWC.lat) * KY]; }
+function textSprite(text, color, halo) {
+  const cvs = document.createElement('canvas'), g = cvs.getContext('2d'), fs = 44;
+  g.font = `700 ${fs}px "Noto Sans TC",sans-serif`; const w = Math.ceil(g.measureText(text).width) + 20;
+  cvs.width = w; cvs.height = fs + 20; g.font = `700 ${fs}px "Noto Sans TC",sans-serif`; g.textBaseline = 'middle'; g.lineJoin = 'round';
+  g.strokeStyle = halo; g.lineWidth = 10; g.strokeText(text, 10, cvs.height / 2); g.fillStyle = color; g.fillText(text, 10, cvs.height / 2);
+  const tex = new THREE.CanvasTexture(cvs); tex.minFilter = THREE.LinearFilter;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  sp.scale.set(w / cvs.height * 16, 16, 1); sp.renderOrder = 10; return sp;
+}
+function cloudTexture() {
+  const cvs = document.createElement('canvas'); cvs.width = cvs.height = 512; const g = cvs.getContext('2d'), R = 240;
+  g.translate(256, 256); g.strokeStyle = '#fff'; g.lineCap = 'round';
+  for (let arm = 0; arm < 4; arm++) { const base = arm * Math.PI / 2; for (let k = 0; k < 40; k++) { const f0 = k / 40, f1 = (k + 1) / 40, r0 = R * (0.1 + 0.9 * f0), r1 = R * (0.1 + 0.9 * f1), a0 = base + 2.6 * f0, a1 = base + 2.6 * f1; g.globalAlpha = (1 - f0) * 0.85; g.lineWidth = 30 * (1 - f0 * 0.6); g.beginPath(); g.moveTo(Math.cos(a0) * r0, Math.sin(a0) * r0); g.lineTo(Math.cos(a1) * r1, Math.sin(a1) * r1); g.stroke(); } }
+  return new THREE.CanvasTexture(cvs);
+}
+function init3D() {
+  if (three) return true;
+  if (!window.THREE) { const h = $('#hint'); h.hidden = false; h.textContent = '3D 元件沒有載入成功，請確認網路連線後重新整理頁面。'; return false; }
+  const el = $('#c3d');
+  const renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  el.appendChild(renderer.domElement);
+  const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(36, 1, 1, 6000);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.7); dl.position.set(-300, 420, -260); scene.add(dl);
+  // 海
+  const seaMat = new THREE.MeshBasicMaterial({ color: 0xcadce4 });
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry((VIEW.lon1 - VIEW.lon0) * KX, (VIEW.lat1 - VIEW.lat0) * KY), seaMat);
+  sea.rotation.x = -Math.PI / 2; const [sx, , sz] = toXYZ((VIEW.lon0 + VIEW.lon1) / 2, (VIEW.lat0 + VIEW.lat1) / 2, 0); sea.position.set(sx, -0.8, sz); scene.add(sea);
+  // 經緯線
+  const gpts = [];
+  for (let lon = 119; lon <= 124; lon++) { gpts.push(...toXYZ(lon, VIEW.lat0, 0), ...toXYZ(lon, VIEW.lat1, 0)); }
+  for (let lat = 21; lat <= 26; lat++) { gpts.push(...toXYZ(VIEW.lon0, lat, 0), ...toXYZ(VIEW.lon1, lat, 0)); }
+  const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gpts, 3));
+  const gridMat = new THREE.LineBasicMaterial({ color: 0xafc4cf }); const grid = new THREE.LineSegments(gg, gridMat); grid.position.y = -0.5; scene.add(grid);
+  // 地形
+  const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+  for (let r = 0; r < G.nr; r++) for (let c = 0; c < G.nc; c++) {
+    const i = r * G.nc + c, p = toXYZ(G.lon0 + c * G.d, G.lat0 + r * G.d, LAND[i] ? E[i] : -200);
+    pos.set(p, i * 3);
+  }
+  const idx = [];
+  for (let r = 0; r < G.nr - 1; r++) for (let c = 0; c < G.nc - 1; c++) {
+    const a = r * G.nc + c, b = a + 1, n = a + G.nc, m = n + 1;
+    if (!(LAND[a] || LAND[b] || LAND[n] || LAND[m])) continue;
+    idx.push(a, b, n, b, m, n);
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const colAttr = new THREE.BufferAttribute(col, 3); geo.setAttribute('color', colAttr); geo.setIndex(idx); geo.computeVertexNormals();
+  const terrain = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true })); scene.add(terrain);
+  // 風向箭頭
+  const arrows = [];
+  for (let lon = 118.75; lon <= 124.3; lon += 0.5) for (let lat = 20.5; lat <= 26.6; lat += 0.5) {
+    const [x, , z] = toXYZ(lon, lat, 0), a = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(x, 48, z), 10, 0x14304a, 5, 3.5);
+    a.userData = { lon, lat }; scene.add(a); arrows.push(a);
+  }
+  // 颱風
+  const ty = new THREE.Group(); scene.add(ty);
+  const cloud = new THREE.Mesh(new THREE.CircleGeometry(R7 * 1.05, 64), new THREE.MeshBasicMaterial({ map: cloudTexture(), transparent: true, opacity: 0.75, depthWrite: false }));
+  cloud.rotation.x = -Math.PI / 2; cloud.position.y = 62; ty.add(cloud);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xd0202b, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+  const ring = new THREE.Mesh(new THREE.RingGeometry(R7 - 1.8, R7 + 1.8, 128), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.y = 1; ty.add(ring);
+  const eye = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 62, 20), new THREE.MeshBasicMaterial({ color: 0xd0202b })); eye.position.y = 31; ty.add(eye);
+  // 路徑
+  const pathGeo = new THREE.BufferGeometry(), pastGeo = new THREE.BufferGeometry();
+  const pathLine = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: 0x50677a })); scene.add(pathLine);
+  const pastLine = new THREE.Line(pastGeo, new THREE.LineBasicMaterial({ color: 0xd0202b })); pastLine.position.y = 0.5; scene.add(pastLine);
+  // 城市
+  const labels = [];
+  for (const [n, lon, lat] of CITIES) {
+    const sp = textSprite(n, '#14304a', '#ffffff'), [x, , z] = toXYZ(lon, lat, 0), ox = { '基隆': 16, '臺北': -12, '宜蘭': 12 }[n] || 0; sp.position.set(x + ox, elevAt(lon, lat) / 1000 * EXAG + 12, z); scene.add(sp); labels.push(sp);
+  }
+  // 視角
+  const orb = { th: 0.3, ph: 0.9, rad: 800, tx: 0, tz: 10 };
+  function place() { const s = Math.sin(orb.ph); cam.position.set(orb.tx + orb.rad * s * Math.sin(orb.th), orb.rad * Math.cos(orb.ph), orb.tz + orb.rad * s * Math.cos(orb.th)); cam.lookAt(orb.tx, 0, orb.tz); }
+  const ptrs = new Map(); let pinch0 = 0, rad0 = 0;
+  renderer.domElement.addEventListener('pointerdown', e => { renderer.domElement.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); rad0 = orb.rad; } });
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (!ptrs.has(e.pointerId)) return; const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (ptrs.size === 1) { orb.th -= (e.clientX - prev[0]) * 0.006; orb.ph = Math.max(0.12, Math.min(1.45, orb.ph - (e.clientY - prev[1]) * 0.005)); }
+    else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); orb.rad = Math.max(200, Math.min(1500, rad0 * pinch0 / d)); }
+  });
+  const up = e => ptrs.delete(e.pointerId);
+  renderer.domElement.addEventListener('pointerup', up); renderer.domElement.addEventListener('pointercancel', up);
+  renderer.domElement.addEventListener('wheel', e => { e.preventDefault(); orb.rad = Math.max(200, Math.min(1500, orb.rad * (1 + Math.sign(e.deltaY) * 0.1))); }, { passive: false });
+
+  three = {
+    pathDirty: true,
+    resize(w, h) { renderer.setSize(w, h, false); renderer.domElement.style.width = '100%'; renderer.domElement.style.height = '100%'; cam.aspect = w / h; cam.updateProjectionMatrix(); },
+    render() {
+      const c = S.center;
+      if (three.colorsDirty) {
+        for (let i = 0; i < N; i++) { cellColor(i, tmp); col[i * 3] = tmp[0] / 255; col[i * 3 + 1] = tmp[1] / 255; col[i * 3 + 2] = tmp[2] / 255; }
+        colAttr.needsUpdate = true; seaMat.color.setRGB(T.rgb.sea[0] / 255, T.rgb.sea[1] / 255, T.rgb.sea[2] / 255);
+        renderer.setClearColor(seaMat.color); three.colorsDirty = false;
+        const v = new THREE.Vector3();
+        for (const a of arrows) {
+          const [u, w] = wind(a.userData.lon, a.userData.lat, c, S.opts), s = Math.hypot(u, w);
+          if (s < 2) { a.visible = false; continue; } a.visible = true;
+          v.set(u / s, 0, -w / s); a.setDirection(v); const L = Math.min(34, 8 + s * 0.6); a.setLength(L, Math.min(9, L * 0.4), Math.min(6, L * 0.28));
+        }
+      }
+      if (three.pathDirty) {
+        const pts = S.track ? S.track.d.flatMap(p => toXYZ(p[0], p[1], 0).map((q, k) => k === 1 ? 1.5 : q)) : [];
+        pathGeo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); pastGeo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+        three.pathDirty = false;
+      }
+      pastGeo.setDrawRange(0, c ? c.idx : 0);
+      ty.visible = !!c;
+      if (c) { const [x, , z] = toXYZ(c.lon, c.lat, 0); ty.position.set(x, 0, z); cloud.rotation.z = spin; }
+      place(); renderer.render(scene, cam);
+    },
+    colorsDirty: true
+  };
+  three.resize(W, H);
+  return true;
+}
+function setView(v) {
+  if (v === '3d' && S.tab === 'draw' && !(S.path && S.path.custom)) v = '2d';
+  if (v === '3d' && !init3D()) v = '2d';
+  S.view = v;
+  $('#v2').setAttribute('aria-pressed', v === '2d'); $('#v3').setAttribute('aria-pressed', v === '3d');
+  cv.hidden = v !== '2d'; $('#c3d').hidden = v !== '3d';
+  if (three) three.colorsDirty = true; colorsDirty = true;
+}
+$('#v2').onclick = () => setView('2d');
+$('#v3').onclick = () => setView('3d');
+
+// ---- 主迴圈 ----
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!reduceMotion) spin += dt * 1.1;
+  if (S.playing && S.track) {
+    S.t += dt / S.dur; if (S.t >= 1) { S.t = 1; setPlaying(false); }
+    $('#slider').value = Math.round(S.t * 1000); dirty = true;
+  }
+  if (dirty) {
+    S.center = S.track ? posAt(S.track, S.t) : null;
+    compute(S.center, S.opts); dirty = false; colorsDirty = true; panelDirty = true; if (three) three.colorsDirty = true;
+  }
+  if (S.view === '2d') render2D(); else if (three) three.render();
+  if (panelDirty && now - lastPanel > 150) { updatePanel(); lastPanel = now; panelDirty = false; }
+  requestAnimationFrame(frame);
+}
+setPath(PRESETS[0]);
+requestAnimationFrame(frame);
+
+</script>
+</body>
+</html>

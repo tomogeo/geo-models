@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>凌汛：河裡的冰為什麼會淹水</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E6ECEE; --panel:#F6F9FA; --ink:#1B2530; --muted:#55636F; --line:#B9C4CA;
+  --water:#B98A4E; --water-2:#D1AA72; --ice:#F5FAFD; --ice-edge:#7FAAC2; --ice-crack:#B7D2E0;
+  --land:#DCD3BD; --land-2:#CFC4A8; --levee:#8B775A;
+  --warm:#D08A2E; --cold:#3D78A3; --danger:#B3261E;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131A20; --panel:#1C252D; --ink:#E7EDF0; --muted:#9AA9B4; --line:#34414B;
+    --water:#98703F; --water-2:#B08852; --ice:#DDEBF3; --ice-edge:#8CB7CF; --ice-crack:#A9C6D6;
+    --land:#37322A; --land-2:#2E2A23; --levee:#9A8663;
+    --warm:#E09A3E; --cold:#5E9BC7; --danger:#E4584C;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131A20; --panel:#1C252D; --ink:#E7EDF0; --muted:#9AA9B4; --line:#34414B;
+  --water:#98703F; --water-2:#B08852; --ice:#DDEBF3; --ice-edge:#8CB7CF; --ice-crack:#A9C6D6;
+  --land:#37322A; --land-2:#2E2A23; --levee:#9A8663;
+  --warm:#E09A3E; --cold:#5E9BC7; --danger:#E4584C;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{
+  margin:0; height:100%; background:var(--paper); color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.app{
+  height:100%; max-width:1500px; margin:0 auto;
+  display:grid; grid-template-rows:auto 1fr auto auto; grid-template-columns:minmax(0,1fr);
+  padding:clamp(10px,1.6vw,28px) clamp(12px,2.4vw,40px);
+  gap:clamp(6px,1vw,16px);
+}
+header{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap}
+.hgroup{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap}
+h1{
+  font-family:"Noto Serif TC","Songti TC","PMingLiU",serif; font-weight:900;
+  font-size:clamp(26px,3.4vw,52px); line-height:1.15; margin:0; letter-spacing:.02em;
+}
+.season{
+  font-size:clamp(15px,1.4vw,22px); font-weight:700; padding:.2em .7em; border-radius:4px;
+  border:2px solid currentColor; white-space:nowrap;
+}
+.season.winter{color:var(--cold)} .season.spring{color:var(--warm)} .season:empty{display:none}
+.counter{font-size:clamp(14px,1.2vw,18px); color:var(--muted); font-variant-numeric:tabular-nums}
+
+.stage{position:relative; min-height:0; display:flex}
+.view{flex:1; min-height:0; min-width:0}
+.view:not(.on){display:none!important}
+.view.on:not(.panel){display:flex}
+
+/* river strip */
+#strip{gap:clamp(8px,1.4vw,24px); align-items:stretch}
+#strip svg{flex:1; min-width:0; height:100%; display:block}
+.gauge{width:clamp(70px,7vw,110px); display:flex; flex-direction:column; align-items:center; gap:8px; padding:6px 0}
+.gauge .lbl{font-weight:700; font-size:clamp(14px,1.3vw,20px)}
+.tube{position:relative; flex:1; width:46%; min-height:120px; border:3px solid var(--ink); border-radius:0 0 10px 10px; border-top:none; overflow:visible; background:var(--panel)}
+.tube .fill{position:absolute; left:0; right:0; bottom:0; background:var(--water); border-radius:0 0 6px 6px}
+.tube .warn{position:absolute; left:-18%; right:-18%; border-top:3px dashed var(--danger)}
+.tube .warn span{position:absolute; right:108%; top:-.8em; white-space:nowrap; font-size:clamp(11px,1vw,15px); color:var(--danger); font-weight:700}
+.gauge .state{font-weight:700; font-size:clamp(14px,1.3vw,20px); text-align:center; min-height:1.4em}
+.gauge .state.hi{color:var(--danger)}
+
+.water{fill:var(--water)} .land{fill:var(--land)} .land2{fill:var(--land-2)}
+.levee{stroke:var(--levee); stroke-width:5; stroke-linecap:round}
+.flowline{fill:none; stroke:var(--water-2); stroke-width:3; stroke-dasharray:18 26; animation:flow 1.6s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-44}}
+.cover{fill:var(--ice); stroke:var(--ice-edge); stroke-width:2}
+.floe{fill:var(--ice); stroke:var(--ice-edge); stroke-width:1.6}
+.floe.piled{stroke:var(--cold); stroke-width:2}
+.flood{fill:var(--water); opacity:.88}
+.tag text{font-size:22px; font-weight:700; fill:var(--ink); paint-order:stroke; stroke:var(--panel); stroke-width:6px; stroke-linejoin:round}
+.tag line{stroke:var(--ink); stroke-width:2}
+.tag.danger text{fill:var(--danger)}
+.tband text{font-size:19px; font-weight:700; fill:#fff}
+.axis text{font-size:20px; fill:var(--muted); font-weight:700}
+.axis line{stroke:var(--muted); stroke-width:2}
+
+/* map */
+#map svg{width:100%; height:100%}
+.m-lat{stroke:var(--line); stroke-width:1.5; stroke-dasharray:6 6}
+.m-latlbl{fill:var(--muted); font-size:15px}
+.m-river{fill:none; stroke:var(--water); stroke-width:6; stroke-linejoin:round; stroke-linecap:round}
+.m-seg{fill:none; stroke-width:12; stroke-linejoin:round; stroke-linecap:round; opacity:.9}
+.m-flow{fill:none; stroke:#fff; stroke-width:3; stroke-dasharray:10 16; animation:flow 1.2s linear infinite}
+.m-city{fill:var(--ink)} .m-citylbl{font-size:16px; fill:var(--ink)}
+.m-seglbl{font-size:21px; font-weight:700}
+.m-note{font-size:17px; fill:var(--muted)}
+.m-sea{fill:var(--cold); opacity:.18}
+
+.m2ice-e{fill:none; stroke:var(--ice-edge); stroke-width:13; stroke-linejoin:round}
+.m2ice{fill:none; stroke:var(--ice); stroke-width:9; stroke-linejoin:round}
+.m2floe{fill:var(--ice); stroke:var(--ice-edge); stroke-width:1.2}
+.m2floe.piled{stroke:var(--cold)}
+#m2flood circle{fill:var(--water); opacity:.45}
+.m2tags text{font-size:18px; font-weight:700; fill:var(--ink); paint-order:stroke; stroke:var(--paper); stroke-width:5px; stroke-linejoin:round}
+.m2tags text.danger{fill:var(--danger)}
+#map2 svg{width:100%; height:100%}
+/* panels */
+.panel{flex:1; overflow:auto; align-self:stretch; display:flex; align-items:center; justify-content:center}
+.panel-inner{width:100%; max-width:1180px}
+table{width:100%; border-collapse:collapse; font-size:clamp(15px,1.45vw,23px); line-height:1.5}
+th,td{padding:.55em .7em; text-align:left; vertical-align:top; border-bottom:1.5px solid var(--line)}
+thead th{font-family:"Noto Serif TC",serif; font-size:1.15em; border-bottom:3px solid var(--ink)}
+thead th.nm{color:var(--cold)} thead th.sd{color:var(--warm)}
+tbody th{color:var(--muted); font-weight:700; white-space:nowrap; width:7em}
+tr.common td{font-weight:700}
+.impacts{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:clamp(14px,2vw,34px) clamp(20px,3vw,50px)}
+.impacts div{border-left:5px solid var(--water); padding:.2em 0 .2em .9em; font-size:clamp(15px,1.45vw,23px); line-height:1.55}
+.impacts div.case{border-left-color:var(--danger); grid-column:1/-1}
+.impacts b{display:block; font-size:1.15em; margin-bottom:.15em}
+.summary{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:clamp(16px,3vw,56px); font-size:clamp(15px,1.45vw,23px); line-height:1.55}
+.summary h2{font-family:"Noto Serif TC",serif; font-size:1.3em; margin:0 0 .5em}
+.summary ol{margin:0; padding-left:1.4em} .summary li{margin-bottom:.55em}
+.periods div{border-left:5px solid; padding:.1em 0 .1em .8em; margin-bottom:.8em}
+.periods .w{border-color:var(--cold)} .periods .s{border-color:var(--warm)}
+.ext{color:var(--muted); font-size:.9em; margin-top:1em}
+
+.caption{
+  font-size:clamp(17px,1.85vw,29px); line-height:1.6; max-width:62em; margin:0; min-height:3.2em;
+}
+.caption b{color:var(--cold)}
+nav{display:flex; align-items:center; gap:12px}
+nav button{
+  font:inherit; font-size:clamp(15px,1.3vw,20px); font-weight:700; cursor:pointer;
+  padding:.45em 1.1em; border-radius:6px; border:2px solid var(--ink); background:transparent; color:var(--ink);
+}
+nav button.primary{background:var(--ink); color:var(--paper)}
+nav button:disabled{opacity:.3; cursor:default}
+nav button:focus-visible,.dots button:focus-visible{outline:3px solid var(--cold); outline-offset:3px}
+.dots{display:flex; gap:6px; flex:1; justify-content:center; flex-wrap:wrap}
+.dots button{width:14px; height:14px; padding:0; border-radius:50%; border:2px solid var(--muted); background:transparent; cursor:pointer}
+.dots button.on{background:var(--ink); border-color:var(--ink)}
+.hint{color:var(--muted); font-size:13px}
+
+@media (max-width:700px){
+  #strip{flex-direction:column}
+  .gauge{width:100%; flex-direction:row; height:54px; padding:0}
+  .tube{height:26px; min-height:0; width:auto; flex:1; border:3px solid var(--ink); border-radius:0 10px 10px 0; border-left:none}
+  .tube .fill{top:0; bottom:0; left:0; right:auto; height:auto!important; border-radius:0}
+  .tube .warn{top:-6px; bottom:-6px; left:auto; right:auto; border-top:none; border-left:3px dashed var(--danger)}
+  .tube .warn span{display:none}
+  .impacts,.summary{grid-template-columns:1fr}
+  .hint{display:none}
+  tbody th{white-space:normal; width:auto}
+}
+@media (prefers-reduced-motion: reduce){.flowline,.m-flow{animation:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="hgroup"><h1 id="title"></h1><span id="season" class="season"></span></div>
+    <span class="counter" id="counter"></span>
+  </header>
+
+  <main class="stage" id="stage">
+    <!-- 河道動畫 -->
+    <section class="view" id="strip">
+      <svg viewBox="0 0 1000 420" preserveAspectRatio="xMidYMid meet" role="img" aria-label="河道示意動畫">
+        <defs>
+          <linearGradient id="gWC" x1="0" x2="1"><stop offset="0" style="stop-color:var(--warm)"/><stop offset="1" style="stop-color:var(--cold)"/></linearGradient>
+          <linearGradient id="gCW" x1="0" x2="1"><stop offset="0" style="stop-color:var(--cold)"/><stop offset="1" style="stop-color:var(--warm)"/></linearGradient>
+          <pattern id="crack" width="60" height="40" patternUnits="userSpaceOnUse">
+            <path d="M0 12 L18 16 L30 8 L60 14 M10 40 L22 26 L40 30 L52 22" stroke="var(--ice-crack)" stroke-width="1.5" fill="none"/>
+          </pattern>
+          <clipPath id="clipCh"><rect x="40" y="150" width="920" height="120"/></clipPath>
+          <clipPath id="clipAll"><rect x="40" y="56" width="920" height="310"/></clipPath>
+        </defs>
+        <g class="tband" id="tband">
+          <rect id="tbar" x="40" y="10" width="920" height="36" rx="4" fill="url(#gWC)"/>
+          <text id="tL" x="54" y="35"></text>
+          <text id="tR" x="946" y="35" text-anchor="end"></text>
+        </g>
+        <rect class="land" x="40" y="56" width="920" height="94"/>
+        <rect class="land2" x="40" y="270" width="920" height="96"/>
+        <line class="levee" x1="40" y1="140" x2="960" y2="140"/>
+        <line class="levee" x1="40" y1="280" x2="960" y2="280"/>
+        <rect class="water" x="40" y="150" width="920" height="120"/>
+        <g clip-path="url(#clipCh)">
+          <path class="flowline" d="M40 175 H960"/><path class="flowline" d="M40 205 H960" style="animation-delay:-.5s"/>
+          <path class="flowline" d="M40 235 H960" style="animation-delay:-1s"/><path class="flowline" d="M40 258 H960" style="animation-delay:-.3s"/>
+        </g>
+        <g clip-path="url(#clipAll)"><path id="floodT" class="flood"/><path id="floodB" class="flood"/></g>
+        <g clip-path="url(#clipCh)">
+          <rect id="cover" class="cover" x="960" y="150" width="0" height="120"/>
+          <rect id="coverTex" x="960" y="150" width="0" height="120" fill="url(#crack)"/>
+          <g id="floes"></g>
+        </g>
+        <g id="tags"></g>
+        <g class="axis">
+          <text x="40" y="402" id="aL">上游</text>
+          <text x="960" y="402" text-anchor="end" id="aR">下游</text>
+          <line x1="410" y1="396" x2="600" y2="396"/><path d="M600 396 l-14 -8 v16z" fill="var(--muted)"/>
+          <text x="505" y="386" text-anchor="middle">水流方向</text>
+        </g>
+      </svg>
+      <div class="gauge" aria-live="polite">
+        <div class="lbl">水位</div>
+        <div class="tube"><div class="fill" id="gFill"></div><div class="warn" style="bottom:70%"><span>警戒</span></div></div>
+        <div class="state" id="gState">正常</div>
+      </div>
+    </section>
+
+    <!-- 地圖 -->
+    <section class="view" id="map">
+      <svg viewBox="0 0 860 360" preserveAspectRatio="xMidYMid meet" role="img" aria-label="黃河凌汛河段位置圖">
+        <path class="m-sea" d="M790 120 Q840 110 860 130 L860 220 Q820 215 792 190 Q780 160 790 120Z"/>
+        <text class="m-note" x="812" y="172" text-anchor="middle">渤海</text>
+        <line class="m-lat" x1="20" y1="80" x2="860" y2="80"/><text class="m-latlbl" x="24" y="72">40°N</text>
+        <line class="m-lat" x1="20" y1="280" x2="860" y2="280"/><text class="m-latlbl" x="24" y="272">35°N</text>
+        <path class="m-river" d="M110 250 L152 236 L208 180 L252 140 L272 112 L280 68 L296 48 L350 50 L400 56 L448 68 L444 104 L430 170 L416 236 L412 296 L448 288 L496 284 L544 282 L572 284 L604 268 L680 212 L720 184 L768 168 L792 160"/>
+        <path class="m-seg" style="stroke:var(--cold)" d="M208 180 L252 140 L272 112 L280 68 L296 48 L350 50 L400 56 L448 68"/>
+        <path class="m-flow" d="M208 180 L252 140 L272 112 L280 68 L296 48 L350 50 L400 56 L448 68"/>
+        <path class="m-seg" style="stroke:var(--warm)" d="M604 268 L680 212 L720 184 L768 168"/>
+        <path class="m-flow" d="M604 268 L680 212 L720 184 L768 168"/>
+        <g>
+          <circle class="m-city" cx="152" cy="236" r="5"/><text class="m-citylbl" x="140" y="262" text-anchor="middle">蘭州</text>
+          <circle class="m-city" cx="252" cy="140" r="5"/><text class="m-citylbl" x="240" y="130" text-anchor="end">銀川</text>
+          <circle class="m-city" cx="400" cy="56" r="5"/><text class="m-citylbl" x="400" y="36" text-anchor="middle">包頭</text>
+          <circle class="m-city" cx="544" cy="282" r="5"/><text class="m-citylbl" x="544" y="308" text-anchor="middle">鄭州</text>
+          <circle class="m-city" cx="680" cy="212" r="5"/><text class="m-citylbl" x="668" y="200" text-anchor="end">濟南</text>
+        </g>
+        <text class="m-seglbl" x="300" y="150" style="fill:var(--cold)">寧蒙河段</text>
+        <text class="m-note" x="300" y="174">寧夏、內蒙古｜由南往北</text>
+        <text class="m-seglbl" x="640" y="310" style="fill:var(--warm)">山東河段</text>
+        <text class="m-note" x="640" y="334">由西南往東北</text>
+        <g transform="translate(520 110)">
+          <line x1="0" y1="80" x2="0" y2="0" stroke="var(--muted)" stroke-width="3"/><path d="M0 -4 l-9 16 h18z" fill="var(--muted)"/>
+          <text class="m-note" x="16" y="30">緯度愈高</text><text class="m-note" x="16" y="54">氣溫愈低</text>
+        </g>
+      </svg>
+    </section>
+
+    <section class="view" id="map2">
+      <svg viewBox="0 0 860 360" preserveAspectRatio="xMidYMid meet" role="img" aria-label="黃河凌汛動畫">
+        <path class="m-sea" d="M790 120 Q840 110 860 130 L860 220 Q820 215 792 190 Q780 160 790 120Z"/>
+        <text class="m-note" x="812" y="172" text-anchor="middle">渤海</text>
+        <line class="m-lat" x1="20" y1="80" x2="860" y2="80"/><text class="m-latlbl" x="24" y="72">40°N</text>
+        <line class="m-lat" x1="20" y1="280" x2="860" y2="280"/><text class="m-latlbl" x="24" y="272">35°N</text>
+        <path class="m-river" d="M110 250 L152 236 L208 180 L252 140 L272 112 L280 68 L296 48 L350 50 L400 56 L448 68 L444 104 L430 170 L416 236 L412 296 L448 288 L496 284 L544 282 L572 284 L604 268 L680 212 L720 184 L768 168 L792 160"/>
+        <g id="m2flood"></g>
+        <path id="m2e_nm" class="m2ice-e" d="M152 236 L208 180 L252 140 L272 112 L280 68 L296 48 L350 50 L400 56 L448 68"/><path id="m2i_nm" class="m2ice" d="M152 236 L208 180 L252 140 L272 112 L280 68 L296 48 L350 50 L400 56 L448 68"/>
+        <path id="m2e_sd" class="m2ice-e" d="M544 282 L572 284 L604 268 L680 212 L720 184 L768 168"/><path id="m2i_sd" class="m2ice" d="M544 282 L572 284 L604 268 L680 212 L720 184 L768 168"/>
+        <g id="m2floes"></g>
+        <g>
+          <circle class="m-city" cx="152" cy="236" r="5"/><text class="m-citylbl" x="140" y="262" text-anchor="middle">蘭州</text>
+          <circle class="m-city" cx="252" cy="140" r="5"/><text class="m-citylbl" x="240" y="130" text-anchor="end">銀川</text>
+          <circle class="m-city" cx="400" cy="56" r="5"/><text class="m-citylbl" x="400" y="36" text-anchor="middle">包頭</text>
+          <circle class="m-city" cx="544" cy="282" r="5"/><text class="m-citylbl" x="544" y="308" text-anchor="middle">鄭州</text>
+          <circle class="m-city" cx="680" cy="212" r="5"/><text class="m-citylbl" x="668" y="200" text-anchor="end">濟南</text>
+        </g>
+        <text class="m-seglbl" x="300" y="150" style="fill:var(--cold)">寧蒙河段</text>
+        <text class="m-note" x="300" y="174">寧夏、內蒙古｜由南往北</text>
+        <text class="m-seglbl" x="640" y="310" style="fill:var(--warm)">山東河段</text>
+        <text class="m-note" x="640" y="334">由西南往東北</text>
+        <g transform="translate(520 110)">
+          <line x1="0" y1="80" x2="0" y2="0" stroke="var(--muted)" stroke-width="3"/><path d="M0 -4 l-9 16 h18z" fill="var(--muted)"/>
+          <text class="m-note" x="16" y="30">緯度愈高</text><text class="m-note" x="16" y="54">氣溫愈低</text>
+        </g>
+        <g id="m2tags" class="m2tags"></g>
+      </svg>
+    </section>
+
+    <!-- 比較 -->
+    <section class="view panel" id="compare"><div class="panel-inner">
+      <table>
+        <thead><tr><th></th><th class="nm">寧蒙河段</th><th class="sd">山東河段</th></tr></thead>
+        <tbody>
+          <tr><th>位置</th><td>寧夏、內蒙古</td><td>河南東部到山東入海口</td></tr>
+          <tr><th>流向</th><td>由南往北</td><td>由西南往東北</td></tr>
+          <tr><th>緯度</th><td>約 37°N → 40°N 以上</td><td>約 35°N → 37.7°N</td></tr>
+          <tr><th>冬季氣候</th><td>緯度高、深居內陸，冬季嚴寒，封凍期長</td><td>緯度較低，冬季氣溫常在 0°C 上下，封河、開河可能反覆</td></tr>
+          <tr><th>河道特色</th><td>河道寬淺彎曲、坡度平緩，冰塊容易卡住</td><td>地上河（懸河），河道上寬下窄，冰塊容易在窄處卡住</td></tr>
+          <tr><th>凌汛特點</th><td>發生頻繁、規模較大，開河期常形成冰壩</td><td>不一定每年都嚴重，但兩岸人口密集，一旦潰堤損失很大</td></tr>
+          <tr class="common"><th>共同點</th><td colspan="2">都由低緯流向高緯 → 上下游結冰、解凍不同步</td></tr>
+        </tbody>
+      </table>
+    </div></section>
+
+    <!-- 災害 -->
+    <section class="view panel" id="impact"><div class="panel-inner impacts">
+      <div><b>淹沒農田與村莊</b>冰壩把水位抬高，河水漫過堤防，甚至沖垮堤防（潰堤）。</div>
+      <div><b>冰塊撞擊</b>大塊冰凌順流衝撞，損壞堤防、橋墩、碼頭與水利設施。</div>
+      <div><b>取水、灌溉中斷</b>取水口與灌溉渠道被冰堵住，影響農業和民生用水。</div>
+      <div><b>交通受阻</b>河面封凍與流凌期間，渡口、航運無法正常運作。</div>
+      <div class="case"><b>案例：2008 年春・內蒙古杭錦旗</b>黃河內蒙古河段在開河期發生凌汛，堤防決口，周邊村莊與農田被淹，大批居民緊急撤離。</div>
+    </div></section>
+
+    <!-- 重點整理 -->
+    <section class="view panel" id="summary"><div class="panel-inner summary">
+      <div>
+        <h2>凌汛形成的條件</h2>
+        <ol>
+          <li><b>冬季有結冰期</b>：氣溫降到 0°C 以下，河面會結冰。</li>
+          <li><b>河流由低緯流向高緯</b>：上游、下游結冰和解凍的時間不同步。</li>
+          <li><b>河道彎曲、狹窄或坡度平緩</b>：冰塊容易卡住堆積。</li>
+        </ol>
+        <p class="ext">延伸：俄羅斯西伯利亞的鄂畢河、葉尼塞河、勒拿河也是由南往北流，春季同樣常有凌汛。</p>
+      </div>
+      <div class="periods">
+        <h2>兩個發生時期</h2>
+        <div class="w"><b>初冬・封河期</b><br>下游先結冰 → 冰塞 → 上游水位升高</div>
+        <div class="s"><b>初春・開河期</b><br>上游先解凍 → 冰壩 → 水位暴漲、可能潰堤<br><span style="color:var(--danger);font-weight:700">通常比封河期更危險</span></div>
+      </div>
+    </div></section>
+  </main>
+
+  <p class="caption" id="caption"></p>
+
+  <nav>
+    <button id="prev">上一步</button>
+    <button id="replay">重播</button>
+    <div class="dots" id="dots"></div>
+    <span class="hint">← → 或空白鍵切換</span>
+    <button id="next" class="primary">下一步</button>
+  </nav>
+</div>
+
+<script>
+(function(){
+const NS='http://www.w3.org/2000/svg';
+const X0=40, X1=960, CT=150, CB=270, LANES=5, LH=(CB-CT)/LANES;
+const $=id=>document.getElementById(id);
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const WARM_L='上游・南方・緯度低・較暖', COLD_R='下游・北方・緯度高・較冷';
+
+const steps=[
+ {view:'strip', title:'凌汛是什麼？', season:'',
+  cap:'冬春之際，河裡的冰塊（<b>冰凌</b>）堵住河道，把上游的水擋住，水位跟著升高，甚至溢出河岸，這就是<b>凌汛</b>。',
+  temps:null, setup:s=>{s.spawnRate=1.4; s.slope=0;}, tags:{drift:'漂流的冰塊（冰凌）'}},
+ {view:'map', title:'黃河的兩個凌汛河段', season:'',
+  cap:'黃河凌汛最常發生在<b>寧蒙河段</b>與<b>山東河段</b>。看流向：兩段都是從<b>緯度較低</b>的地方，流向<b>緯度較高</b>的地方。'},
+ {view:'strip', title:'關鍵：從低緯流向高緯', season:'',
+  cap:'上游在南、較暖；下游在北、較冷。所以上游和下游<b>結冰、解凍的時間不一樣</b>，凌汛就是從這個時間差開始的。',
+  temps:'wc', setup:s=>{}, tags:{}},
+ {view:'strip', title:'初冬：下游先結冰', season:'winter',
+  cap:'天氣轉冷，北邊的下游先降到 0°C 以下，河面結成一整片<b>冰蓋</b>；南邊的上游還沒結冰，河水照樣往下流。',
+  temps:'wc', setup:s=>{s.cover={a:X1,b:X1}; s.grow={to:640,speed:110};}, tags:{cover:'冰蓋（已封凍）'}},
+ {view:'strip', title:'初冬：冰塞抬高水位', season:'winter',
+  cap:'上游漂下來的冰塊和冰花，被下游的冰蓋擋住，愈堆愈多、塞住河道，形成<b>冰塞</b>。水流不過去，上游水位就升高。',
+  temps:'wc', setup:s=>{s.cover={a:640,b:X1}; s.spawnRate=3.2; seed(s,14); s.maxPile=150; s.slope=0.5/150;},
+  tags:{cover:'冰蓋', pile:'冰塞', drift:'上游漂來的冰'}},
+ {view:'strip', title:'初春：上游先解凍', season:'spring',
+  cap:'春天回暖，南邊的上游先融化，冰蓋裂成冰塊順流而下（<b>流凌</b>）；北邊的下游卻還凍著。',
+  temps:'wc', setup:s=>{s.cover={a:X0,b:X1}; s.thaw={dir:'ltr',pos:X0,to:560,speed:230,acc:0}; s.spawnRate=1.2; s.maxPile=110; s.slope=0.8/300;},
+  tags:{cover:'下游仍封凍', drift:'流凌'}},
+ {view:'strip', title:'初春：冰壩潰堤', season:'spring',
+  cap:'大量冰塊撞上下游冰蓋，層層堆疊成<b>冰壩</b>，再加上融冰增加的水量，水位暴漲、漫過堤防，甚至<b>潰堤</b>。開河期的凌汛通常比封河期更危險。',
+  temps:'wc', setup:s=>{s.cover={a:560,b:X1}; prefill(s,90); seed(s,18); s.spawnRate=5; s.maxPile=330; s.slope=0.8/300; s.breakLabel=true;},
+  tags:{cover:'下游仍封凍', pile:'冰壩', drift:'流凌'}},
+ {view:'map2', mode:'winter', title:'回到黃河：初冬封河期', season:'winter',
+  cap:'寧蒙河段和山東河段都是北端（下游）先結冰。上游漂來的冰塊卡在冰蓋前面，形成<b>冰塞</b>，水位開始升高。'},
+ {view:'map2', mode:'spring', title:'回到黃河：初春開河期', season:'spring',
+  cap:'上游先解凍，大量流凌衝向還凍著的下游，在寧蒙河段<b>北緯 40° 附近</b>卡住、堆成<b>冰壩</b>。寧蒙河段緯度高、封凍久，最常在這時發生嚴重凌汛，甚至<b>潰堤</b>。'},
+ {view:'strip', title:'如果河流反過來流呢？', season:'spring',
+  cap:'假設河流由北往南流：下游在南，會<b>先解凍</b>；上游的冰塊漂下來時，前方已經暢通，可以順利流走，就不容易發生凌汛。',
+  temps:'cw', setup:s=>{s.cover={a:X0,b:X1}; s.thaw={dir:'rtl',pos:X1,to:430,speed:200,acc:0}; s.spawnRate=0; s.slope=0;},
+  tags:{cover:'上游仍封凍', drift:'冰塊順利流走'}},
+ {view:'compare', title:'寧蒙河段 vs. 山東河段', season:'',
+  cap:'兩段都是「低緯流向高緯」。寧蒙河段更冷、封凍更久，凌汛較頻繁；山東河段是地上河，一旦潰堤影響很大。'},
+ {view:'impact', title:'凌汛帶來的災害', season:'',
+  cap:'凌汛的威脅不只是水淹，冰塊本身的撞擊力也很可怕。'},
+ {view:'summary', title:'重點整理', season:'',
+  cap:'記住一句話：<b>低緯流向高緯</b>的河流，冬天下游先凍、春天上游先融，冰塊就會卡在中間。'}
+];
+
+let sim, idx=0, last=0, t=0;
+const floesG=$('floes'), tagsG=$('tags');
+
+function newSim(){return {floes:[], cover:null, grow:null, thaw:null, lane:Array(LANES).fill(0),
+  spawnRate:0, acc:0, maxPile:0, slope:0, level:0.25, shown:0.25, breakLabel:false};}
+
+function makeFloe(s,x,lane,opts={}){
+  const r=9+Math.random()*8, n=6+(Math.random()*2|0), pts=[];
+  for(let i=0;i<n;i++){const a=i/n*Math.PI*2+Math.random()*0.5, rr=r*(0.72+Math.random()*0.38);pts.push((Math.cos(a)*rr).toFixed(1)+','+(Math.sin(a)*rr).toFixed(1));}
+  const el=document.createElementNS(NS,'polygon'); el.setAttribute('points',pts.join(' ')); el.setAttribute('class','floe');
+  floesG.appendChild(el);
+  const f={x,lane,y:CT+LH*(lane+0.5)+(Math.random()-0.5)*8,r,rot:Math.random()*360,vr:(Math.random()-0.5)*30,vx:95+Math.random()*30,stopped:false,el};
+  s.floes.push(f); if(opts.stop) stopFloe(s,f); return f;
+}
+function stopFloe(s,f){
+  const stopAt=s.cover.a-s.lane[f.lane];
+  f.x=stopAt-f.r; f.stopped=true; f.y+= (Math.random()-0.5)*6;
+  s.lane[f.lane]+=f.r*2*0.7; f.el.classList.add('piled');
+}
+function prefill(s,depth){
+  for(let l=0;l<LANES;l++) while(s.lane[l]<depth+(Math.random()*20-10)) makeFloe(s,0,l,{stop:true});
+}
+function seed(s,n){for(let k=0;k<n;k++) makeFloe(s,X0+Math.random()*(s.cover.a-X0-120),Math.random()*LANES|0);}
+function avgPile(s){return s.lane.reduce((a,b)=>a+b,0)/LANES;}
+
+function update(s,dt){
+  if(s.grow){s.cover.a=Math.max(s.grow.to,s.cover.a-s.grow.speed*dt); if(s.cover.a===s.grow.to) s.grow=null;}
+  if(s.thaw){
+    const th=s.thaw, d=th.speed*dt;
+    if(th.dir==='ltr'){const np=Math.min(th.to,th.pos+d); th.acc+=np-th.pos; th.pos=np; s.cover.a=np;
+      while(th.acc>16){th.acc-=16; makeFloe(s,th.pos-32-Math.random()*40,Math.random()*LANES|0);} if(np>=th.to) s.thaw=null;}
+    else{const np=Math.max(th.to,th.pos-d); th.acc+=th.pos-np; th.pos=np; s.cover.b=np;
+      while(th.acc>16){th.acc-=16; makeFloe(s,th.pos+20+Math.random()*30,Math.random()*LANES|0);}
+      if(np<=th.to){s.thaw=null; s.spawnRate=0.9; s.spawnX=th.pos+20;}}
+  }
+  if(s.spawnRate>0 && (s.maxPile===0 || avgPile(s)<s.maxPile)){
+    s.acc+=s.spawnRate*dt;
+    while(s.acc>=1){s.acc-=1; makeFloe(s,s.spawnX!=null?s.spawnX:X0-20,Math.random()*LANES|0);}
+  }
+  for(let i=s.floes.length-1;i>=0;i--){
+    const f=s.floes[i]; if(f.stopped) continue;
+    f.x+=f.vx*dt; f.rot+=f.vr*dt;
+    if(s.cover && f.x < s.cover.a && s.cover.b>s.cover.a){
+      const stopAt=s.cover.a-s.lane[f.lane];
+      if(f.x+f.r>=stopAt) stopFloe(s,f);
+    }
+    if(f.x-f.r>X1+10){f.el.remove(); s.floes.splice(i,1);}
+  }
+  s.level=Math.min(1,0.25+avgPile(s)*s.slope);
+  s.shown+=(s.level-s.shown)*Math.min(1,dt*1.8);
+}
+
+
+/* ---------- 黃河地圖凌汛 ---------- */
+const RV={
+  nm:{pts:[[152,236],[208,180],[252,140],[272,112],[280,68],[296,48],[350,50],[400,56],[448,68]],seg:1},
+  sd:{pts:[[544,282],[572,284],[604,268],[680,212],[720,184],[768,168]],seg:2}
+};
+for(const r of Object.values(RV)){r.cum=[0]; for(let i=1;i<r.pts.length;i++){const[a,b]=[r.pts[i-1],r.pts[i]]; r.cum.push(r.cum[i-1]+Math.hypot(b[0]-a[0],b[1]-a[1]));} r.L=r.cum[r.cum.length-1]; r.segS=r.cum[r.seg];}
+function ptAt(r,s){
+  s=Math.max(0,Math.min(r.L,s)); let i=1; while(i<r.cum.length-1&&r.cum[i]<s) i++;
+  const a=r.pts[i-1], b=r.pts[i], len=r.cum[i]-r.cum[i-1], t=(s-r.cum[i-1])/len, dx=(b[0]-a[0])/len, dy=(b[1]-a[1])/len;
+  return {x:a[0]+(b[0]-a[0])*t, y:a[1]+(b[1]-a[1])*t, nx:-dy, ny:dx};
+}
+/* 寧蒙河段跨過北緯40度的位置（地圖上 y=80） */
+const NM40=(()=>{const r=RV.nm; for(let i=1;i<r.pts.length;i++){const a=r.pts[i-1],b=r.pts[i]; if(a[1]>=80&&b[1]<80) return r.cum[i-1]+(r.cum[i]-r.cum[i-1])*(a[1]-80)/(a[1]-b[1]);} return 200;})();
+const m2floesG=$('m2floes'), m2tagsG=$('m2tags'), m2floodG=$('m2flood');
+let m2=null;
+function m2river(key,cfg){
+  const r=RV[key], st={key,r,floes:[],lane:[0,0,0],acc:0,shown:0,...cfg};
+  st.circles=[]; for(let k=0;k<6;k++){const c=document.createElementNS(NS,'circle'); c.setAttribute('r',0); m2floodG.appendChild(c); st.circles.push(c);}
+  return st;
+}
+function m2setup(mode){
+  m2floesG.innerHTML=''; m2floodG.innerHTML='';
+  const nm=RV.nm, sd=RV.sd;
+  if(mode==='winter') m2={mode, rivers:[
+    m2river('nm',{cover:{a:nm.L,b:nm.L},grow:{to:NM40,speed:70},rate:2.4,pmax:26,rad:18,pile:'冰塞'}),
+    m2river('sd',{cover:{a:sd.L,b:sd.L},grow:{to:170,speed:35},rate:1.4,pmax:24,rad:12,pile:'冰塞'})]};
+  else m2={mode, rivers:[
+    m2river('nm',{cover:{a:nm.segS,b:nm.L},thaw:{to:NM40,speed:35,acc:0},rate:0,pmax:24,rad:24,pile:'冰壩',brk:true}),
+    m2river('sd',{cover:{a:sd.segS,b:sd.L},thaw:{to:195,speed:32,acc:0},rate:0,pmax:30,rad:13,pile:'冰壩'})]};
+  for(const R of m2.rivers) if(mode==='winter') for(let k=0;k<5;k++) m2floe(R,Math.random()*40);
+}
+function m2floe(R,s){
+  const r=3.2+Math.random()*2.2, n=6, pts=[];
+  for(let i=0;i<n;i++){const a=i/n*Math.PI*2+Math.random()*0.5, rr=r*(0.7+Math.random()*0.4); pts.push((Math.cos(a)*rr).toFixed(1)+','+(Math.sin(a)*rr).toFixed(1));}
+  const el=document.createElementNS(NS,'polygon'); el.setAttribute('points',pts.join(' ')); el.setAttribute('class','m2floe'); m2floesG.appendChild(el);
+  R.floes.push({s,lane:Math.random()*3|0,r,rot:Math.random()*360,v:26+Math.random()*10,stopped:false,el});
+}
+const m2avg=R=>(R.lane[0]+R.lane[1]+R.lane[2])/3;
+function m2update(dt){
+  for(const R of m2.rivers){
+    if(R.grow){R.cover.a=Math.max(R.grow.to,R.cover.a-R.grow.speed*dt); if(R.cover.a<=R.grow.to) R.grow=null;}
+    if(R.thaw){const np=Math.min(R.thaw.to,R.cover.a+R.thaw.speed*dt); R.thaw.acc+=np-R.cover.a; R.cover.a=np;
+      while(R.thaw.acc>11){R.thaw.acc-=7; m2floe(R,np-14-Math.random()*16);}
+      if(np>=R.thaw.to){R.thaw=null; R.rate=R.brk?2.6:1.2;}}
+    if(!R.grow && R.rate>0 && m2avg(R)<R.pmax){R.acc+=R.rate*dt; while(R.acc>=1){R.acc-=1; m2floe(R,0);}}
+    for(const f of R.floes){ if(f.stopped) continue;
+      f.s+=f.v*dt; f.rot+=40*dt;
+      if(!R.grow && f.s<R.cover.a){const stop=R.cover.a-R.lane[f.lane]; if(f.s+f.r>=stop){f.s=stop-f.r; f.stopped=true; R.lane[f.lane]+=f.r*1.0; f.el.classList.add('piled');}}
+    }
+    const lvl=Math.min(1,m2avg(R)/R.pmax); R.shown+=(lvl-R.shown)*Math.min(1,dt*1.5);
+  }
+}
+function m2tag(x,y,txt,cls){const e=document.createElementNS(NS,'text'); e.setAttribute('x',x); e.setAttribute('y',y); e.setAttribute('text-anchor','middle'); if(cls) e.setAttribute('class',cls); e.textContent=txt; m2tagsG.appendChild(e);}
+function m2render(){
+  m2tagsG.innerHTML='';
+  for(const R of m2.rivers){
+    const r=R.r, a=R.cover.a, b=R.cover.b, da=`0 ${a.toFixed(1)} ${Math.max(0,b-a).toFixed(1)} ${r.L*2}`;
+    $('m2i_'+R.key).setAttribute('stroke-dasharray',da); $('m2e_'+R.key).setAttribute('stroke-dasharray',da);
+    for(const f of R.floes){const p=ptAt(r,f.s), off=(f.lane-1)*3.2; f.el.setAttribute('transform',`translate(${(p.x+p.nx*off).toFixed(1)} ${(p.y+p.ny*off).toFixed(1)}) rotate(${f.rot.toFixed(0)})`);}
+    const fl=Math.max(0,(R.shown-0.45)/0.55), jam=a-m2avg(R);
+    R.circles.forEach((c,k)=>{const p=ptAt(r,jam-k*5); c.setAttribute('cx',p.x.toFixed(1)); c.setAttribute('cy',p.y.toFixed(1)); c.setAttribute('r',(R.rad*fl*(1-k*0.12)).toFixed(1));});
+    if(b-a>30){const p=ptAt(r,(a+b)/2); if(R.key==='nm') m2tag(p.x,m2.mode==='spring'?p.y+30:p.y-20,'冰蓋'); else m2tag(p.x+18,p.y+32,'冰蓋');}
+    if(m2avg(R)>4){const p=ptAt(r,jam); const danger=fl>0.5?'danger':'';
+      if(R.key==='nm') m2tag(p.x-(R.rad*fl+44),p.y-4,R.pile,danger); else m2tag(p.x-6,p.y+34+R.rad*fl*0.6,R.pile,danger);}
+    if(R.brk && fl>0.65){const p=ptAt(r,jam); m2tag(p.x+R.rad*fl+34,p.y+2,'潰堤！','danger');}
+  }
+}
+
+function tag(x,y,text,cls){
+  const g=document.createElementNS(NS,'g'); g.setAttribute('class','tag'+(cls?' '+cls:''));
+  g.innerHTML=`<text x="${x}" y="${y}" text-anchor="middle">${text}</text>`; tagsG.appendChild(g);
+}
+function render(s){
+  const cv=s.cover, cover=$('cover'), tex=$('coverTex');
+  if(cv && cv.b>cv.a){for(const el of [cover,tex]){el.setAttribute('x',cv.a); el.setAttribute('width',cv.b-cv.a);}}
+  else for(const el of [cover,tex]) el.setAttribute('width',0);
+  for(const f of s.floes) f.el.setAttribute('transform',`translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${f.rot.toFixed(0)})`);
+  // flood
+  const fl=Math.max(0,(s.shown-0.7)/0.3), front=cv?cv.a-avgPile(s):X1;
+  if(fl>0.01 && front>X0){
+    let top=`M${X0} ${CT}`, bot=`M${X0} ${CB}`;
+    for(let x=X0;x<=front;x+=20){const w=0.82+0.18*Math.sin(x*0.045+t*2); top+=` L${x} ${CT-fl*86*w}`; bot+=` L${x} ${CB+fl*88*w}`;}
+    top+=` L${front} ${CT} Z`; bot+=` L${front} ${CB} Z`;
+    $('floodT').setAttribute('d',top); $('floodB').setAttribute('d',bot);
+  } else {$('floodT').setAttribute('d',''); $('floodB').setAttribute('d','');}
+  // tags
+  tagsG.innerHTML=''; const tg=steps[idx].tags||{}, ap=avgPile(s);
+  if(tg.cover && cv && cv.b-cv.a>80) tag((cv.a+cv.b)/2,217,tg.cover);
+  if(tg.pile && ap>18) tag(cv.a-ap/2,fl>0.3?340:128,tg.pile,fl>0.3?'danger':'');
+  if(tg.drift && !(s.breakLabel&&fl>0.55)){const moving=s.floes.filter(f=>!f.stopped); if(moving.length){
+    const x=steps[idx].temps==='cw'?Math.min(880,Math.max(640,(s.cover?s.cover.b:500)+160)):(ap>0?Math.max(180,(cv.a-ap)/2):260);
+    tag(x,cv&&steps[idx].temps!=='cw'?128:128,tg.drift);}}
+  if(s.breakLabel && fl>0.55) tag(Math.max(140,front-80),108,'潰堤！','danger');
+  // gauge
+  const g=$('gFill'), mobile=window.matchMedia('(max-width:700px)').matches;
+  if(mobile){g.style.width=(s.shown*100)+'%'; g.style.height='';} else {g.style.height=(s.shown*100)+'%'; g.style.width='';}
+  const st=$('gState'); const txt=s.shown>0.72?'超過警戒':s.shown>0.4?'升高中':'正常';
+  if(st.textContent!==txt){st.textContent=txt; st.classList.toggle('hi',s.shown>0.72);}
+}
+
+function setTemps(mode){
+  const band=$('tband');
+  if(!mode){band.style.display='none'; $('aL').textContent='上游'; $('aR').textContent='下游'; return;}
+  band.style.display='';
+  if(mode==='wc'){$('tbar').setAttribute('fill','url(#gWC)'); $('tL').textContent=WARM_L; $('tR').textContent=COLD_R;
+    $('aL').textContent='上游（南）'; $('aR').textContent='下游（北）';}
+  else{$('tbar').setAttribute('fill','url(#gCW)'); $('tL').textContent='上游・北方・較冷'; $('tR').textContent='下游・南方・較暖';
+    $('aL').textContent='上游（北）'; $('aR').textContent='下游（南）';}
+}
+
+function go(i){
+  idx=Math.max(0,Math.min(steps.length-1,i)); const st=steps[idx];
+  $('title').textContent=st.title; $('caption').innerHTML=st.cap;
+  const se=$('season'); se.className='season '+st.season; se.textContent=st.season==='winter'?'初冬・封河期':st.season==='spring'?'初春・開河期':'';
+  $('counter').textContent=(idx+1)+' / '+steps.length;
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===st.view));
+  document.querySelectorAll('#dots button').forEach((b,k)=>{b.classList.toggle('on',k===idx); b.setAttribute('aria-current',k===idx?'step':'false');});
+  $('prev').disabled=idx===0; $('next').disabled=idx===steps.length-1;
+  if(st.view==='map2'){m2setup(st.mode); m2render();}
+  if(st.view==='strip'){
+    floesG.innerHTML=''; sim=newSim(); setTemps(st.temps); st.setup(sim);
+    if(reduce) for(let k=0;k<500;k++){t+=0.04; update(sim,0.04);} 
+    render(sim);
+  }
+}
+
+const dots=$('dots');
+steps.forEach((s,k)=>{const b=document.createElement('button'); b.setAttribute('aria-label','第'+(k+1)+'步：'+s.title); b.onclick=()=>go(k); dots.appendChild(b);});
+$('prev').onclick=()=>go(idx-1); $('next').onclick=()=>go(idx+1); $('replay').onclick=()=>go(idx);
+$('stage').addEventListener('click',()=>{ if(idx<steps.length-1) go(idx+1); });
+document.addEventListener('keydown',e=>{
+  if(['ArrowRight','PageDown',' ','Enter'].includes(e.key) && !(e.key==='Enter'&&e.target.tagName==='BUTTON') && !(e.key===' '&&e.target.tagName==='BUTTON')){e.preventDefault(); go(idx+1);}
+  else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault(); go(idx-1);}
+  else if(e.key==='r'||e.key==='R') go(idx);
+  else if(e.key==='f'||e.key==='F'){try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}catch(_){}}
+});
+
+function loop(ts){
+  const dt=Math.min(0.05,(ts-(last||ts))/1000); last=ts; t+=dt;
+  if(steps[idx].view==='strip' && sim){update(sim,dt); render(sim);}
+  if(steps[idx].view==='map2' && m2){m2update(dt); m2render();}
+  requestAnimationFrame(loop);
+}
+go(0); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

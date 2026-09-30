@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>水文歷線：土地利用如何改變河川流量</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAF1F5; --paper:#FFFFFF; --ink:#16324F; --muted:#56697C; --grid:#DCE7EE; --axis:#8DA3B6; --line:#C8D7E2;
+  --flow:#0B6FA4; --flowfill:rgba(11,111,164,.14); --basefill:rgba(11,111,164,.06); --orig:#7A8794;
+  --rain:#9CBBDB; --rainstroke:#5B7FA6; --peak:#C2410C;
+  --urban:#5E6472; --forest:#2F7A3B; --pond:#0E8A9A;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1A25; --paper:#152635; --ink:#E3EDF4; --muted:#9FB3C4; --grid:#20364A; --axis:#5E778C; --line:#2A4459;
+    --flow:#56B6EA; --flowfill:rgba(86,182,234,.18); --basefill:rgba(86,182,234,.07); --orig:#93A3B1;
+    --rain:#34557A; --rainstroke:#6F97C2; --peak:#FB8B4B;
+    --urban:#A9B0BE; --forest:#6CC07A; --pond:#4CC3D1;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1A25; --paper:#152635; --ink:#E3EDF4; --muted:#9FB3C4; --grid:#20364A; --axis:#5E778C; --line:#2A4459;
+  --flow:#56B6EA; --flowfill:rgba(86,182,234,.18); --basefill:rgba(86,182,234,.07); --orig:#93A3B1;
+  --rain:#34557A; --rainstroke:#6F97C2; --peak:#FB8B4B;
+  --urban:#A9B0BE; --forest:#6CC07A; --pond:#4CC3D1;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.6}
+.wrap{max-width:1440px;margin:0 auto;padding:20px 24px 28px;display:grid;
+  grid-template-columns:minmax(0,1fr) 370px;gap:20px;grid-template-areas:"head head" "chart side"}
+header{grid-area:head}
+h1{font-family:"Noto Serif TC","Songti TC",serif;font-weight:900;font-size:clamp(1.6rem,2.6vw,2.3rem);
+  margin:0;letter-spacing:.02em;line-height:1.3}
+.sub{margin:.3rem 0 0;color:var(--muted);font-size:1.05rem}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:6px}
+.chart{grid-area:chart;align-self:start;padding:12px 14px 14px;min-width:0}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 22px;padding:6px 8px 0;font-size:1rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{display:inline-block;width:30px;height:0;border-top:3px solid var(--flow)}
+.sw.dash{border-top:3px dashed var(--orig)}
+.sw.bar{width:14px;height:14px;border:1px solid var(--rainstroke);background:var(--rain)}
+.sw.base{border-top:2px dotted var(--flow)}
+.side{grid-area:side;display:flex;flex-direction:column;gap:16px;min-width:0}
+.side .panel{padding:14px 16px}
+h2{font-size:1.1rem;margin:0 0 10px;font-weight:700}
+.tiles{display:flex;flex-direction:column;gap:10px}
+.tile{display:flex;align-items:center;gap:12px;padding:12px 14px;border:2px solid var(--line);border-radius:6px;
+  cursor:pointer;border-left:8px solid var(--c);transition:background .2s,border-color .2s}
+.tile:has(input:checked){border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+.tile input{width:24px;height:24px;accent-color:var(--c);margin:0;flex:none}
+.tile input:focus-visible{outline:3px solid var(--flow);outline-offset:3px}
+.tile-body{display:flex;flex-direction:column;flex:1;min-width:0}
+.tile-name{font-size:1.25rem;font-weight:700;line-height:1.3}
+.tile-desc{font-size:.95rem;color:var(--muted)}
+kbd{font-family:inherit;font-size:.85rem;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 7px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.row label{display:inline-flex;align-items:center;gap:8px;font-size:1rem;cursor:pointer}
+.row input{width:20px;height:20px;accent-color:var(--flow)}
+button{font:inherit;font-size:1rem;color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:6px;padding:6px 16px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button:focus-visible{outline:3px solid var(--flow);outline-offset:2px}
+table{width:100%;border-collapse:collapse;font-size:1rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 4px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:500;color:var(--muted);font-size:.9rem}
+td.now{font-weight:700}
+td.chg{color:var(--muted)}
+td.chg.up{color:var(--peak);font-weight:700}
+td.chg.down{color:var(--flow);font-weight:700}
+.explain ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.explain li{border-left:5px solid var(--c);padding:2px 0 2px 12px}
+.explain b{display:block;font-size:1.05rem}
+.explain p{margin:0;font-size:.98rem}
+.explain .res{color:var(--ink);font-weight:500}
+.explain .why{color:var(--muted)}
+.empty{color:var(--muted);margin:0}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+svg text{font-family:inherit}
+.tick{fill:var(--muted);font-size:17px}
+.axlabel{fill:var(--ink);font-size:18px;font-weight:500}
+.gridl{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1.5}
+.rainbar{fill:var(--rain);stroke:var(--rainstroke);stroke-width:1}
+.qline{fill:none;stroke:var(--flow);stroke-width:4;stroke-linejoin:round}
+.qfill{fill:var(--flowfill)}
+.bfill{fill:var(--basefill)}
+.oline{fill:none;stroke:var(--orig);stroke-width:3;stroke-dasharray:10 7}
+.bline{fill:none;stroke:var(--flow);stroke-width:2;stroke-dasharray:2 5;stroke-linecap:round}
+.guide{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 5}
+.lag{stroke:var(--peak);stroke-width:2.5}
+.peakdot{fill:var(--peak);stroke:var(--paper);stroke-width:3}
+.anno{fill:var(--ink);font-size:19px;font-weight:700;paint-order:stroke;stroke:var(--paper);stroke-width:6px;stroke-linejoin:round}
+.anno.pk,.anno.lg{fill:var(--peak)}
+@media (max-width:960px){
+  .wrap{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "chart" "side";padding:14px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>水文歷線：土地利用如何改變河川流量</h1>
+    <p class="sub">同一場降雨，比較不同地表條件下的流量。虛線是原始情況，實線是勾選後的情境。</p>
+  </header>
+
+  <section class="panel chart" aria-label="水文歷線圖">
+    <svg id="svg" viewBox="0 0 1000 600" role="img" aria-label="水文歷線圖"></svg>
+    <div class="legend">
+      <span><i class="sw bar"></i>降雨量</span>
+      <span><i class="sw dash"></i>原始情況</span>
+      <span><i class="sw"></i>目前情境</span>
+      <span><i class="sw base"></i>基流</span>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="panel">
+      <h2>勾選情境（可複選）</h2>
+      <div class="tiles">
+        <label class="tile" style="--c:var(--urban)"><input type="checkbox" data-s="urban">
+          <span class="tile-body"><span class="tile-name">都市化</span><span class="tile-desc">不透水面增加、下水道排水</span></span><kbd>1</kbd></label>
+        <label class="tile" style="--c:var(--forest)"><input type="checkbox" data-s="forest">
+          <span class="tile-body"><span class="tile-name">森林砍伐</span><span class="tile-desc">植被截留與土壤入滲減少</span></span><kbd>2</kbd></label>
+        <label class="tile" style="--c:var(--pond)"><input type="checkbox" data-s="pond">
+          <span class="tile-body"><span class="tile-name">設置滯洪池</span><span class="tile-desc">暫存洪水、再緩慢排放</span></span><kbd>3</kbd></label>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="labels" checked>顯示圖說</label>
+        <button id="reset" type="button">全部取消</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>數值比較</h2>
+      <table>
+        <thead><tr><th>項目</th><th>原始</th><th>目前</th><th>變化</th></tr></thead>
+        <tbody id="metrics"></tbody>
+      </table>
+    </div>
+
+    <div class="panel explain">
+      <h2>為什麼會這樣？</h2>
+      <div id="explain"></div>
+    </div>
+    <p class="hint">快捷鍵：1、2、3 切換情境，L 切換圖說，R 全部取消</p>
+  </aside>
+</div>
+
+<script>
+(function(){
+  // ---------- 模型 ----------
+  const DT=0.25, T=48, N=Math.round(T/DT)+1;
+  const tt=Array.from({length:N},(_,i)=>i*DT);
+  const RAIN=[0,0,0,6,14,28,20,9,3];          // 每小時降雨 mm/h
+  const RAIN_PEAK_T=5.5, RAIN_PEAK=28;
+  const rain=tt.map(x=>RAIN[Math.floor(x)]||0);
+
+  function conv(x,k){const y=new Array(x.length).fill(0);
+    for(let i=0;i<x.length;i++){if(!x[i])continue;for(let j=0;j<k.length&&i+j<x.length;j++)y[i+j]+=x[i]*k[j];}return y;}
+  function norm(k){const s=k.reduce((a,b)=>a+b,0);return k.map(v=>v/s);}
+  function gammaUH(tp){const th=tp/2;const k=[];for(let i=0;i*DT<T;i++){const s=i*DT;k.push(s*s*Math.exp(-s/th));}return norm(k);}
+  function expK(tau){const k=[];for(let i=0;i*DT<T;i++)k.push(Math.exp(-i*DT/tau));return norm(k);}
+
+  function raw(s){
+    let C=0.35,tp=6,bf=1;
+    if(s.urban){C+=0.22;tp*=0.6;bf*=0.65;}
+    if(s.forest){C+=0.13;tp*=0.8;bf*=0.85;}
+    C=Math.min(C,0.9);
+    let quick=conv(rain.map(r=>r*C),gammaUH(tp));
+    if(s.pond)quick=conv(quick,expK(5));
+    const slow=conv(rain.map(r=>r*(1-C)*0.4*bf),expK(16));
+    return {quick,slow,bf};
+  }
+  const r0=raw({});
+  const SCALE=140/Math.max(...r0.quick.map((q,i)=>q+r0.slow[i]));
+  const B0=22;
+  function build(s){
+    const r=raw(s);
+    const base=r.slow.map(v=>B0*r.bf+SCALE*v);
+    const Q=r.quick.map((q,i)=>base[i]+SCALE*q);
+    const vol=r.quick.reduce((a,b)=>a+b,0)*SCALE*DT*3600/1e4; // 萬 m³
+    return {Q,base,vol,b0:B0*r.bf};
+  }
+  function peakOf(Q){let i=0;for(let j=1;j<Q.length;j++)if(Q[j]>Q[i])i=j;return {i,t:tt[i],q:Q[i]};}
+
+  const ORIG=build({});
+  let maxQ=0;
+  for(let m=0;m<8;m++){const b=build({urban:!!(m&1),forest:!!(m&2),pond:!!(m&4)});maxQ=Math.max(maxQ,...b.Q);}
+  const YMAX=Math.ceil(maxQ/0.62/50)*50;
+
+  // ---------- 座標 ----------
+  const W=1000,H=600,M={l:82,r:82,t:52,b:70};
+  const PW=W-M.l-M.r, PH=H-M.t-M.b;
+  const xS=v=>M.l+v/T*PW;
+  const yS=v=>M.t+PH*(1-v/YMAX);
+  const RAIN_MAX=40, RAIN_H=PH*0.25;
+  const rS=v=>M.t+v/RAIN_MAX*RAIN_H;
+  const f=v=>v.toFixed(1);
+
+  const svg=document.getElementById('svg');
+  let st='<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--peak)"/></marker></defs>';
+  for(let v=0;v<=T;v+=6){const x=xS(v);
+    st+=`<line class="gridl" x1="${f(x)}" y1="${M.t}" x2="${f(x)}" y2="${M.t+PH}"/>`;
+    st+=`<text class="tick" x="${f(x)}" y="${M.t+PH+26}" text-anchor="middle">${v}</text>`;}
+  for(let v=0;v<=YMAX;v+=50){const y=yS(v);
+    st+=`<line class="gridl" x1="${M.l}" y1="${f(y)}" x2="${M.l+PW}" y2="${f(y)}"/>`;
+    st+=`<text class="tick" x="${M.l-12}" y="${f(y+6)}" text-anchor="end">${v}</text>`;}
+  RAIN.forEach((v,h)=>{if(!v)return;
+    st+=`<rect class="rainbar" x="${f(xS(h))}" y="${M.t}" width="${f(xS(h+1)-xS(h))}" height="${f(rS(v)-M.t)}"/>`;});
+  for(let v=0;v<=RAIN_MAX;v+=20){const y=rS(v);
+    st+=`<line class="axis" x1="${M.l+PW}" y1="${f(y)}" x2="${M.l+PW+7}" y2="${f(y)}"/>`;
+    st+=`<text class="tick" x="${M.l+PW+12}" y="${f(y+6)}">${v}</text>`;}
+  st+=`<line class="axis" x1="${M.l}" y1="${M.t}" x2="${M.l}" y2="${M.t+PH}"/>`;
+  st+=`<line class="axis" x1="${M.l}" y1="${M.t+PH}" x2="${M.l+PW}" y2="${M.t+PH}"/>`;
+  st+=`<line class="axis" x1="${M.l+PW}" y1="${M.t}" x2="${M.l+PW}" y2="${f(rS(RAIN_MAX))}"/>`;
+  st+=`<text class="axlabel" x="${M.l+PW/2}" y="${H-12}" text-anchor="middle">時間（小時）</text>`;
+  st+=`<text class="axlabel" x="12" y="24">流量（m³/s）</text>`;
+  st+=`<text class="axlabel" x="${W-12}" y="24" text-anchor="end">降雨量（mm/h）</text>`;
+  svg.innerHTML=st+'<g id="dyn"></g>';
+  const dyn=document.getElementById('dyn');
+
+  const line=a=>a.map((v,i)=>(i?'L':'M')+f(xS(tt[i]))+' '+f(yS(v))).join('');
+  function band(up,lo){let p=line(up);for(let i=lo.length-1;i>=0;i--)p+='L'+f(xS(tt[i]))+' '+f(yS(lo[i]));return p+'Z';}
+
+  // ---------- 狀態 ----------
+  const boxes=[...document.querySelectorAll('input[data-s]')];
+  const lbl=document.getElementById('labels');
+  const state=()=>{const s={};boxes.forEach(b=>s[b.dataset.s]=b.checked);return s;};
+  const any=()=>boxes.some(b=>b.checked);
+
+  function draw(c){
+    let s='';
+    const zero=c.base.map(()=>0);
+    s+=`<path class="bfill" d="${band(c.base,zero)}"/>`;
+    s+=`<path class="qfill" d="${band(c.Q,c.base)}"/>`;
+    if(any())s+=`<path class="oline" d="${line(ORIG.Q)}"/>`;
+    if(lbl.checked)s+=`<path class="bline" d="${line(c.base)}"/>`;
+    s+=`<path class="qline" d="${line(c.Q)}"/>`;
+    if(lbl.checked)s+=annos(c);
+    dyn.innerHTML=s;
+  }
+  function annos(c){
+    const Q=c.Q,B=c.base,p=peakOf(Q),px=xS(p.t),py=yS(p.q);
+    let s='';
+    const ay=M.t+RAIN_H+PH*0.07, rx=xS(RAIN_PEAK_T);
+    s+=`<line class="guide" x1="${f(rx)}" y1="${f(rS(RAIN_PEAK))}" x2="${f(rx)}" y2="${f(ay)}"/>`;
+    s+=`<line class="guide" x1="${f(px)}" y1="${f(ay)}" x2="${f(px)}" y2="${f(py)}"/>`;
+    s+=`<line class="lag" x1="${f(rx)}" y1="${f(ay)}" x2="${f(px)}" y2="${f(ay)}" marker-start="url(#arr)" marker-end="url(#arr)"/>`;
+    s+=`<text class="anno lg" x="${f(px+10)}" y="${f(ay-10)}">滯後時間 ${(p.t-RAIN_PEAK_T).toFixed(1)} 小時</text>`;
+    s+=`<circle class="peakdot" cx="${f(px)}" cy="${f(py)}" r="8"/>`;
+    s+=`<text class="anno pk" x="${f(px+16)}" y="${f(py+22)}">洪峰 ${Math.round(p.q)} m³/s</text>`;
+    let ri=0;for(let i=0;i<p.i;i++){if(Q[i]>=B[i]+0.5*(p.q-B[i])){ri=i;break;}}
+    s+=`<text class="anno" x="${f(xS(tt[ri])-14)}" y="${f(yS(Q[ri])+6)}" text-anchor="end">漲水段</text>`;
+    let fi=Q.length-1;for(let i=p.i;i<Q.length;i++){if(Q[i]<=B[i]+0.3*(p.q-B[i])){fi=i;break;}}
+    s+=`<text class="anno" x="${f(xS(tt[fi])+14)}" y="${f(yS(Q[fi])-6)}">退水段</text>`;
+    const bi=Math.round(42/DT);
+    s+=`<text class="anno" x="${f(xS(42))}" y="${f(yS(B[bi])-12)}" text-anchor="middle">基流</text>`;
+    return s;
+  }
+
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let cur=null,raf=0;
+  function render(target,animate){
+    cancelAnimationFrame(raf);
+    if(!cur||!animate||reduce){cur={Q:target.Q,base:target.base};draw(cur);return;}
+    const from=cur,t0=performance.now(),D=550;
+    const step=now=>{const k=Math.min(1,(now-t0)/D),e=1-Math.pow(1-k,3);
+      cur={Q:from.Q.map((v,i)=>v+(target.Q[i]-v)*e),base:from.base.map((v,i)=>v+(target.base[i]-v)*e)};
+      draw(cur);if(k<1)raf=requestAnimationFrame(step);};
+    raf=requestAnimationFrame(step);
+  }
+
+  const INFO={
+    urban:{name:'都市化',why:'柏油、水泥讓雨水難以入滲，下水道又把雨水快速送進河道。',res:'洪峰變高、提早出現，滯後時間縮短；入滲減少使基流偏低。'},
+    forest:{name:'森林砍伐',why:'少了樹冠截留和根系，雨水直接打在地表，入滲減少。',res:'逕流量增加，洪峰升高、略為提前。'},
+    pond:{name:'設置滯洪池',why:'暴雨時先把水暫存在池中，雨停後再慢慢排回河道。',res:'洪峰降低、延後，退水段拉長；總水量大致不變，只是被攤平。'}
+  };
+  const COLOR={urban:'var(--urban)',forest:'var(--forest)',pond:'var(--pond)'};
+
+  function pct(a,b){const d=(b-a)/a*100;if(Math.abs(d)<0.5)return {t:'—',c:''};return {t:(d>0?'+':'−')+Math.abs(d).toFixed(0)+'%',c:d>0?'up':'down'};}
+  function diff(a,b,u){const d=b-a;if(Math.abs(d)<0.05)return {t:'—',c:''};return {t:(d>0?'+':'−')+Math.abs(d).toFixed(1)+u,c:d>0?'up':'down'};}
+
+  function update(animate){
+    const s=state(),b=build(s),po=peakOf(ORIG.Q),pn=peakOf(b.Q);
+    render(b,animate);
+    const rows=[
+      ['洪峰流量（m³/s）',Math.round(po.q),Math.round(pn.q),pct(po.q,pn.q)],
+      ['滯後時間（小時）',(po.t-RAIN_PEAK_T).toFixed(1),(pn.t-RAIN_PEAK_T).toFixed(1),diff(po.t,pn.t,'')],
+      ['直接逕流量（萬 m³）',Math.round(ORIG.vol),Math.round(b.vol),pct(ORIG.vol,b.vol)],
+      ['降雨前基流（m³/s）',Math.round(ORIG.b0),Math.round(b.b0),pct(ORIG.b0,b.b0)]
+    ];
+    document.getElementById('metrics').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td class="now">${r[2]}</td><td class="chg ${r[3].c}">${r[3].t}</td></tr>`).join('');
+    const on=Object.keys(INFO).filter(k=>s[k]);
+    document.getElementById('explain').innerHTML=on.length
+      ?'<ul>'+on.map(k=>`<li style="--c:${COLOR[k]}"><b>${INFO[k].name}</b><p class="why">${INFO[k].why}</p><p class="res">${INFO[k].res}</p></li>`).join('')+'</ul>'
+      :'<p class="empty">從上方勾選一個或多個情境，實線會跟著改變，虛線保留原始情況供對照。</p>';
+    svg.setAttribute('aria-label',`水文歷線圖。洪峰流量 ${Math.round(pn.q)} m³/s，滯後時間 ${(pn.t-RAIN_PEAK_T).toFixed(1)} 小時。`);
+  }
+
+  boxes.forEach(b=>b.addEventListener('change',()=>update(true)));
+  lbl.addEventListener('change',()=>draw(cur));
+  document.getElementById('reset').addEventListener('click',()=>{boxes.forEach(b=>b.checked=false);update(true);});
+  document.addEventListener('keydown',e=>{
+    if(e.ctrlKey||e.metaKey||e.altKey)return;
+    const k=e.key.toLowerCase();
+    if(['1','2','3'].includes(k)){boxes[+k-1].checked=!boxes[+k-1].checked;update(true);}
+    else if(k==='l'){lbl.checked=!lbl.checked;draw(cur);}
+    else if(k==='r'){boxes.forEach(b=>b.checked=false);update(true);}
+  });
+  update(false);
+})();
+</script>
+</body>
+</html>
