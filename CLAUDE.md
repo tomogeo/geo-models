@@ -19,9 +19,9 @@
 - 舊的線上版網址（需登入 Claude 才能看）：https://claude.ai/artifact/5MoM7QfdsYexHY2Ynz2WKH
 
 ## 首次任務（依序做，每步完成向老師回報）
-1. 建立 git 版本控制並做第一次提交。
-2. 帶老師建立 GitHub 帳號與公開 repo，設定 GitHub Pages，讓學生不用登入就能開網站。
-   需要老師本人操作的步驟（註冊、登入、授權）請清楚說明並等他完成，不要代他輸入密碼。
+1. （已完成）git 版本控制與第一次提交。
+2. GitHub repo 已建立（tomogeo/geo-models）。確認 repo 為公開，並設定 GitHub Pages，讓學生不用登入就能開網站。
+   需要老師本人操作的步驟（登入、授權）請清楚說明並等他完成，不要代他輸入密碼。
 3. 調整成適合 GitHub Pages 的結構：
    - index.html 為首頁；模型改用 iframe src="models/<id>.html" 載入（不再把所有模型塞進一個檔）。
    - 模型裡的 three.js 從 CDN 改為讀 ../vendor/three.r128.min.js，讓 3D 離線也能顯示。
