@@ -70,3 +70,13 @@
 3. 在 registry.json 加一筆，說明卡欄位不清楚的地方問老師，不要自己編 unit。
 4. 組裝、在瀏覽器測試（開啟、快捷鍵、Esc 回首頁、手機寬度），提交並推上線。
 5. 回報：加了什麼、網址、有沒有需要老師注意的地方。
+
+## 小 Claude 通知站（老師桌面上的置頂提醒）
+- 網址：https://claude.ai/artifact/GJyBbCrdMbLotJkQdzgWam （老師在 Chrome 開啟、置頂在桌面）
+- 用 ArtifactData 工具寫入 collection `pet`、doc_id `status`：
+  `{"state": "working" | "done" | "ask" | "idle", "message": "一句話摘要（30 字內）", "updatedAt": 現在的毫秒時間戳}`
+  （先 get 讀出 version，寫入時帶 if_version；取時間可用 `date +%s%3N`）
+- 什麼時候寫：
+  - 開始一項較長的任務 → `working`
+  - 任務完成、等老師看結果 → `done`
+  - 需要老師回答問題或親自操作 → `ask`，message 寫問題摘要
