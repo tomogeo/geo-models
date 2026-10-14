@@ -11,7 +11,7 @@
 :root{
   --paper:#EDF1EE; --panel:#FFFFFF; --ink:#1D2B28; --muted:#586864; --line:#C9D3CF;
   --contour:#AFC3BA; --contour-strong:#7F9C90;
-  --t-hydro:#1D6E93; --t-climate:#B06E12; --t-landform:#7A5638; --t-human:#6B4E8C;
+  --t-hydro:#1D6E93; --t-climate:#B06E12; --t-landform:#7A5638; --t-human:#6B4E8C; --t-gis:#2F7D5C;
   --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
   --serif:"Noto Serif TC","PMingLiU","MingLiU",serif;
   box-sizing:border-box;
@@ -21,13 +21,13 @@
   :root:not([data-theme="light"]){
     --paper:#111917; --panel:#18221F; --ink:#E3EBE7; --muted:#9AADA6; --line:#2C3A36;
     --contour:#26352F; --contour-strong:#3E5A50;
-    --t-hydro:#5CB2D9; --t-climate:#E0A04A; --t-landform:#C49A74; --t-human:#A98BD0;
+    --t-hydro:#5CB2D9; --t-climate:#E0A04A; --t-landform:#C49A74; --t-human:#A98BD0; --t-gis:#6CC49A;
   }
 }
 :root[data-theme="dark"]{
   --paper:#111917; --panel:#18221F; --ink:#E3EBE7; --muted:#9AADA6; --line:#2C3A36;
   --contour:#26352F; --contour-strong:#3E5A50;
-  --t-hydro:#5CB2D9; --t-climate:#E0A04A; --t-landform:#C49A74; --t-human:#A98BD0;
+  --t-hydro:#5CB2D9; --t-climate:#E0A04A; --t-landform:#C49A74; --t-human:#A98BD0; --t-gis:#6CC49A;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -86,6 +86,14 @@ footer{max-width:1120px;margin:0 auto;padding:0 clamp(20px,5vw,48px) 40px;color:
 .bar .hint{color:var(--muted);font-size:13px}
 @media (max-width:640px){.bar .hint{display:none}}
 .viewer iframe{flex:1;width:100%;border:0;background:var(--paper)}
+.card{position:absolute;top:56px;right:12px;z-index:2;width:min(420px,calc(100% - 24px));max-height:calc(100% - 72px);overflow:auto;
+  background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:16px 20px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);font-size:16px;line-height:1.65}
+.card h4{margin:14px 0 4px;font-size:15px;color:var(--muted);font-weight:700}
+.card h4:first-child{margin-top:0}
+.card ul,.card ol{margin:0;padding-left:1.3em}
+.card p{margin:0}
+.card .src{color:var(--muted);font-size:14px}
 body.viewing{overflow:hidden}
 @media (prefers-reduced-motion:no-preference){
   .hero svg path{stroke-dasharray:2400;stroke-dashoffset:2400;animation:draw 2.4s ease-out forwards}
@@ -113,8 +121,10 @@ body.viewing{overflow:hidden}
     <button id="back" type="button">← 回首頁</button>
     <div class="ttl" id="vtitle"></div>
     <span class="hint"><kbd>Esc</kbd> 回首頁</span>
+    <button id="info" type="button" aria-expanded="false" aria-controls="card">說明卡</button>
     <button id="fs" type="button">全螢幕</button>
   </div>
+  <aside class="card" id="card" hidden></aside>
   <iframe id="frame" title="模型內容" allow="fullscreen" allowfullscreen></iframe>
 </section>
 
@@ -124,6 +134,7 @@ body.viewing{overflow:hidden}
 <script>
 (function(){
 const REG=JSON.parse(document.getElementById('registry').textContent);
+/* 線上版 payload 為 null，模型從 models/<id>.html 載入；離線單檔版則內嵌全部模型 */
 const SRC=JSON.parse(document.getElementById('payload').textContent);
 const $=id=>document.getElementById(id);
 const topicOf=id=>REG.topics.find(t=>t.id===id);
@@ -172,27 +183,31 @@ $('foot').textContent=`目前共 ${REG.models.length} 個模型，會持續增�
 /* 播放模型 */
 let current=null;
 function openModel(id){
-  const m=REG.models.find(x=>x.id===id); if(!m||!SRC[id]){closeModel();return;}
+  const m=REG.models.find(x=>x.id===id); if(!m||(SRC&&!SRC[id])){closeModel();return;}
   if(current===id)return; current=id;
   const t=topicOf(m.topic);
   $('vtitle').innerHTML=`<i style="--c:var(${t.color})"></i>${m.title}`;
   $('viewer').style.setProperty('--c',`var(${t.color})`);
-  const f=$('frame'); f.srcdoc=SRC[id];
+  const f=$('frame'); if(SRC) f.srcdoc=SRC[id]; else f.src='models/'+encodeURIComponent(id)+'.html';
+  renderCard(m);
   $('viewer').classList.add('on'); document.body.classList.add('viewing');
   document.title=m.title+'｜地理模型教室';
 }
 function closeModel(){
   current=null; $('viewer').classList.remove('on'); document.body.classList.remove('viewing');
-  $('frame').srcdoc=''; document.title='地理模型教室';
+  const f=$('frame'); if(SRC) f.srcdoc=''; else f.removeAttribute('src'); f.src='about:blank';
+  $('card').hidden=true; $('info').setAttribute('aria-expanded','false');
+  document.title='地理模型教室';
   if(document.fullscreenElement)try{document.exitFullscreen();}catch(_){}
 }
 $('frame').addEventListener('load',()=>{
   const f=$('frame'); if(!current)return;
   try{
     f.contentWindow.focus();
-    f.contentDocument.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!f.contentDocument.fullscreenElement) goHome(); });
+    f.contentDocument.addEventListener('keydown',e=>{ if(e.key!=='Escape'||f.contentDocument.fullscreenElement||isTyping(e.target))return; setTimeout(()=>{ if(!e.defaultPrevented) goHome(); },0); });
   }catch(_){}
 });
+function isTyping(el){ return !!el&&(/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)||el.isContentEditable); }
 function goHome(){
   closeModel();
   if(!location.hash) return;
@@ -200,9 +215,19 @@ function goHome(){
   catch(_){ location.hash=''; }
 }
 $('back').onclick=goHome;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function renderCard(m){
+  const li=a=>(a||[]).map(x=>`<li>${esc(x)}</li>`).join('');
+  $('card').innerHTML=`<h4>適用</h4><p>${esc(m.level||'')}${m.unit?'｜'+esc(m.unit):''}</p>`+
+    (m.goals&&m.goals.length?`<h4>學習重點</h4><ul>${li(m.goals)}</ul>`:'')+
+    (m.steps&&m.steps.length?`<h4>上課操作建議</h4><ol>${li(m.steps)}</ol>`:'')+
+    (m.keys?`<h4>快捷鍵</h4><p>${m.keys}</p>`:'')+
+    (m.source?`<h4>資料來源與簡化說明</h4><p class="src">${esc(m.source)}</p>`:'');
+}
+$('info').onclick=()=>{const c=$('card'); c.hidden=!c.hidden; $('info').setAttribute('aria-expanded',String(!c.hidden)); if(c.hidden) try{$('frame').contentWindow.focus();}catch(_){} };
 $('fs').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():$('viewer').requestFullscreen();}catch(_){} setTimeout(()=>{try{$('frame').contentWindow.focus();}catch(_){}},200);};
 document.addEventListener('fullscreenchange',()=>{$('fs').textContent=document.fullscreenElement?'離開全螢幕':'全螢幕';});
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&current&&!document.fullscreenElement) goHome(); });
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!current||document.fullscreenElement)return; if(!$('card').hidden){$('info').click();return;} goHome(); });
 function route(){ const id=decodeURIComponent(location.hash.slice(1)); id?openModel(id):closeModel(); }
 window.addEventListener('hashchange',route);
 

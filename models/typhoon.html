@@ -7,12 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 :root{
   --paper:#E8EEF1; --panel:#F6F9FA; --ink:#14304A; --ink2:#50677A; --line:#C4D1D8;
   --sea:#CADCE4; --grat:#AFC4CF; --land-halo:#FFFFFF;
-  --wind:#1E5DAF; --lee:#DD8A1F; --foehn:#C42E27; --ty:#D0202B;
+  --wind:#1E5DAF; --lee:#DD8A1F; --foehn:#C42E27; --ty:#D0202B; --along:#7A4FA8; --shield:#7E8C99;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
@@ -21,13 +20,13 @@
   :root:not([data-theme="light"]){
     --paper:#0D1822; --panel:#12212D; --ink:#DCE6ED; --ink2:#95AABA; --line:#274050;
     --sea:#173041; --grat:#2A4659; --land-halo:#0D1822;
-    --wind:#5B9CEB; --lee:#F0A445; --foehn:#F0584C; --ty:#FF4F58;
+    --wind:#5B9CEB; --lee:#F0A445; --foehn:#F0584C; --ty:#FF4F58; --along:#B08BDB; --shield:#8E9CA8;
   }
 }
 :root[data-theme="dark"]{
   --paper:#0D1822; --panel:#12212D; --ink:#DCE6ED; --ink2:#95AABA; --line:#274050;
   --sea:#173041; --grat:#2A4659; --land-halo:#0D1822;
-  --wind:#5B9CEB; --lee:#F0A445; --foehn:#F0584C; --ty:#FF4F58;
+  --wind:#5B9CEB; --lee:#F0A445; --foehn:#F0584C; --ty:#FF4F58; --along:#B08BDB; --shield:#8E9CA8;
 }
 [hidden]{display:none!important}
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
@@ -50,6 +49,8 @@ button,select,input{font:inherit;color:inherit}
 .seg button{border:0;background:transparent;padding:5px 16px;cursor:pointer;font-weight:700}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .nowname{font-weight:700;font-size:17px}
+.stagetag{font-weight:700;font-size:14px;padding:3px 12px;border-radius:999px;background:var(--ink);color:var(--paper);min-height:1em}
+.stagetag:empty{visibility:hidden}
 .nowname small{font-weight:400;color:var(--ink2);margin-left:6px;font-size:14px}
 
 .stage{position:relative;width:min(100%, calc((100vh - 170px) * 0.845));min-width:280px;aspect-ratio:0.845/1;
@@ -95,6 +96,8 @@ button,select,input{font:inherit;color:inherit}
 .lv1 .dot{background:color-mix(in srgb,var(--wind) 45%,transparent);border-color:var(--wind)}
 .lv-1 .dot{background:var(--lee);border-color:var(--lee)}
 .lv-2 .dot{background:var(--foehn);border-color:var(--foehn)}
+.lv3 .dot{background:var(--along);border-color:var(--along)}
+.lv4 .dot{background:var(--shield);border-color:var(--shield)}
 
 .toggles label{display:flex;gap:10px;align-items:flex-start;padding:4px 0;cursor:pointer}
 .toggles input{width:18px;height:18px;margin-top:3px;accent-color:var(--ink)}
@@ -121,10 +124,7 @@ footer{padding:0 22px 20px;color:var(--ink2);font-size:13px}
 <main class="layout">
   <section class="stagewrap">
     <div class="stagebar">
-      <div class="seg" role="group" aria-label="顯示方式">
-        <button id="v2" aria-pressed="true">2D 地圖</button>
-        <button id="v3" aria-pressed="false">3D 地形</button>
-      </div>
+      <div class="stagetag" id="stage-tag"></div>
       <div class="nowname" id="nowname"></div>
     </div>
     <div class="stage" id="stage">
@@ -175,6 +175,8 @@ footer{padding:0 22px 20px;color:var(--ink2);font-size:13px}
         <span><i class="sw" style="background:color-mix(in srgb,var(--wind) 45%,#b9cfa0)"></i>迎風面，多雨</span>
         <span><i class="sw" style="background:var(--lee)"></i>背風面，雨少</span>
         <span><i class="sw" style="background:var(--foehn)"></i>可能出現焚風</span>
+        <span><i class="sw" style="background:var(--along)"></i>沿山強風</span>
+        <span><i class="sw" style="background:var(--shield)"></i>地形遮蔽，風較弱</span>
         <span class="arrowkey"><svg viewBox="0 0 22 14"><path d="M2 7h15M12 2l6 5-6 5" stroke="currentColor" stroke-width="2" fill="none"/></svg>風吹的方向</span>
         <span><svg width="22" height="14" viewBox="0 0 22 14"><circle cx="11" cy="7" r="5.5" fill="none" stroke="var(--ty)" stroke-width="1.5" stroke-dasharray="3 2"/></svg>七級風暴風圈</span>
       </div>
@@ -182,13 +184,15 @@ footer{padding:0 22px 20px;color:var(--ink2);font-size:13px}
     <div class="sec">
       <h2>觀念補充</h2>
       <details><summary>迎風面、背風面怎麼判斷</summary><p>先看颱風中心在臺灣的哪個方位，依逆時針環流推出臺灣吹什麼風。風從海上吹向山坡的那一側是迎風面，空氣被迫抬升、成雲致雨；翻過山脊之後的另一側是背風面，空氣下沉，雨量少。</p></details>
+      <details><summary>為什麼颱風在東方時，東部是迎風面</summary><p>課本推論颱風在東方時吹北風，但臺灣的中央山脈會擋住、改變颱風環流，實際觀測多為偏東風，所以東部、東北部先下雨。要等颱風中心越過中央山脈，或移到臺灣北方、東部改吹偏西風之後，東部才變成背風面、可能出現焚風。</p></details>
+      <details><summary>沿山強風、地形遮蔽</summary><p>風向和中央山脈走向差不多平行時，氣流沿著山脈吹，不會被抬升，所以雨不多，但風可能很強。颱風在東部登陸時，登陸點以北風雨最強，登陸點以南因為颱風環流被山脈擋住，風力反而較弱，例如尼伯特颱風時的大武。</p></details>
       <details><summary>西南氣流</summary><p>颱風位在臺灣北方、西北方或已進入臺灣海峽時，南側環流會把南海一帶的西南季風水氣往臺灣拉。西南部山區正對西南風，成為迎風面，常出現極端豪雨，例如莫拉克颱風。</p></details>
       <details><summary>共伴效應</summary><p>秋季東北季風南下時，若颱風經過臺灣東方或東南方，颱風外圍的東北風和季風疊加，北部、東北部的迎風坡雨量暴增，例如象神颱風。</p></details>
-      <details><summary>焚風</summary><p>氣流在迎風坡上升時降下大量雨水，翻過高山後沿背風坡下沉，空氣被壓縮增溫，變得又乾又熱。颱風在臺灣北方或西北方、吹西風時，臺東一帶最常出現。</p></details>
+      <details><summary>焚風</summary><p>氣流在迎風坡上升時降下大量雨水，翻過高山後沿背風坡下沉，空氣被壓縮增溫，變得又乾又熱。颱風在臺灣北方、西北方，或中心已越過中央山脈、東部吹西風時，臺東一帶最常出現；颱風從南部或巴士海峽通過、吹強東風時，焚風則出現在新竹到臺中一帶。</p></details>
     </div>
   </aside>
 </main>
-<footer>路徑依中央氣象署颱風資料庫簡化繪製；風場與地形為理想化模型，實際風向還會受地形阻擋、繞流影響，僅供教學示意。</footer>
+<footer>代表路徑為依中央氣象署分類繪製的示意路徑；歷史颱風座標取自 IBTrACS、日本氣象廳、JTWC 與中央氣象署警報。迎風、背風為依研究資料整理的典型情境，個案差異大，僅供教學示意。</footer>
 <script>
 // ===== 核心模型：地形、颱風風場、迎風/背風判斷 =====
 const DEG = Math.PI / 180, KX = 111 * Math.cos(23.7 * DEG), KY = 111;
@@ -293,10 +297,43 @@ function isLandCell(lon, lat) {
   return LAND[r * G.nc + c] === 1;
 }
 
-// ===== 風場 =====
-const VMAX = 45, RM = 50, INFLOW = 20 * DEG, R7 = RM * Math.pow(VMAX / 17.2, 1 / 0.6); // 七級風半徑
+// ===== 風場與迎風／背風判定（依研究報告修正：中心位置 × 是否越過主脊） =====
+const VMAX = 45, RM = 50, INFLOW = 20 * DEG, R7 = RM * Math.pow(VMAX / 17.2, 1 / 0.6); // 七級風半徑約 250 km
 const TWC = { lon: 121.0, lat: 23.7 };
-function typhoonWind(lon, lat, c) {
+// 中央山脈主脊（分水嶺）簡化線：東側為花東、宜蘭；西側為西半部與臺北
+const DIV = [[122.02,25.03],[121.55,24.70],[121.30,24.35],[121.25,24.00],[121.15,23.60],[121.00,23.25],[120.85,22.70],[120.80,22.00]];
+// 坡面分區（朝向的法向量，x 向東、y 向北）
+const FACETS = {
+  1: { name: '北部', n: [0.35, 0.94] },        // 臺北、基隆一帶，朝北～東北
+  2: { name: '東北部', n: [0.85, 0.53] },      // 宜蘭，朝東北偏東
+  3: { name: '東部', n: [0.94, -0.34] },       // 花蓮、臺東，朝東南偏東
+  4: { name: '西部', n: [-0.94, 0.34] },       // 新竹～嘉義，朝西北偏西
+  5: { name: '西南部', n: [-0.75, -0.66] }     // 臺南、高雄、屏東，朝西南
+};
+const FACET = new Uint8Array(N), SIDE = new Int8Array(N);
+function sideOf(lon, lat) { // +1 主脊以東，-1 主脊以西
+  const px = lon * KX, py = lat * KY; let best = 1e9, s = 1;
+  for (let k = 0; k < DIV.length - 1; k++) {
+    const ax = DIV[k][0] * KX, ay = DIV[k][1] * KY, bx = DIV[k + 1][0] * KX, by = DIV[k + 1][1] * KY;
+    const [d] = segDist(px, py, ax, ay, bx, by);
+    if (d < best) { best = d; const cr = (bx - ax) * (py - ay) - (by - ay) * (px - ax); s = cr > 0 ? 1 : -1; }
+  }
+  return s;
+}
+const FCENT = {};
+function buildFacets() {
+  const acc = {};
+  for (let i = 0; i < N; i++) {
+    if (!LAND[i]) continue;
+    const r = (i / G.nc) | 0, c = i - r * G.nc, lon = G.lon0 + c * G.d, lat = G.lat0 + r * G.d;
+    const s = sideOf(lon, lat); SIDE[i] = s;
+    if (s > 0) FACET[i] = lat >= 24.3 ? 2 : 3;
+    else FACET[i] = lat >= 24.88 ? 1 : lat >= 23.15 ? 4 : 5;
+    const a = acc[FACET[i]] || (acc[FACET[i]] = [0, 0, 0]); a[0] += lon; a[1] += lat; a[2]++;
+  }
+  for (const k in acc) FCENT[k] = [acc[k][0] / acc[k][2], acc[k][1] / acc[k][2]];
+}
+function typhoonWind(lon, lat, c) { // 海上：理想逆時針環流＋內吹角
   const dx = (lon - c.lon) * KX, dy = (lat - c.lat) * KY, r = Math.hypot(dx, dy);
   if (r < 1) return [0, 0];
   let V = r < RM ? VMAX * r / RM : VMAX * Math.pow(RM / r, 0.6);
@@ -304,54 +341,96 @@ function typhoonWind(lon, lat, c) {
   const ca = Math.cos(INFLOW), sa = Math.sin(INFLOW);
   return [V * (ca * (-dy / r) + sa * (-dx / r)), V * (ca * (dx / r) + sa * (-dy / r))];
 }
-// 颱風離臺灣較遠時，整座島大致吹同一個方向的風（由颱風中心相對臺灣的方位決定）；
-// 颱風很近或在陸地上時，改用各地實際的環流風向。
-function blendWind(lon, lat, c) {
-  const loc = typhoonWind(lon, lat, c), sp = Math.hypot(loc[0], loc[1]);
-  const dx = (TWC.lon - c.lon) * KX, dy = (TWC.lat - c.lat) * KY, rd = Math.hypot(dx, dy);
-  if (rd < 1) return loc;
-  const big = [-dy / rd * sp, dx / rd * sp];
-  const a = Math.max(0, Math.min(1, 1 - (rd - 120) / 200));
-  return [a * loc[0] + (1 - a) * big[0], a * loc[1] + (1 - a) * big[1]];
-}
-function wind(lon, lat, c, o) {
-  let u = 0, v = 0;
-  if (c) { const w = isLandCell(lon, lat) ? blendWind(lon, lat, c) : typhoonWind(lon, lat, c); u += w[0]; v += w[1]; }
-  if (o.sw && c) { // 颱風引進的西南氣流：颱風愈接近臺灣愈明顯
-    const rd = Math.hypot((c.lon - TWC.lon) * KX, (c.lat - TWC.lat) * KY);
-    const k = Math.max(0, Math.min(1, (25.3 - lat) / 2.2)) * Math.max(0, Math.min(1, 1 - (rd - 350) / 500)) * 15;
-    u += k * 0.74; v += k * 0.67;
+function vortexSpeed(r) { let V = r < RM ? VMAX * Math.max(r, 5) / RM : VMAX * Math.pow(RM / r, 0.6); if (r > 450) V *= Math.max(0, 1 - (r - 450) / 450); return V; }
+const norm360 = a => ((a % 360) + 360) % 360;
+function bearing(fromLon, fromLat, toLon, toLat) { return norm360(Math.atan2((toLon - fromLon) * KX, (toLat - fromLat) * KY) / DEG); }
+function towardVec(fromDeg, sp) { return [-Math.sin(fromDeg * DEG) * sp, -Math.cos(fromDeg * DEG) * sp]; }
+const DIR8 = ['北', '東北', '東', '東南', '南', '西南', '西', '西北'];
+const dirName = from => DIR8[Math.round(norm360(from) / 45) % 8];
+const SECTOR8 = ['北', '東北', '東', '東南', '南', '西南', '西', '西北'];
+const sectorName = b => SECTOR8[Math.round(norm360(b) / 45) % 8];
+
+// 全島尺度的風向：課本（理想環流）＋地形修正
+function islandWind(c) {
+  const B = bearing(TWC.lon, TWC.lat, c.lon, c.lat);
+  const ideal = norm360(B - 90);
+  let actual = ideal, note = '';
+  if (B >= 67.5 && B <= 157.5) { // 中心在東、東南方：實測偏東風
+    const s = B - 90; actual = norm360(s + (90 - s) * 0.5); note = '受地形影響，實際多為偏東風';
+  } else if (B >= 247.5 && B <= 337.5) { // 中心在西方、西北方：多為西南風
+    actual = norm360(225 + (B - 270) * 0.4); note = '實際多為南～西南風';
   }
-  if (o.ne) { // 東北季風
-    const k = Math.max(0, Math.min(1, (lat - 22.6) / 2)) * 13;
-    u -= k * 0.66; v -= k * 0.75;
-  }
-  return [u, v];
+  return { B, ideal, actual, note };
 }
-const LOOK = [5, 10, 16, 22, 29, 36, 44, 52, 60];
-function compute(c, o) {
+const STATE = { local: false, stage: '', B: 0, ideal: 0, actual: 0, note: '', dist: 0, dLand: 0, landed: false, cside: 0, outer: false, foehnConf: '', alpha: 1 };
+function trackLandedBefore(tr, idx) { if (!tr) return false; for (let i = 0; i < idx; i += 2) if (pip(tr.d[i][0], tr.d[i][1], TW)) return true; return false; }
+
+function compute(c, o, tr) {
+  LV.fill(0); STATE.foehnConf = ''; STATE.swOn = false; STATE.neOn = false; STATE.alpha = 1;
+  if (!c) { STATE.stage = ''; return; }
+  const landed = pip(c.lon, c.lat, TW), dLand = landed ? 0 : coastDist(c.lon, c.lat);
+  const iw = islandWind(c), cside = sideOf(c.lon, c.lat);
+  Object.assign(STATE, iw, { landed, dLand, cside, dist: Math.hypot((c.lon - TWC.lon) * KX, (c.lat - TWC.lat) * KY), outer: false });
+  const exited = !landed && trackLandedBefore(tr, c.idx);
+  const local = landed || dLand < 60; STATE.local = local;
+  if (dLand > 650) { STATE.stage = '颱風距離臺灣還很遠'; return; }
+  const outer = dLand > R7; STATE.outer = outer; if (outer) STATE.alpha = 0.5;
+  STATE.stage = local ? (cside > 0 ? (landed ? '登陸期：中心在中央山脈以東' : '中心貼近東部陸地') : (landed ? '中心已越過中央山脈' : '中心貼近西部陸地'))
+    : outer ? '外圍環流開始影響' : exited ? '出海後' : '中心在海上';
+  const B = iw.B, north = B >= 247.5 || B <= 67.5, southish = B >= 157.5 && B <= 202.5;
+  const Vland = vortexSpeed(Math.max(dLand, 30));
+  const inBox = c.lat >= 23.67 && c.lat <= 25.5 && c.lon >= 120.0 && c.lon <= 121.83;
   for (let i = 0; i < N; i++) {
-    if (!LAND[i]) { LV[i] = 0; continue; }
+    if (!LAND[i]) continue;
     const r = (i / G.nc) | 0, cc = i - r * G.nc, lon = G.lon0 + cc * G.d, lat = G.lat0 + r * G.d;
-    const [u, v] = wind(lon, lat, c, o), s = Math.hypot(u, v);
-    if (s < 5) { LV[i] = 0; continue; }
-    const ux = u / s / KX, uy = v / s / KY, h0 = E[i];
-    let a = 0, b = 0, bm = 0;
-    for (const L of LOOK) {
-      const ea = elevAt(lon + ux * L, lat + uy * L), eb = elevAt(lon - ux * L, lat - uy * L);
-      a += ea; b += eb; if (eb > bm) bm = eb;
-    }
-    a /= LOOK.length; b /= LOOK.length;
-    let sc = (Math.max(a, h0) - Math.max(b, h0)) / 900 * Math.min(1, s / 20);
-    let cf = 1;
-    if (GXs[i] || GYs[i]) { cf = Math.max(0.1, Math.abs(u / s * GXs[i] + v / s * GYs[i])); sc *= cf; }
+    const f = FACET[i], nv = FACETS[f].n, h0 = E[i];
+    let from, V;
+    if (local) { // 中心貼近或在陸上：用各坡面中心點的實際環流風向
+      const [fx, fy] = FCENT[f], rr = Math.hypot((fx - c.lon) * KX, (fy - c.lat) * KY);
+      from = norm360(bearing(fx, fy, c.lon, c.lat) - 90); V = vortexSpeed(rr);
+    } else { from = iw.actual; V = Vland; }
+    const cv = Math.sin(from * DEG) * nv[0] + Math.cos(from * DEG) * nv[1]; // >0 迎風
     let lv = 0;
-    if (sc > 0.6) lv = 2; else if (sc > 0.25) lv = 1;
-    else if (sc < -0.25) { lv = -1; if (o.foehn && cf > 0.55 && sc < -0.45 && bm > 1800 && s >= 10 && h0 < 700) lv = -2; }
+    if (V < 8) lv = 0;
+    else if (cv > 0.35) lv = (cv > 0.6 && V >= 20 && !outer) ? 2 : 1;
+    else if (cv < (f === 1 ? -0.6 : -0.35)) lv = -1;
+    else if (V >= 22 && !outer) lv = 3; // 沿山強風
+    if (local) {
+      const rr = Math.hypot((lon - c.lon) * KX, (lat - c.lat) * KY);
+      if (cside > 0 && SIDE[i] > 0) { // 中心在山脊以東
+        if (lat >= c.lat - 0.15 && rr < 160) lv = 2;
+        else if (lat < c.lat - 0.15 && rr < 220) lv = 4; // 登陸點以南：地形遮蔽
+      } else if (cside < 0 && SIDE[i] > 0 && rr < 350) lv = -1; // 已越山：東部轉背風
+    }
+    // 焚風
+    if (o.foehn && !outer && lv === -1) {
+      if (f === 3 && h0 < 800 && !(local && cside > 0) && (north || (local && cside < 0) || exited)) { lv = -2; STATE.foehnConf = STATE.foehnConf || ((inBox || B >= 292.5 || B <= 22.5) ? '高' : '中'); }
+      else if (f === 4 && lat >= 23.9 && h0 < 600 && southish && !local) { lv = -2; STATE.foehnConf = STATE.foehnConf || '中'; }
+    }
     LV[i] = lv;
   }
+  // 西南氣流：颱風在臺灣北半部、北方或已登陸／出海時，西南部山區迎風豪雨
+  if (o.sw && STATE.dist < 700 && (c.lat >= 22.8 || landed)) {
+    STATE.swOn = true;
+    for (let i = 0; i < N; i++) if (LAND[i] && (FACET[i] === 5 || (FACET[i] === 4 && E[i] > 300 && (G.lat0 + ((i / G.nc) | 0) * G.d) < 24.2))) LV[i] = 2;
+  }
+  // 共伴效應：颱風在東北～南方，加上東北季風，北部、東北部迎風豪雨
+  if (o.ne && STATE.dist < 900 && B >= 22.5 && B <= 202.5) {
+    STATE.neOn = true;
+    for (let i = 0; i < N; i++) if (LAND[i] && (FACET[i] === 1 || FACET[i] === 2)) LV[i] = 2;
+  }
 }
-
+// 箭頭用的風：海上用理想環流，陸上用判定時採用的風向
+function windAt(lon, lat, c, o) {
+  let u = 0, v = 0;
+  if (c) {
+    if (isLandCell(lon, lat) && !STATE.local && STATE.dLand <= 650) {
+      const [a, b] = towardVec(STATE.actual, vortexSpeed(Math.max(STATE.dLand, 30))); u += a; v += b;
+    } else { const w = typhoonWind(lon, lat, c); u += w[0]; v += w[1]; }
+  }
+  if (o.ne) { const k = Math.max(0, Math.min(1, (lat - 22.6) / 2)) * 12; u -= k * 0.66; v -= k * 0.75; }
+  return [u, v];
+}
 // ===== 路徑 =====
 function catmull(pts, seg = 16) {
   const out = [];
@@ -389,43 +468,44 @@ function cityLevel(lon, lat) {
   return 0;
 }
 
+
 const PRESETS = [
-  { id: 'c1', name: '第 1 類', sub: '通過北部海面向西', pts: [[126.0,23.2],[124.5,24.3],[123.2,25.2],[122.0,25.75],[120.8,26.1],[119.3,26.5],[117.8,27.0]],
-    note: '中心在臺灣北方海面，臺灣位在環流南側，吹偏西風。西半部迎風，東半部背風，臺東一帶容易出現焚風。', opts: {}, t0: 0.58 },
+  { id: 'c1', name: '第 1 類', sub: '通過北部海面向西', pts: [[126.0,23.2],[124.5,24.3],[123.2,25.2],[122.0,25.75],[120.8,26.1],[119.3,26.5],[117.8,27.0]], t0: 0.58,
+    note: '中心在東北方時吹西北風，北部、西半部迎風。移到北方、西北方後轉吹西～西南風，西半部持續迎風；東部背風，臺東焚風機率最高。', opts: {} },
   { id: 'c2', name: '第 2 類', sub: '通過臺灣北部', pts: [[126.0,22.6],[124.3,23.6],[122.9,24.3],[121.85,24.65],[121.2,25.0],[120.2,25.4],[118.8,26.0],[117.8,26.4]],
-    note: '登陸前東北部、北部先迎風。中心進入臺灣海峽後轉吹西南風，西半部變成迎風面，東部背風。', opts: {} },
+    note: '接近期中心在東方，東北部、北部、東部迎風，西半部背風。登陸北部、中心越過山脊後，東部轉為背風、可能焚風；出海進入海峽後吹西南風，西南部山區迎風。', opts: {} },
   { id: 'c3', name: '第 3 類', sub: '通過臺灣中部', pts: [[126.0,21.9],[124.2,22.9],[122.7,23.6],[121.6,23.95],[120.8,24.0],[119.7,24.3],[118.5,24.8],[117.6,25.2]],
-    note: '接近時吹東北風，北部、東北部先迎風。中心登陸後風向快速轉變；進入臺灣海峽後轉吹偏南風，南部、東部迎風，中部背風。', opts: {} },
+    note: '接近期東部、東北部迎風，西半部背風。登陸花蓮一帶後，登陸點以北強風豪雨、以南受地形遮蔽。中心越過中央山脈後，東部轉為背風、可能焚風，西半部轉為迎風。', opts: {} },
   { id: 'c6', name: '第 6 類', sub: '沿東岸或東部海面北上', pts: [[123.8,19.6],[122.9,21.0],[122.2,22.3],[121.95,23.4],[122.1,24.4],[122.6,25.4],[123.5,26.5],[124.5,27.4]],
-    note: '中心在東南方時吹東北風，東北部、東部迎風。北上到臺灣東北方後轉吹西北風，換成西半部迎風、東部背風。秋季要留意共伴效應。', opts: {} },
+    note: '中心在東南、東方時，北部、東北部、東部迎風，西半部背風。北上到東北方後轉吹西北風，換成西半部迎風、東部背風。秋季遇東北季風會產生共伴效應。', opts: {} },
   { id: 'c7', name: '第 7 類', sub: '沿西岸或臺灣海峽北上', pts: [[117.8,19.8],[118.6,21.2],[119.3,22.4],[119.7,23.4],[120.0,24.4],[120.4,25.4],[121.0,26.4],[121.6,27.4]],
-    note: '中心在臺灣西南方到西方時吹東南風，東部、南部迎風，中部背風。中心北上後容易引進西南氣流，西南部山區雨勢變大。', opts: { sw: true } }
+    note: '中心在西南方時吹東南風，東部、東南部迎風，西部背風。北上到西方、西北方後轉吹西南風，西半部、西南部迎風，東部背風。', opts: { sw: true } }
 ];
+// 歷史颱風座標來源：賀伯、尼伯特＝IBTrACS；象神＝日本氣象廳（RSMC Tokyo）；納莉＝JTWC；莫拉克＝中央氣象署警報位置
 const CASES = [
-  { id: 'herb', name: '賀伯', sub: '1996 年', pts: [[127.0,21.6],[125.0,22.8],[123.3,23.9],[121.85,24.6],[121.2,25.0],[120.0,25.6],[118.5,26.3]],
-    note: '由宜蘭附近登陸、從北部出海。西南部山區迎風，阿里山出現驚人雨量，中南部山區土石流災情嚴重。', opts: {} },
-  { id: 'xangsane', name: '象神', sub: '2000 年', pts: [[120.3,18.6],[120.4,20.2],[120.9,21.6],[121.8,22.9],[122.3,24.2],[122.9,25.4],[124.0,26.8],[124.8,27.4]],
-    note: '秋颱。由巴士海峽北上、沿臺灣東部海面往東北移動，外圍環流與東北季風疊加產生共伴效應，北部與東北部豪雨。', opts: { ne: true } },
-  { id: 'nari', name: '納莉', sub: '2001 年', pts: [[125.6,25.9],[124.2,25.6],[122.8,25.3],[122.0,25.0],[121.5,24.6],[121.0,24.0],[120.6,23.4],[120.2,22.9],[119.6,22.6]],
-    note: '特殊路徑。由東北角附近登陸，向西南緩慢穿越臺灣，長時間降雨讓臺北嚴重淹水。', opts: {} },
-  { id: 'morakot', name: '莫拉克', sub: '2009 年', pts: [[127.0,23.3],[125.0,23.6],[123.0,23.8],[121.6,23.95],[121.05,24.6],[120.5,25.2],[120.2,25.8],[119.9,26.5]],
-    note: '由花蓮附近登陸、北部出海後北上，移動緩慢。環流引進旺盛西南氣流，南部山區成為迎風面，出現極端豪雨，小林村遭土石流掩埋。', opts: { sw: true } },
-  { id: 'nepartak', name: '尼伯特', sub: '2016 年', pts: [[127.0,19.5],[125.0,20.8],[123.2,21.9],[121.1,22.65],[120.6,22.5],[119.5,23.0],[118.5,23.9]],
-    note: '由臺東太麻里附近登陸，穿越南部後出海。臺東首當其衝，出現極強陣風。', opts: {} }
+  { id: 'herb', name: '賀伯', sub: '1996 年', pts: [[126.5,22.5],[124.7,24.0],[122.6,24.8],[121.2,24.8],[120.0,25.4],[118.6,25.9]],
+    note: '7/31 晚間由宜蘭登陸，8/1 清晨從新竹新豐出海。登陸前東北部、北部迎風；中心越過山脊後花東轉為背風並出現焚風。中南部山區迎風，阿里山單日雨量 1094.5 毫米創紀錄。', opts: {} },
+  { id: 'xangsane', name: '象神', sub: '2000 年', pts: [[120.2,19.6],[120.4,20.4],[120.6,21.0],[120.8,21.7],[121.2,22.4],[121.7,23.3],[122.0,24.0],[122.5,25.2],[123.0,26.1],[124.0,27.3]],
+    note: '秋颱，沿臺灣東部近海北上、未登陸。中心一直在東方，東部、東北部始終是迎風面。環流與東北季風產生共伴效應，基隆河流域 3 日累積雨量 752 毫米。', opts: { ne: true } },
+  { id: 'nari', name: '納莉', sub: '2001 年', pts: [[123.5,25.5],[123.1,25.5],[122.6,25.4],[122.2,25.1],[121.9,24.5],[121.8,24.2],[121.7,23.9],[121.6,23.7],[121.4,23.5],[121.1,23.4],[120.7,23.3],[120.3,22.9],[120.0,22.6],[119.6,22.5],[119.2,22.5]],
+    note: '特殊路徑。9/16 晚間在東北角登陸，以極慢速度往西南穿越臺灣，在陸上停留超過 49 小時，由臺南附近出海。北部雨量極大，臺北嚴重淹水。', opts: {} },
+  { id: 'morakot', name: '莫拉克', sub: '2009 年', pts: [[122.4,23.4],[121.6,23.98],[121.4,24.0],[121.1,25.05],[120.45,26.15],[120.0,26.9]],
+    note: '8/7 深夜在花蓮附近登陸，8/8 下午從桃園附近出海。環流引進旺盛西南氣流，中心還在東部時南部山區就已迎風豪雨；屏東尾寮山單日 1403 毫米，小林村遭土石流掩埋。', opts: { sw: true } },
+  { id: 'nepartak', name: '尼伯特', sub: '2016 年', pts: [[124.3,21.3],[122.6,22.0],[121.7,22.4],[120.6,22.6],[120.0,23.2],[118.6,24.8]],
+    note: '7/8 清晨在臺東太麻里登陸，下午由臺南將軍出海。臺東測得 17 級陣風，創設站紀錄；大武位在登陸點南側受地形遮蔽，風力較弱。雨區先在臺東以北，過山後轉到南迴。', opts: {} }
 ];
 
 // ===== 介面 =====
-buildTerrain();
+buildTerrain(); buildFacets();
 const $ = s => document.querySelector(s);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const LVTXT = { 2: '雨很大', 1: '多雨', 0: '影響小', '-1': '雨少', '-2': '焚風' };
+const LVTXT = { 2: '雨很大', 1: '多雨', 0: '影響小', '-1': '雨少', '-2': '焚風', 3: '沿山強風', 4: '地形遮蔽' };
 const LVLONG = { 2: '迎風面，雨很大', 1: '迎風面，多雨', 0: '影響小', '-1': '背風面，雨少', '-2': '背風面，可能出現焚風' };
 
 const S = {
   view: '2d', tab: 'preset', path: PRESETS[0], track: null, t: 0.45, playing: false, dur: 20,
   opts: { sw: false, ne: false, foehn: true }, drawPts: [], center: null
 };
-let three = null;
 let dirty = true, colorsDirty = true, panelDirty = true, lastPanel = 0, spin = 0;
 
 // ---- 色彩 ----
@@ -433,8 +513,8 @@ let T = {};
 function hexRgb(h) { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(x => x + x).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function readTokens() {
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ['sea', 'grat', 'ink', 'ink2', 'wind', 'lee', 'foehn', 'ty', 'paper', 'land-halo']) T[k] = cs.getPropertyValue('--' + k).trim();
-  T.rgb = { wind: hexRgb(T.wind), lee: hexRgb(T.lee), foehn: hexRgb(T.foehn), sea: hexRgb(T.sea) };
+  for (const k of ['sea', 'grat', 'ink', 'ink2', 'wind', 'lee', 'foehn', 'ty', 'paper', 'land-halo', 'along', 'shield']) T[k] = cs.getPropertyValue('--' + k).trim();
+  T.rgb = { wind: hexRgb(T.wind), lee: hexRgb(T.lee), foehn: hexRgb(T.foehn), sea: hexRgb(T.sea), along: hexRgb(T.along), shield: hexRgb(T.shield) };
   colorsDirty = true;
 }
 readTokens();
@@ -455,8 +535,8 @@ function cellColor(i, out) {
   let r = BASE[i * 3], g = BASE[i * 3 + 1], b = BASE[i * 3 + 2];
   const lv = LV[i];
   if (lv) {
-    const col = lv > 0 ? T.rgb.wind : lv === -1 ? T.rgb.lee : T.rgb.foehn;
-    const a = lv === 2 ? 0.78 : lv === 1 ? 0.45 : lv === -1 ? 0.62 : 0.8;
+    const col = lv === 3 ? T.rgb.along : lv === 4 ? T.rgb.shield : lv > 0 ? T.rgb.wind : lv === -1 ? T.rgb.lee : T.rgb.foehn;
+    const a = (lv === 2 ? 0.78 : lv === 1 ? 0.45 : lv === -1 ? 0.62 : lv === 3 ? 0.55 : lv === 4 ? 0.6 : 0.8) * STATE.alpha;
     const sh = SHADE[i] || 1, k = 0.75 + 0.25 * sh;
     r = r * (1 - a) + col[0] * a * k; g = g * (1 - a) + col[1] * a * k; b = b * (1 - a) + col[2] * a * k;
   }
@@ -470,7 +550,7 @@ function setPath(p) {
   S.t = p && p.custom ? 0 : (p && p.t0) || 0.45; $('#slider').value = Math.round(S.t * 1000);
   $('#pathNote').textContent = p ? p.note || '' : '';
   $('#nowname').innerHTML = p ? `${p.name}<small>${p.sub}</small>` : '自己畫路徑<small>在地圖上點出路徑</small>';
-  renderList(); dirty = true; if (three) three.pathDirty = true;
+  renderList(); dirty = true;
 }
 function renderList() {
   const box = $('#pathList'); box.innerHTML = '';
@@ -542,7 +622,6 @@ function kmPx(km) { return km / (KX * (VIEW.lon1 - VIEW.lon0)) * W; }
 function resize() {
   const r = $('#stage').getBoundingClientRect(); W = r.width; H = r.height; DPR = Math.min(2.5, devicePixelRatio || 1);
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
-  if (three) three.resize(W, H);
 }
 new ResizeObserver(resize).observe($('#stage'));
 resize();
@@ -608,7 +687,7 @@ function render2D() {
   ctx.strokeStyle = T.ink; ctx.fillStyle = T.ink;
   const sc = W / 660;
   for (let lon = 118.75; lon <= 124.3; lon += 0.5) for (let lat = 20.5; lat <= 26.6; lat += 0.5) {
-    const [u, v] = wind(lon, lat, c, S.opts), s = Math.hypot(u, v); if (s < 2) continue;
+    const [u, v] = windAt(lon, lat, c, S.opts), s = Math.hypot(u, v); if (s < 2) continue;
     const [x, y] = px(lon, lat); ctx.globalAlpha = Math.min(0.85, 0.3 + s / 45);
     drawArrow(x, y, u / s, -v / s, Math.min(30, 7 + s * 0.55) * sc, Math.max(1, 1.3 * sc));
   }
@@ -630,7 +709,7 @@ function render2D() {
     ctx.textAlign = west ? 'right' : 'left'; ctx.textBaseline = 'middle';
     const tx = x + (west ? -7 : 7);
     ctx.strokeStyle = T['land-halo']; ctx.lineWidth = 3.5; ctx.strokeText(n, tx, y); ctx.fillStyle = T.ink; ctx.fillText(n, tx, y);
-    if (lv) { const w = ctx.measureText(n).width, bx = west ? tx - w - 10 : tx + w + 6; ctx.beginPath(); ctx.arc(bx + 2, y, 4.5 * Math.max(1, sc), 0, Math.PI * 2); ctx.fillStyle = lv > 0 ? T.wind : lv === -1 ? T.lee : T.foehn; ctx.fill(); ctx.strokeStyle = T['land-halo']; ctx.lineWidth = 1.5; ctx.stroke(); }
+    if (lv) { const w = ctx.measureText(n).width, bx = west ? tx - w - 10 : tx + w + 6; ctx.beginPath(); ctx.arc(bx + 2, y, 4.5 * Math.max(1, sc), 0, Math.PI * 2); ctx.fillStyle = lv === 3 ? T.along : lv === 4 ? T.shield : lv > 0 ? T.wind : lv === -1 ? T.lee : T.foehn; ctx.fill(); ctx.strokeStyle = T['land-halo']; ctx.lineWidth = 1.5; ctx.stroke(); }
   }
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   // 手繪路徑點
@@ -657,164 +736,35 @@ function updatePanel() {
   const c = S.center, ul = $('#cities'); ul.innerHTML = '';
   const lvs = CITIES.map(([n, lon, lat]) => [n, cityLevel(lon, lat)]);
   for (const [n, lv] of lvs) { const li = document.createElement('li'); li.className = 'lv' + lv; li.innerHTML = `<i class="dot"></i>${n}<em>${LVTXT[lv]}</em>`; ul.appendChild(li); }
+  const st = $('#stage-tag');
+  if (!c) { st.textContent = ''; $('#explain').textContent = S.tab === 'draw' ? '還沒有颱風。先在地圖上畫出一條路徑。' : ''; return; }
+  st.textContent = STATE.stage;
   let txt = '';
-  if (!c) { txt = S.tab === 'draw' ? '還沒有颱風。先在地圖上畫出一條路徑。' : ''; }
+  if (STATE.dLand > 650) txt = '颱風距離臺灣還很遠，環流還吹不到臺灣。';
   else {
-    const dx = (c.lon - TWC.lon) * KX, dy = (c.lat - TWC.lat) * KY, dist = Math.hypot(dx, dy);
-    if (dist > 900) txt = '颱風距離臺灣還很遠，環流還吹不到臺灣。';
-    else {
-      if (isLandPt(c.lon, c.lat)) {
-        let best = null, bd = 1e9; for (const [n, lon, lat] of CITIES) { const d = Math.hypot((lon - c.lon) * KX, (lat - c.lat) * KY); if (d < bd) { bd = d; best = n; } }
-        txt = `颱風中心正在臺灣陸地上（${best}附近），各地風向都不一樣，中央山脈也會破壞颱風結構。`;
-      } else {
-        txt = `颱風中心在臺灣${dir8(dx, dy)}方，距離約 ${Math.round(dist / 10) * 10} 公里。`;
-        // 臺灣整體吹的風
-        let su = 0, sv = 0, ss = 0;
-        for (let lat = 22.2; lat <= 25.0; lat += 0.4) for (let lon = 120.3; lon <= 121.7; lon += 0.35) { if (!isLandCell(lon, lat)) continue; const [u, v] = wind(lon, lat, c, S.opts); su += u; sv += v; ss += Math.hypot(u, v); }
-        const coh = ss ? Math.hypot(su, sv) / ss : 0;
-        txt += coh > 0.6 ? `臺灣大部分地區吹${dir8(-su, -sv)}風。` : '颱風環流包住臺灣，各地風向不一樣。';
-      }
-      const ww = lvs.filter(x => x[1] > 0).map(x => x[0]), lw = lvs.filter(x => x[1] === -1).map(x => x[0]), fw = lvs.filter(x => x[1] === -2).map(x => x[0]);
-      if (ww.length) txt += `${ww.join('、')}在迎風面，雨勢大。`;
-      if (lw.length) txt += `${lw.join('、')}在背風面，雨較少。`;
-      if (fw.length) txt += `${fw.join('、')}可能出現焚風，天氣乾熱。`;
-      if (!ww.length && !lw.length && !fw.length) txt += '目前各主要城市受地形影響不明顯。';
+    if (STATE.local) {
+      let best = null, bd = 1e9; for (const [n, lon, lat] of CITIES) { const d = Math.hypot((lon - c.lon) * KX, (lat - c.lat) * KY); if (d < bd) { bd = d; best = n; } }
+      txt = `颱風中心${STATE.landed ? '在陸上' : '貼近海岸'}（${best}附近），各地風向不同。` +
+        (STATE.cside > 0 ? '中心還在中央山脈以東：登陸點附近及以北迎風強風豪雨，登陸點以南受地形遮蔽、風較弱。' : '中心已越過中央山脈：東部改吹偏西風，轉為背風；西半部轉為迎風。');
+    } else {
+      txt = `颱風中心在臺灣${sectorName(STATE.B)}方，約 ${Math.round(STATE.dist / 10) * 10} 公里。依逆時針環流推論吹${dirName(STATE.ideal)}風`;
+      txt += STATE.actual !== STATE.ideal ? `；${STATE.note}（${dirName(STATE.actual)}風）。` : '。';
+      if (STATE.outer) txt += '暴風圈還沒碰到陸地，目前只是外圍環流影響。';
     }
+    const pick = f => lvs.filter(x => f(x[1])).map(x => x[0]).join('、');
+    const ww = pick(l => l > 0 && l < 3), lw = pick(l => l === -1), fw = pick(l => l === -2), al = pick(l => l === 3), sh = pick(l => l === 4);
+    if (ww) txt += `${ww}在迎風面，雨勢大。`;
+    if (lw) txt += `${lw}在背風面，雨較少。`;
+    if (fw) txt += `${fw}可能出現焚風（可能性${STATE.foehnConf}），天氣乾熱。`;
+    if (al) txt += `${al}風向和山脈平行，雨不多但可能有強風。`;
+    if (sh) txt += `${sh}受地形遮蔽，風力較弱。`;
+    if (STATE.swOn) txt += '西南氣流讓西南部山區成為迎風面，雨量大增。';
+    if (STATE.neOn) txt += '颱風外圍環流與東北季風疊加（共伴效應），北部、東北部豪雨。';
   }
   $('#explain').textContent = txt;
 }
 
-// ---- 3D ----
-
-const EXAG = 10;
-function toXYZ(lon, lat, h) { return [(lon - TWC.lon) * KX, h / 1000 * EXAG, -(lat - TWC.lat) * KY]; }
-function textSprite(text, color, halo) {
-  const cvs = document.createElement('canvas'), g = cvs.getContext('2d'), fs = 44;
-  g.font = `700 ${fs}px "Noto Sans TC",sans-serif`; const w = Math.ceil(g.measureText(text).width) + 20;
-  cvs.width = w; cvs.height = fs + 20; g.font = `700 ${fs}px "Noto Sans TC",sans-serif`; g.textBaseline = 'middle'; g.lineJoin = 'round';
-  g.strokeStyle = halo; g.lineWidth = 10; g.strokeText(text, 10, cvs.height / 2); g.fillStyle = color; g.fillText(text, 10, cvs.height / 2);
-  const tex = new THREE.CanvasTexture(cvs); tex.minFilter = THREE.LinearFilter;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-  sp.scale.set(w / cvs.height * 16, 16, 1); sp.renderOrder = 10; return sp;
-}
-function cloudTexture() {
-  const cvs = document.createElement('canvas'); cvs.width = cvs.height = 512; const g = cvs.getContext('2d'), R = 240;
-  g.translate(256, 256); g.strokeStyle = '#fff'; g.lineCap = 'round';
-  for (let arm = 0; arm < 4; arm++) { const base = arm * Math.PI / 2; for (let k = 0; k < 40; k++) { const f0 = k / 40, f1 = (k + 1) / 40, r0 = R * (0.1 + 0.9 * f0), r1 = R * (0.1 + 0.9 * f1), a0 = base + 2.6 * f0, a1 = base + 2.6 * f1; g.globalAlpha = (1 - f0) * 0.85; g.lineWidth = 30 * (1 - f0 * 0.6); g.beginPath(); g.moveTo(Math.cos(a0) * r0, Math.sin(a0) * r0); g.lineTo(Math.cos(a1) * r1, Math.sin(a1) * r1); g.stroke(); } }
-  return new THREE.CanvasTexture(cvs);
-}
-function init3D() {
-  if (three) return true;
-  if (!window.THREE) { const h = $('#hint'); h.hidden = false; h.textContent = '3D 元件沒有載入成功，請確認網路連線後重新整理頁面。'; return false; }
-  const el = $('#c3d');
-  const renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
-  el.appendChild(renderer.domElement);
-  const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(36, 1, 1, 6000);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.62));
-  const dl = new THREE.DirectionalLight(0xffffff, 0.7); dl.position.set(-300, 420, -260); scene.add(dl);
-  // 海
-  const seaMat = new THREE.MeshBasicMaterial({ color: 0xcadce4 });
-  const sea = new THREE.Mesh(new THREE.PlaneGeometry((VIEW.lon1 - VIEW.lon0) * KX, (VIEW.lat1 - VIEW.lat0) * KY), seaMat);
-  sea.rotation.x = -Math.PI / 2; const [sx, , sz] = toXYZ((VIEW.lon0 + VIEW.lon1) / 2, (VIEW.lat0 + VIEW.lat1) / 2, 0); sea.position.set(sx, -0.8, sz); scene.add(sea);
-  // 經緯線
-  const gpts = [];
-  for (let lon = 119; lon <= 124; lon++) { gpts.push(...toXYZ(lon, VIEW.lat0, 0), ...toXYZ(lon, VIEW.lat1, 0)); }
-  for (let lat = 21; lat <= 26; lat++) { gpts.push(...toXYZ(VIEW.lon0, lat, 0), ...toXYZ(VIEW.lon1, lat, 0)); }
-  const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gpts, 3));
-  const gridMat = new THREE.LineBasicMaterial({ color: 0xafc4cf }); const grid = new THREE.LineSegments(gg, gridMat); grid.position.y = -0.5; scene.add(grid);
-  // 地形
-  const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
-  for (let r = 0; r < G.nr; r++) for (let c = 0; c < G.nc; c++) {
-    const i = r * G.nc + c, p = toXYZ(G.lon0 + c * G.d, G.lat0 + r * G.d, LAND[i] ? E[i] : -200);
-    pos.set(p, i * 3);
-  }
-  const idx = [];
-  for (let r = 0; r < G.nr - 1; r++) for (let c = 0; c < G.nc - 1; c++) {
-    const a = r * G.nc + c, b = a + 1, n = a + G.nc, m = n + 1;
-    if (!(LAND[a] || LAND[b] || LAND[n] || LAND[m])) continue;
-    idx.push(a, b, n, b, m, n);
-  }
-  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const colAttr = new THREE.BufferAttribute(col, 3); geo.setAttribute('color', colAttr); geo.setIndex(idx); geo.computeVertexNormals();
-  const terrain = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true })); scene.add(terrain);
-  // 風向箭頭
-  const arrows = [];
-  for (let lon = 118.75; lon <= 124.3; lon += 0.5) for (let lat = 20.5; lat <= 26.6; lat += 0.5) {
-    const [x, , z] = toXYZ(lon, lat, 0), a = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(x, 48, z), 10, 0x14304a, 5, 3.5);
-    a.userData = { lon, lat }; scene.add(a); arrows.push(a);
-  }
-  // 颱風
-  const ty = new THREE.Group(); scene.add(ty);
-  const cloud = new THREE.Mesh(new THREE.CircleGeometry(R7 * 1.05, 64), new THREE.MeshBasicMaterial({ map: cloudTexture(), transparent: true, opacity: 0.75, depthWrite: false }));
-  cloud.rotation.x = -Math.PI / 2; cloud.position.y = 62; ty.add(cloud);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0xd0202b, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
-  const ring = new THREE.Mesh(new THREE.RingGeometry(R7 - 1.8, R7 + 1.8, 128), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.y = 1; ty.add(ring);
-  const eye = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 62, 20), new THREE.MeshBasicMaterial({ color: 0xd0202b })); eye.position.y = 31; ty.add(eye);
-  // 路徑
-  const pathGeo = new THREE.BufferGeometry(), pastGeo = new THREE.BufferGeometry();
-  const pathLine = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color: 0x50677a })); scene.add(pathLine);
-  const pastLine = new THREE.Line(pastGeo, new THREE.LineBasicMaterial({ color: 0xd0202b })); pastLine.position.y = 0.5; scene.add(pastLine);
-  // 城市
-  const labels = [];
-  for (const [n, lon, lat] of CITIES) {
-    const sp = textSprite(n, '#14304a', '#ffffff'), [x, , z] = toXYZ(lon, lat, 0), ox = { '基隆': 16, '臺北': -12, '宜蘭': 12 }[n] || 0; sp.position.set(x + ox, elevAt(lon, lat) / 1000 * EXAG + 12, z); scene.add(sp); labels.push(sp);
-  }
-  // 視角
-  const orb = { th: 0.3, ph: 0.9, rad: 800, tx: 0, tz: 10 };
-  function place() { const s = Math.sin(orb.ph); cam.position.set(orb.tx + orb.rad * s * Math.sin(orb.th), orb.rad * Math.cos(orb.ph), orb.tz + orb.rad * s * Math.cos(orb.th)); cam.lookAt(orb.tx, 0, orb.tz); }
-  const ptrs = new Map(); let pinch0 = 0, rad0 = 0;
-  renderer.domElement.addEventListener('pointerdown', e => { renderer.domElement.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); rad0 = orb.rad; } });
-  renderer.domElement.addEventListener('pointermove', e => {
-    if (!ptrs.has(e.pointerId)) return; const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-    if (ptrs.size === 1) { orb.th -= (e.clientX - prev[0]) * 0.006; orb.ph = Math.max(0.12, Math.min(1.45, orb.ph - (e.clientY - prev[1]) * 0.005)); }
-    else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); orb.rad = Math.max(200, Math.min(1500, rad0 * pinch0 / d)); }
-  });
-  const up = e => ptrs.delete(e.pointerId);
-  renderer.domElement.addEventListener('pointerup', up); renderer.domElement.addEventListener('pointercancel', up);
-  renderer.domElement.addEventListener('wheel', e => { e.preventDefault(); orb.rad = Math.max(200, Math.min(1500, orb.rad * (1 + Math.sign(e.deltaY) * 0.1))); }, { passive: false });
-
-  three = {
-    pathDirty: true,
-    resize(w, h) { renderer.setSize(w, h, false); renderer.domElement.style.width = '100%'; renderer.domElement.style.height = '100%'; cam.aspect = w / h; cam.updateProjectionMatrix(); },
-    render() {
-      const c = S.center;
-      if (three.colorsDirty) {
-        for (let i = 0; i < N; i++) { cellColor(i, tmp); col[i * 3] = tmp[0] / 255; col[i * 3 + 1] = tmp[1] / 255; col[i * 3 + 2] = tmp[2] / 255; }
-        colAttr.needsUpdate = true; seaMat.color.setRGB(T.rgb.sea[0] / 255, T.rgb.sea[1] / 255, T.rgb.sea[2] / 255);
-        renderer.setClearColor(seaMat.color); three.colorsDirty = false;
-        const v = new THREE.Vector3();
-        for (const a of arrows) {
-          const [u, w] = wind(a.userData.lon, a.userData.lat, c, S.opts), s = Math.hypot(u, w);
-          if (s < 2) { a.visible = false; continue; } a.visible = true;
-          v.set(u / s, 0, -w / s); a.setDirection(v); const L = Math.min(34, 8 + s * 0.6); a.setLength(L, Math.min(9, L * 0.4), Math.min(6, L * 0.28));
-        }
-      }
-      if (three.pathDirty) {
-        const pts = S.track ? S.track.d.flatMap(p => toXYZ(p[0], p[1], 0).map((q, k) => k === 1 ? 1.5 : q)) : [];
-        pathGeo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); pastGeo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-        three.pathDirty = false;
-      }
-      pastGeo.setDrawRange(0, c ? c.idx : 0);
-      ty.visible = !!c;
-      if (c) { const [x, , z] = toXYZ(c.lon, c.lat, 0); ty.position.set(x, 0, z); cloud.rotation.z = spin; }
-      place(); renderer.render(scene, cam);
-    },
-    colorsDirty: true
-  };
-  three.resize(W, H);
-  return true;
-}
-function setView(v) {
-  if (v === '3d' && S.tab === 'draw' && !(S.path && S.path.custom)) v = '2d';
-  if (v === '3d' && !init3D()) v = '2d';
-  S.view = v;
-  $('#v2').setAttribute('aria-pressed', v === '2d'); $('#v3').setAttribute('aria-pressed', v === '3d');
-  cv.hidden = v !== '2d'; $('#c3d').hidden = v !== '3d';
-  if (three) three.colorsDirty = true; colorsDirty = true;
-}
-$('#v2').onclick = () => setView('2d');
-$('#v3').onclick = () => setView('3d');
-
+function setView() {}
 // ---- 主迴圈 ----
 let last = performance.now();
 function frame(now) {
@@ -826,9 +776,9 @@ function frame(now) {
   }
   if (dirty) {
     S.center = S.track ? posAt(S.track, S.t) : null;
-    compute(S.center, S.opts); dirty = false; colorsDirty = true; panelDirty = true; if (three) three.colorsDirty = true;
+    compute(S.center, S.opts, S.track); dirty = false; colorsDirty = true; panelDirty = true;
   }
-  if (S.view === '2d') render2D(); else if (three) three.render();
+  render2D();
   if (panelDirty && now - lastPanel > 150) { updatePanel(); lastPanel = now; panelDirty = false; }
   requestAnimationFrame(frame);
 }

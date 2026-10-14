@@ -11,23 +11,28 @@
 - 模型改版時，老師會把新的 HTML 放進 models/，一律以資料夾裡的檔案為準。
 
 ## 資料夾結構（目前）
-- models/<id>.html：每個模型一個獨立、可單獨開啟的 HTML
+- models/<id>.html：每個模型一個獨立、可單獨開啟的 HTML（目前 10 個）
 - registry.json：主題與模型清單，含每個模型的說明卡（格式見下）
-- template.html：首頁與播放畫面外框
-- build.py：把 registry、模型、外框組成單一檔 geo-models.html（模型以 iframe srcdoc 內嵌）
-- vendor/three.r128.min.js：3D 元件（three.js r128，MIT 授權見 three.LICENSE），供離線使用
-- 舊的線上版網址（需登入 Claude 才能看）：https://claude.ai/artifact/5MoM7QfdsYexHY2Ynz2WKH
+- template.html：首頁與播放畫面外框（含「說明卡」面板）
+- build.py：執行後產生兩個檔：
+  - index.html：線上版首頁（GitHub Pages），模型用 iframe src="models/<id>.html" 載入
+  - geo-models.html：離線單檔版，所有模型與 three.js 內嵌，隨身碟／沒網路的教室用
+- vendor/three.r128.min.js：3D 元件（three.js r128，MIT 授權見 three.LICENSE）；模型以 ../vendor/three.r128.min.js 引用
+- .nojekyll：讓 GitHub Pages 原樣發布檔案
+- Claude 上的舊版網址（需登入）：https://claude.ai/artifact/5MoM7QfdsYexHY2Ynz2WKH
+  過渡期與 GitHub 版同步更新（內容用 geo-models.html），等老師確認 GitHub 版沒問題再決定是否停用。
+- 課本圖照原樣放在公開網站，是老師的決定。
 
 ## 首次任務（依序做，每步完成向老師回報）
 1. （已完成）git 版本控制與第一次提交。
 2. GitHub repo 已建立（tomogeo/geo-models）。確認 repo 為公開，並設定 GitHub Pages，讓學生不用登入就能開網站。
    需要老師本人操作的步驟（登入、授權）請清楚說明並等他完成，不要代他輸入密碼。
-3. 調整成適合 GitHub Pages 的結構：
+3. （已完成 2026-10-14）調整成適合 GitHub Pages 的結構：
    - index.html 為首頁；模型改用 iframe src="models/<id>.html" 載入（不再把所有模型塞進一個檔）。
    - 模型裡的 three.js 從 CDN 改為讀 ../vendor/three.r128.min.js，讓 3D 離線也能顯示。
    - build.py 保留並改為另外輸出一份「離線單檔版」geo-models.html（three.js 內嵌），給教室沒網路或隨身碟用。
    - 保留 #<id> 直接開啟某個模型、Esc 回首頁、全螢幕按鈕等現有功能。
-4. 首頁卡片或播放畫面加入「說明卡」內容（學習重點、上課操作建議），設計要乾淨、不擋模型。
+4. （已完成 2026-10-14，播放畫面右上「說明卡」按鈕）首頁卡片或播放畫面加入「說明卡」內容（學習重點、上課操作建議），設計要乾淨、不擋模型。
 5. 用瀏覽器實際測試（1366×768 投影尺寸與手機寬度），推上線，把公開網址給老師。
 
 ## 規格一：模型共同規格（新模型與改版都要符合）
@@ -61,8 +66,8 @@
 | steps | 上課操作建議，3 到 5 步 |
 | source | 資料來源與簡化說明 |
 
-現有四個模型的說明卡是 Claude 依模型內容寫的草稿，unit 目前都是「待填」。
-第一次設定完成後，請把四張卡念給老師確認，並請他補上 unit。
+現有模型的說明卡是 Claude 依模型內容寫的草稿，unit 目前都是「待填」。
+第一次設定完成後，請把說明卡給老師確認，並請他補上 unit。
 
 ## 新增模型的標準流程
 1. 老師把新模型 HTML 放進 models/（或提供 claude.ai 連結，請他下載後放入）。

@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>平均中心與標準距離</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 版面：左大地圖＋右步驟面板（延續「空間內插」模型）；地圖本身維持課本紙面配色 */
+:root{
+  --bg:#eef1f4; --paper:#ffffff; --ink:#1f2a36; --ink2:#566372; --line:#d3dae2;
+  --accent:#2f4f8a; --accent-soft:#e3eaf6; --step:#8f6fb0; --step-soft:#efe8f6;
+  --red:#d0101c; --red-soft:#fbe3e3; --warn:#b4412f; --ok:#2e7d55;
+  --es:#00a092; --hs:#8f86c3;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#161b22; --paper:#1f262f; --ink:#e6ebf1; --ink2:#9aa7b5; --line:#34404d;
+    --accent:#8fb0ea; --accent-soft:#26344a; --step:#bb9bdc; --step-soft:#342a42;
+    --red:#ff6b6b; --red-soft:#43272a; --warn:#f08a74; --ok:#6fd39f;
+    --es:#3cc9b9; --hs:#aea6e0; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161b22; --paper:#1f262f; --ink:#e6ebf1; --ink2:#9aa7b5; --line:#34404d;
+  --accent:#8fb0ea; --accent-soft:#26344a; --step:#bb9bdc; --step-soft:#342a42;
+  --red:#ff6b6b; --red-soft:#43272a; --warn:#f08a74; --ok:#6fd39f;
+  --es:#3cc9b9; --hs:#aea6e0; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC",sans-serif;
+  font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;
+  padding:18px clamp(16px,3vw,32px) 12px}
+.top h1{margin:0;font-size:clamp(22px,2.6vw,30px);font-weight:700;letter-spacing:.02em;text-wrap:balance}
+.top p{margin:2px 0 0;color:var(--ink2);font-size:15px}
+.switches{display:flex;flex-wrap:wrap;gap:10px}
+.seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 14px;border-radius:7px;font-size:15px;color:var(--ink2);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--paper);font-weight:500}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:18px;padding:0 clamp(16px,3vw,32px) 24px;align-items:start}
+@media (max-width:940px){.layout{grid-template-columns:minmax(0,1fr)}}
+.mapcol{min-width:0}
+.mapbox{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px;
+  display:flex;justify-content:center;overflow:hidden}
+canvas#map{display:block;touch-action:none;border-radius:4px;max-width:100%}
+.maptools{position:absolute;left:18px;top:18px;display:flex;gap:6px;flex-wrap:wrap}
+@media (max-width:640px){.mapbox{flex-direction:column;align-items:center}.maptools{position:static;margin-bottom:8px;justify-content:center}.maptools:empty{display:none}}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:5px 12px;font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.mapfoot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;margin-top:8px;font-size:14px;color:var(--ink2)}
+.mapfoot label{display:inline-flex;align-items:center;gap:6px;margin-right:14px;cursor:pointer}
+.toast{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--paper);
+  padding:6px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:.92}
+
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px 18px;min-width:0}
+.steps{list-style:none;margin:0 0 14px;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.steps button{width:100%;border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:6px 4px 7px;
+  display:flex;flex-direction:column;align-items:center;font-size:13px;color:var(--ink2);line-height:1.3}
+.steps b{display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:var(--step-soft);color:var(--step);font-size:15px;margin-bottom:3px}
+.steps button[aria-current="step"]{border-color:var(--step);color:var(--ink);font-weight:500}
+.steps button[aria-current="step"] b{background:var(--step);color:var(--paper)}
+.body h2{margin:0 0 4px;font-size:19px;text-wrap:balance}
+.body p{margin:0 0 10px;color:var(--ink2);font-size:15px}
+.body .lead{color:var(--ink);font-size:16px}
+.ctl{margin:12px 0}
+.ctl .lab{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--ink2);margin-bottom:4px}
+.ctl .lab strong{color:var(--ink);font-variant-numeric:tabular-nums;font-size:15px}
+.ctl .seg{width:100%}
+.ctl .seg button{flex:1;padding:5px 6px;font-size:14px}
+input[type=range]{width:100%;accent-color:var(--red)}
+.btn{border:0;background:var(--accent);color:var(--paper);border-radius:9px;padding:9px 16px;font-size:16px;font-weight:500}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.stat{display:flex;gap:10px;margin:10px 0}
+.stat div{flex:1;background:var(--bg);border-radius:9px;padding:8px 10px;min-width:0}
+.stat span{display:block;font-size:13px;color:var(--ink2)}
+.stat strong{font-size:21px;font-variant-numeric:tabular-nums}
+.stat small{font-size:13px;color:var(--ink2);font-weight:400}
+.formula{background:var(--step-soft);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:15px}
+.formula .eq{font-size:17px;text-align:center;margin:2px 0 6px;font-family:"Cambria Math","STIX Two Math","Times New Roman","Noto Sans TC",serif;font-variant-numeric:tabular-nums}
+.formula .eq.sub{font-size:15px;color:var(--ink2)}
+.formula small{display:block;color:var(--ink2);font-size:13px;line-height:1.5}
+.over{text-decoration:overline}
+.hint{font-size:14px;color:var(--ink2);background:var(--bg);border-radius:9px;padding:8px 10px;margin:10px 0}
+.sel{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:15px}
+.sel h3{margin:0 0 4px;font-size:16px}
+.sel .num{font-variant-numeric:tabular-nums}
+details{margin:8px 0;font-size:14px}
+summary{cursor:pointer;color:var(--accent)}
+.tbl{max-height:230px;overflow:auto;margin-top:6px;border:1px solid var(--line);border-radius:8px}
+table.w{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+table.w th{position:sticky;top:0;background:var(--paper);font-weight:500;color:var(--ink2);text-align:right;padding:4px 6px;border-bottom:1px solid var(--line)}
+table.w td{text-align:right;padding:3px 6px}
+table.w th:first-child,table.w td:first-child{text-align:left}
+table.w tr.hl td{background:var(--red-soft)}
+table.w tfoot td{border-top:1px solid var(--line);font-weight:500}
+.cmp{width:100%;border-collapse:collapse;font-size:14.5px;margin:8px 0;font-variant-numeric:tabular-nums}
+.cmp th,.cmp td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
+.cmp th{font-weight:500;color:var(--ink2)}
+.sw{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:5px}
+.legend{border-top:1px solid var(--line);margin-top:14px;padding-top:12px;font-size:13.5px;color:var(--ink2);display:flex;flex-direction:column;gap:4px}
+.legend .t{color:var(--ink);font-size:14px;font-weight:500}
+.legend div{display:flex;align-items:center;gap:8px}
+.lg{width:24px;min-height:16px;flex:none;display:grid;place-items:center}
+.lg i{display:block}
+.score{font-size:15px;margin:10px 0}
+.score strong{font-size:30px;font-variant-numeric:tabular-nums}
+.good{color:var(--ok)} .bad{color:var(--warn)}
+.tasks{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.task{border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:var(--paper);text-align:left;display:flex;gap:10px;align-items:flex-start;font-size:14.5px;line-height:1.45}
+.task[aria-pressed="true"]{border-color:var(--step);background:var(--step-soft)}
+.task .ck{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--paper)}
+.task.done .ck{background:var(--ok);border-color:var(--ok)}
+.winp{width:74px;padding:2px 4px;border:1px solid var(--line);border-radius:5px;background:var(--bg);text-align:right;font-variant-numeric:tabular-nums}
+.grad{height:12px;border-radius:3px;flex:1;background:linear-gradient(90deg,#fbe9e0,#f3b096,#e26250,#8c283c)}
+.task small{display:block;color:var(--ink2);font-size:13px}
+.meter{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:4px}
+.meter i{display:block;height:100%;background:var(--step)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div>
+    <h1>平均中心與標準距離</h1>
+    <p>學校集中在哪裡？分散得多開？補習班聚在哪裡？（課本圖 2-32～2-34，嘉義市）</p>
+  </div>
+  <div class="switches">
+    <div class="seg" id="varSeg" aria-label="選擇資料">
+      <button data-v="es" aria-pressed="true">國小（20 所）</button>
+      <button data-v="hs" aria-pressed="false">高中（14 所）</button>
+    </div>
+    <div class="seg" id="modeSeg" aria-label="選擇模式">
+      <button data-m="explain" aria-pressed="true">講解步驟</button>
+      <button data-m="heat" aria-pressed="false">熱區地圖</button>
+      <button data-m="challenge" aria-pressed="false">挑戰</button>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+  <div class="mapcol">
+    <div class="mapbox" id="mapbox">
+      <canvas id="map" aria-label="嘉義市學校分布與平均中心、標準距離地圖"></canvas>
+      <div class="maptools" id="maptools"></div>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+    <div class="mapfoot">
+      <div>
+        <label><input type="checkbox" id="optGrid"> 座標格線</label>
+        <label><input type="checkbox" id="optNum"> 學校編號</label>
+      </div>
+      <div id="srcNote">學校位置依課本圖 2-33 判讀；座標原點設在嘉義市西南角</div>
+    </div>
+  </div>
+  <aside class="panel" id="panel"></aside>
+</main>
+
+<script>
+const D={"east":[[4.544,8.561],[4.519,8.531],[4.514,8.496],[4.578,8.437],[4.533,8.264],[4.434,8.195],[4.429,8.151],[4.551,7.893],[4.561,7.834],[4.546,7.75],[4.674,7.67],[4.733,7.616],[5.185,6.773],[5.376,6.451],[5.401,6.471],[5.715,7.107],[5.824,7.196],[5.879,7.206],[5.898,7.186],[6.199,5.8],[6.179,5.612],[6.099,5.425],[5.995,5.272],[5.935,5.213],[5.925,5.173],[6.008,4.955],[6.091,4.619],[6.172,3.862],[6.192,3.832],[6.35,3.832],[6.439,3.767],[6.379,3.693],[6.378,3.515],[6.338,3.476],[6.338,3.426],[6.299,3.402],[6.14,3.392],[6.106,3.378],[6.11,3.254],[6.139,3.121],[6.32,2.541],[6.201,2.478],[5.978,2.409],[5.934,2.424],[5.79,2.425],[5.79,2.4],[5.869,2.311],[5.842,1.698],[5.911,1.604],[6.019,1.499],[6.295,1.3],[6.27,1.251],[6.265,1.137],[6.215,1.019],[6.224,0.717],[6.174,0.643],[6.163,0.48],[6.143,0.431],[6.173,0.426],[6.322,0.489],[6.436,0.593],[6.6,0.928],[6.611,1.151],[6.636,1.175],[6.69,1.175],[6.829,1.363],[6.914,1.402],[6.884,1.441],[6.944,1.481],[7.048,1.594],[7.182,1.628],[7.266,1.722],[7.493,1.716],[7.617,1.745],[7.637,1.864],[7.638,1.972],[7.618,2.037],[7.638,2.057],[7.683,2.061],[7.822,2.234],[7.866,2.253],[8.055,2.416],[8.263,2.445],[8.396,2.429],[8.634,2.468],[8.782,2.462],[8.871,2.442],[9.251,2.233],[9.285,2.198],[9.319,2.089],[9.388,1.985],[9.669,1.806],[10.147,1.364],[10.241,1.344],[10.592,1.407],[10.726,1.416],[10.741,1.431],[10.746,1.485],[10.821,1.609],[10.86,1.648],[10.93,1.683],[10.905,1.786],[10.965,1.959],[11.104,2.058],[11.189,2.196],[11.288,2.284],[11.303,2.344],[11.289,2.492],[11.201,2.794],[11.231,2.819],[11.32,2.838],[11.379,2.897],[11.404,2.951],[11.449,2.986],[11.632,3.005],[11.682,3.089],[11.737,3.242],[11.767,3.266],[11.846,3.281],[11.915,3.325],[11.92,3.409],[11.95,3.478],[11.98,3.503],[12.02,3.503],[12.074,3.468],[12.118,3.463],[12.173,3.522],[12.198,3.626],[12.174,3.665],[12.194,3.789],[12.169,3.853],[11.962,4.042],[11.958,4.086],[11.908,4.116],[11.854,4.205],[11.775,4.27],[11.637,4.28],[11.612,4.3],[11.622,4.35],[11.677,4.419],[11.673,4.513],[11.643,4.523],[11.613,4.508],[11.45,4.509],[11.425,4.528],[11.421,4.583],[11.5,4.627],[11.5,4.716],[11.58,4.795],[11.59,4.913],[11.625,4.943],[11.625,4.973],[11.59,5.007],[11.526,5.008],[11.438,5.127],[11.443,5.221],[11.35,5.345],[11.38,5.508],[11.325,5.513],[11.271,5.592],[11.192,5.583],[11.153,5.617],[10.97,5.593],[10.851,5.53],[10.683,5.54],[10.624,5.629],[10.565,5.664],[10.486,5.674],[10.411,5.65],[10.258,5.655],[10.169,5.685],[10.09,5.755],[10.011,5.741],[9.982,5.77],[9.967,5.83],[9.863,5.889],[9.657,6.103],[9.603,6.227],[9.618,6.434],[9.713,6.518],[9.688,6.612],[9.714,6.849],[9.645,6.963],[9.646,7.067],[9.577,7.122],[9.587,7.196],[9.572,7.211],[9.493,7.186],[9.399,7.122],[9.265,7.103],[9.043,7.173],[8.747,7.372],[8.604,7.393],[8.524,7.304],[8.509,7.24],[8.311,7.067],[8.291,6.998],[8.275,6.82],[8.245,6.682],[8.22,6.643],[8.136,6.564],[7.992,6.505],[7.933,6.5],[7.844,6.52],[7.779,6.501],[7.745,6.506],[7.602,6.571],[7.449,6.759],[7.415,6.853],[7.411,7.041],[7.293,7.289],[7.146,7.512],[6.968,7.651],[6.86,7.874],[6.826,7.968],[6.831,8.067],[6.861,8.102],[6.921,8.116],[6.95,8.161],[6.956,8.309],[6.922,8.383],[6.872,8.408],[6.511,8.409],[6.334,8.504],[6.146,8.539],[6.067,8.584],[5.993,8.664],[5.954,8.659],[5.889,8.699],[5.81,8.659],[5.726,8.67],[5.632,8.566],[5.578,8.576],[5.43,8.661],[5.257,8.681],[5.251,8.637],[5.32,8.459],[5.403,8.127],[5.378,8.078],[5.293,7.994],[5.224,7.975],[5.076,8.015],[4.889,8.208],[4.929,8.277],[4.924,8.322],[4.786,8.5],[4.678,8.575]],"west":[[0.097,6.65],[0.072,6.601],[0.022,6.566],[0.022,6.542],[0.071,6.492],[0.081,6.457],[0.006,6.388],[0.016,6.265],[0.001,6.191],[0.0,5.998],[0.058,5.75],[0.35,5.705],[0.528,5.699],[0.562,5.679],[0.537,5.585],[0.478,5.482],[0.486,5.239],[0.442,5.17],[0.421,5.057],[0.416,4.884],[0.435,4.829],[0.42,4.75],[0.479,4.725],[0.474,4.7],[0.518,4.582],[0.761,4.541],[0.775,4.521],[0.765,4.442],[0.824,4.427],[0.874,4.447],[0.943,4.343],[0.982,4.313],[0.932,4.175],[0.932,4.14],[0.962,4.115],[0.932,4.061],[0.932,4.026],[0.956,3.996],[0.926,3.804],[0.999,3.507],[0.86,3.423],[0.82,3.285],[0.73,3.147],[0.602,3.118],[0.497,3.019],[0.477,2.866],[0.476,2.574],[0.758,2.568],[1.05,2.636],[1.178,2.641],[1.238,2.66],[1.584,2.659],[1.777,2.693],[1.826,2.712],[1.876,2.762],[2.014,2.751],[2.103,2.8],[2.222,2.805],[2.277,2.795],[2.37,2.715],[2.39,2.685],[2.394,2.527],[2.473,2.423],[2.601,2.304],[3.254,2.39],[3.348,2.375],[3.501,2.424],[3.585,2.364],[3.649,2.369],[3.684,2.349],[4.025,2.377],[4.045,2.362],[4.13,1.398],[4.199,1.363],[4.386,1.174],[4.55,1.228],[4.628,1.03],[4.722,0.936],[4.805,0.767],[4.825,0.757],[4.894,0.787],[4.938,0.742],[4.973,0.683],[4.948,0.643],[4.943,0.584],[4.715,0.516],[4.7,0.501],[4.7,0.441],[4.764,0.431],[4.828,0.307],[4.902,0.228],[4.976,0.178],[4.995,0.099],[5.025,0.074],[5.064,0.0],[5.282,0.058],[5.872,0.432],[6.025,0.436],[6.084,0.416],[6.139,0.426],[6.163,0.47],[6.174,0.633],[6.224,0.707],[6.215,1.009],[6.265,1.127],[6.27,1.241],[6.3,1.3],[5.99,1.534],[5.842,1.708],[5.869,2.321],[5.79,2.415],[5.924,2.424],[5.988,2.409],[6.211,2.477],[6.325,2.541],[6.115,3.229],[6.106,3.368],[6.126,3.388],[6.309,3.402],[6.338,3.416],[6.338,3.466],[6.378,3.505],[6.379,3.683],[6.443,3.772],[6.36,3.832],[6.201,3.832],[6.172,3.872],[6.091,4.629],[6.008,4.965],[5.925,5.183],[6.039,5.321],[6.144,5.504],[6.194,5.672],[6.199,5.81],[6.025,6.661],[5.898,7.196],[5.879,7.211],[5.814,7.196],[5.715,7.117],[5.381,6.456],[5.185,6.783],[4.733,7.625],[4.561,7.745],[4.546,7.745],[4.491,7.656],[4.402,7.632],[4.283,7.637],[3.982,7.688],[3.838,7.664],[3.774,7.629],[3.679,7.417],[3.615,7.358],[3.457,7.373],[3.402,7.334],[3.234,7.345],[3.115,7.31],[2.823,7.277],[2.794,7.257],[2.679,7.105],[2.461,6.927],[2.406,6.695],[2.371,6.616],[2.316,6.572],[2.089,6.509],[1.975,6.509],[1.945,6.569],[1.941,6.737],[1.902,6.959],[1.913,7.078],[1.983,7.34],[1.978,7.379],[1.963,7.379],[1.824,7.222],[1.705,7.113],[1.651,7.104],[1.606,7.124],[1.517,7.119],[1.284,6.947],[1.2,6.913],[1.185,6.888],[1.185,6.799],[1.12,6.705],[1.105,6.562],[0.996,6.577],[0.794,6.697],[0.567,6.792],[0.537,6.792],[0.483,6.757],[0.384,6.768],[0.275,6.753],[0.171,6.679]],"es":[[3.649,6.092,200,5],[6.699,5.897,950,1],[9.235,5.826,200,5],[5.568,5.729,950,1],[3.935,5.574,790,2],[7.842,5.532,450,4],[6.753,5.142,790,2],[4.366,4.911,650,3],[9.377,4.501,200,5],[3.57,4.347,650,3],[6.692,4.036,450,4],[8.306,3.97,450,4],[6.448,3.765,950,1],[2.67,3.654,450,4],[4.995,3.628,650,3],[5.712,3.577,790,2],[7.072,3.4,650,3],[5.124,2.877,950,1],[5.72,2.49,790,2],[6.688,2.188,650,3]],"hs":[[5.807,7.312,64,1],[7.676,5.489,380,1],[8.883,4.826,38,1],[7.434,4.703,2233,1],[7.101,4.253,1139,1],[9.539,4.203,1997,1],[7.691,4.128,1303,1],[6.259,3.732,1545,1],[7.037,3.517,579,1],[7.646,3.476,968,1],[7.212,3.197,1000,3],[7.115,2.575,2176,1],[9.661,2.314,1000,3],[6.869,2.301,626,1]],"cram":[[6.521,6.473],[6.916,6.464],[4.3,6.41],[6.766,5.81],[6.91,5.357],[6.642,6.109],[6.903,5.522],[6.432,6.106],[6.8,6.106],[6.785,5.267],[6.897,5.938],[6.697,5.95],[6.992,5.777],[6.523,5.966],[7.021,5.607],[3.687,6.033],[8.03,6.038],[5.665,5.782],[5.184,5.795],[5.338,5.862],[5.499,5.783],[5.374,5.692],[5.592,5.938],[5.003,5.758],[9.026,5.795],[8.779,5.778],[7.952,5.633],[7.995,5.779],[4.061,5.365],[4.115,5.614],[4.012,5.745],[4.048,5.503],[6.49,5.69],[7.311,5.609],[6.628,5.453],[6.445,5.466],[4.875,5.431],[7.655,5.41],[7.847,5.38],[4.776,5.207],[7.235,5.168],[6.987,5.124],[3.734,5.035],[3.783,4.91],[4.741,4.978],[7.728,4.915],[4.02,4.904],[7.05,4.904],[4.319,4.87],[4.463,4.869],[7.293,4.828],[6.88,4.516],[6.84,4.244],[7.164,4.701],[7.0,4.161],[6.958,4.395],[6.938,4.664],[7.127,4.574],[7.305,4.642],[9.618,4.749],[5.747,4.371],[5.732,4.511],[5.707,4.655],[4.33,4.59],[4.575,4.568],[4.451,4.491],[6.223,4.462],[6.414,4.551],[6.022,4.502],[5.984,4.349],[5.412,4.369],[5.524,4.485],[5.476,4.234],[9.696,4.475],[3.659,4.309],[8.299,4.212],[8.478,4.188],[3.933,4.207],[6.496,3.988],[6.551,3.842],[6.393,3.778],[6.588,4.143],[6.347,3.898],[6.421,4.132],[8.079,4.099],[5.256,4.091],[5.63,3.581],[5.97,3.496],[5.349,3.669],[5.783,3.383],[5.735,3.715],[5.868,3.796],[5.344,4.004],[5.85,3.596],[5.472,3.573],[5.28,3.821],[3.441,3.998],[7.432,3.859],[6.984,3.817],[7.143,3.857],[7.21,3.744],[7.361,3.989],[7.238,3.986],[8.299,3.965],[4.454,3.911],[6.148,3.793],[4.964,3.747],[3.456,3.531],[3.664,3.725],[3.482,3.724],[3.746,3.586],[6.407,3.566],[6.573,3.501],[4.96,3.473],[7.223,3.191],[7.142,3.327],[7.308,3.338],[4.708,2.931],[5.727,3.031],[4.903,2.733],[5.286,3.014],[4.95,3.065],[5.504,3.258],[4.898,2.556],[5.01,2.871],[4.643,2.728],[5.435,2.937],[5.108,2.993],[4.848,2.903],[4.813,2.436],[5.61,2.909],[5.603,3.147],[4.774,2.691],[5.188,2.877],[7.062,3.031],[6.722,2.918],[4.263,2.69],[4.204,2.923],[4.434,2.874],[4.287,2.829],[2.917,2.634],[2.811,2.815],[2.427,2.774],[7.756,2.715],[6.504,2.52],[6.428,2.675],[6.847,2.465],[6.734,2.616],[5.877,2.324],[6.49,2.257],[6.467,2.079],[6.313,2.323],[7.561,1.932],[7.418,1.828],[5.091,1.909],[5.225,1.887],[7.094,1.904],[6.878,1.697],[7.081,1.685],[6.987,1.801]],"esNames":{"1":"嘉北","12":"崇文","17":"興嘉"},"hsNames":{"0":"宏仁女中","1":"興華高中","2":"立仁高中","3":"東吳工家","4":"華南高商","5":"嘉義高中","6":"嘉義高商","7":"嘉義女中","8":"嘉華高中","9":"嘉義家職","11":"嘉義高工","13":"輔仁高中"}};
+/* ---------- 地圖座標（公里） ---------- */
+const X0=-0.95, X1=12.75, Y0=-0.85, Y1=9.25;       // 圖框範圍
+const FW=X1-X0, FH=Y1-Y0;
+const COL={fill:'#fdf8d8',line:'#1e1e1e',dist:'#8a8a8a',es:'#00a092',esIn:'#8fb9b4',hs:'#8f86c3',hsIn:'#b996c8',red:'#e60012',
+  circ:'rgba(230,0,18,.13)',wt:'#f39800'};
+const CLS=[null,{r:11,t:'≧886'},{r:9,t:'702～885'},{r:7,t:'591～701'},{r:5.2,t:'311～590'},{r:3.4,t:'≦310'}];
+function mk(v){ return D[v].map((a,i)=>({x:a[0],y:a[1],w:a[2],c:a[3],ow:a[2],i:i+1,ox:a[0],oy:a[1],nm:(v==='es'?D.esNames:D.hsNames)[i]||null})); }
+
+const wr=s=>2.5+Math.sqrt(Math.max(0,s.w))/4;   // 依人數決定圓點大小
+const mkCram=()=>D.cram.map(a=>({x:a[0],y:a[1]}));
+const NAME={es:'國小',hs:'高中'};
+
+/* ---------- 狀態 ---------- */
+const S={v:'es',mode:'explain',step:1,pts:mk('es'),sel:null,cm:'m',
+  hm:{st:1,r:0.5,pts:mkCram(),k:1,showPts:true,showR:false,probe:null,tool:'view',ver:0},
+  a2:0,a3:0,done2:false,done3:false,showGrid:false,showNum:false,
+  cmp:{es:mk('es'),hs:mk('hs')},
+  ch:{lv:1,guess:null,r:1.5,revealed:false,task:0,tp:null}};
+
+/* ---------- 統計 ---------- */
+function mean(p){let sx=0,sy=0;p.forEach(s=>{sx+=s.x;sy+=s.y});return {x:sx/p.length,y:sy/p.length};}
+function wmean(p){let sx=0,sy=0,sw=0;p.forEach(s=>{sx+=s.w*s.x;sy+=s.w*s.y;sw+=s.w});return {x:sx/sw,y:sy/sw,sw};}
+function sdist(p,c){c=c||mean(p);let s=0;p.forEach(q=>{s+=(q.x-c.x)**2+(q.y-c.y)**2});return Math.sqrt(s/p.length);}
+function inRing(x,y,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const a=r[i],b=r[j];
+  if(((a[1]>y)!==(b[1]>y))&&(x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0]))c=!c;}return c;}
+function district(x,y){ if(inRing(x,y,D.west))return '西區'; if(inRing(x,y,D.east))return '東區';
+  // 兩區界線上的細縫：看離哪一區近
+  return nearRing(x,y,D.west)<nearRing(x,y,D.east)?(nearRing(x,y,D.west)<0.08?'西區':null):(nearRing(x,y,D.east)<0.08?'東區':null); }
+function nearRing(x,y,r){let m=1e9;for(let i=0,j=r.length-1;i<r.length;j=i++){const a=r[j],b=r[i];const dx=b[0]-a[0],dy=b[1]-a[1];
+  const t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy||1)));m=Math.min(m,Math.hypot(a[0]+t*dx-x,a[1]+t*dy-y));}return m;}
+function inCity(x,y){return !!district(x,y);}
+function where(c){const d=district(c.x,c.y);if(!d)return '兩區交界';const o=d==='西區'?D.east:D.west;return nearRing(c.x,c.y,o)<0.3?'兩區交界':d;}
+const f2=v=>v.toFixed(2), f3=v=>v.toFixed(3), m0=v=>Math.round(v*1000).toLocaleString();
+
+/* ---------- 畫布 ---------- */
+const cv=document.getElementById('map'), ctx=cv.getContext('2d'), box=document.getElementById('mapbox');
+let sc=1,dpr=1,px=1,raf=0;
+function resize(){
+  const w=box.clientWidth-20, maxH=Math.max(330,window.innerHeight*0.78-40);
+  sc=Math.min(w/FW,maxH/FH); dpr=window.devicePixelRatio||1; px=1;
+  cv.style.width=(FW*sc)+'px'; cv.style.height=(FH*sc)+'px';
+  cv.width=Math.round(FW*sc*dpr); cv.height=Math.round(FH*sc*dpr); draw();
+}
+const X=x=>(x-X0)*sc, Y=y=>(Y1-y)*sc;
+const toKm=(cx,cy)=>({x:cx/sc+X0,y:Y1-cy/sc});
+function req(){ if(!raf) raf=requestAnimationFrame(()=>{raf=0;draw();}); }
+function ringPath(r){const p=new Path2D();r.forEach((q,i)=>i?p.lineTo(X(q[0]),Y(q[1])):p.moveTo(X(q[0]),Y(q[1])));p.closePath();return p;}
+function text(t,x,y,o={}){ctx.font=`${o.w||400} ${o.s||12}px "Noto Sans TC",sans-serif`;ctx.textAlign=o.a||'center';ctx.textBaseline=o.b||'middle';
+  if(o.halo!==false){ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,255,255,.95)';ctx.strokeText(t,x,y);} ctx.fillStyle=o.c||'#222';ctx.fillText(t,x,y);}
+function square(x,y,s,col){ctx.fillStyle='#fff';ctx.fillRect(x-s/2-2,y-s/2-2,s+4,s+4);ctx.fillStyle=col||COL.red;ctx.fillRect(x-s/2,y-s/2,s,s);}
+function cross(x,y,s,col){ctx.lineCap='butt';ctx.strokeStyle='#fff';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(x-s,y);ctx.lineTo(x+s,y);ctx.moveTo(x,y-s);ctx.lineTo(x,y+s);ctx.stroke();
+  ctx.strokeStyle=col||COL.red;ctx.lineWidth=3.6;ctx.stroke();}
+function circle(c,r,o={}){ctx.beginPath();ctx.arc(X(c.x),Y(c.y),Math.max(0,r*sc),0,Math.PI*2);
+  if(o.fill!==false){ctx.fillStyle=o.fill||COL.circ;ctx.fill();}
+  ctx.setLineDash(o.dash||[]);ctx.strokeStyle=o.stroke||COL.red;ctx.lineWidth=o.lw||2.2;ctx.stroke();ctx.setLineDash([]);}
+function arrow(a,b){const x1=X(a.x),y1=Y(a.y),x2=X(b.x),y2=Y(b.y),L=Math.hypot(x2-x1,y2-y1);if(L<4)return;
+  const ux=(x2-x1)/L,uy=(y2-y1)/L,ex=x2-ux*9,ey=y2-uy*9;ctx.save();ctx.strokeStyle='#8a0010';ctx.fillStyle='#8a0010';ctx.lineWidth=2.4;
+  ctx.beginPath();ctx.moveTo(x1+ux*8,y1+uy*8);ctx.lineTo(ex,ey);ctx.stroke();ctx.beginPath();ctx.moveTo(ex+ux*1,ey+uy*1);ctx.lineTo(ex-ux*9-uy*6,ey-uy*9+ux*6);ctx.lineTo(ex-ux*9+uy*6,ey-uy*9-ux*6);ctx.closePath();
+  ctx.translate(ux*8,uy*8);ctx.fill();ctx.restore();}
+function dot(s,col,r,o={}){ctx.beginPath();ctx.arc(X(s.x),Y(s.y),r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+  if(o.ring){ctx.strokeStyle=o.ring;ctx.lineWidth=o.rw||1.4;ctx.stroke();}}
+
+function drawBase(){
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,FW*sc,FH*sc);
+  const PW=ringPath(D.west),PE=ringPath(D.east);
+  ctx.fillStyle=COL.fill;ctx.fill(PW);ctx.fill(PE);
+  if(S.showGrid||(S.mode==='explain'&&S.step<=2)) drawGrid();
+  S._city=[PW,PE];
+  ctx.lineJoin='round';ctx.strokeStyle=COL.line;ctx.lineWidth=1.4;ctx.stroke(PW);ctx.stroke(PE);
+  text('西區',X(2.3),Y(5.2),{s:18,w:500,c:'#3a3a3a'}); text('東區',X(10.3),Y(3.4),{s:18,w:500,c:'#3a3a3a'});
+}
+function drawGrid(){
+  ctx.save();ctx.lineWidth=1;
+  for(let x=0;x<=12;x++){ctx.strokeStyle=x%2?'rgba(47,79,138,.10)':'rgba(47,79,138,.2)';ctx.beginPath();ctx.moveTo(X(x),Y(0));ctx.lineTo(X(x),Y(9));ctx.stroke();}
+  for(let y=0;y<=9;y++){ctx.strokeStyle=y%2?'rgba(47,79,138,.10)':'rgba(47,79,138,.2)';ctx.beginPath();ctx.moveTo(X(0),Y(y));ctx.lineTo(X(12.5),Y(y));ctx.stroke();}
+  ctx.restore();
+}
+function drawAxes(){
+  ctx.save();ctx.strokeStyle='#2f4f8a';ctx.fillStyle='#2f4f8a';ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(X(0),Y(0));ctx.lineTo(X(12.55),Y(0));ctx.moveTo(X(0),Y(0));ctx.lineTo(X(0),Y(9.05));ctx.stroke();
+  for(let x=0;x<=12;x+=2){ctx.beginPath();ctx.moveTo(X(x),Y(0));ctx.lineTo(X(x),Y(0)+5);ctx.stroke();text(String(x),X(x),Y(0)+13,{s:11,c:'#2f4f8a',halo:false});}
+  for(let y=0;y<=8;y+=2){ctx.beginPath();ctx.moveTo(X(0),Y(y));ctx.lineTo(X(0)-5,Y(y));ctx.stroke();text(String(y),X(0)-9,Y(y),{s:11,a:'right',c:'#2f4f8a',halo:false});}
+  text('X（公里）',X(12.55),Y(0)+28,{s:11,a:'right',c:'#2f4f8a',halo:false,w:500});
+  text('Y（公里）',X(0)+4,Y(9.1),{s:11,a:'left',c:'#2f4f8a',halo:false,w:500});
+  ctx.restore();
+}
+function drawFrame(){
+  // 比例尺 0-1-2 公里
+  const u=sc, sx=Math.min(X(10.1),FW*sc-2*u-36), sy=Y(0.75);
+  ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(sx-8,sy-20,2*u+44,28);
+  ctx.fillStyle='#222';ctx.fillRect(sx+u,sy-3,u,5);ctx.strokeStyle='#222';ctx.lineWidth=1;ctx.strokeRect(sx,sy-3,2*u,5);
+  [[0,'0'],[u,'1'],[2*u,'2']].forEach(([o,t])=>text(t,sx+o,sy-11,{s:11,halo:false}));
+  text('公里',sx+2*u+6,sy,{s:11,a:'left',halo:false});
+  // 指北
+  const nx=X(12.35), ny=Y(8.7);
+  ctx.beginPath();ctx.moveTo(nx,ny-10);ctx.lineTo(nx+6,ny+7);ctx.lineTo(nx,ny+3);ctx.lineTo(nx-6,ny+7);ctx.closePath();ctx.fillStyle='#222';ctx.fill();
+  text('N',nx,ny-18,{s:11,w:500,halo:false});
+}
+function schoolCol(v,inside){ if(v==='es')return inside?COL.esIn:COL.es; return inside?COL.hsIn:COL.hs; }
+function drawSchools(p,v,o={}){
+  const c=o.c, r=o.r;
+  p.forEach(s=>{
+    const inside=c&&r!=null&&Math.hypot(s.x-c.x,s.y-c.y)<=r;
+    const rad=o.wt?wr(s):6.5;
+    if(o.wt) dot(s,COL.wt,rad,{ring:'#3b2a10',rw:1});
+    else dot(s,schoolCol(v,inside&&o.tint),rad,{ring:o.ringAll?'#fff':null,rw:1.6});
+    if(S.sel&&S.sel===s){ctx.beginPath();ctx.arc(X(s.x),Y(s.y),rad+4,0,Math.PI*2);ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.stroke();}
+    if(o.moved&&(Math.abs(s.x-s.ox)>0.05||Math.abs(s.y-s.oy)>0.05)){
+      ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(60,60,60,.7)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(X(s.ox),Y(s.oy));ctx.lineTo(X(s.x),Y(s.y));ctx.stroke();ctx.setLineDash([]);
+      ctx.beginPath();ctx.arc(X(s.ox),Y(s.oy),4,0,Math.PI*2);ctx.strokeStyle='rgba(60,60,60,.7)';ctx.stroke();
+      ctx.beginPath();ctx.arc(X(s.x),Y(s.y),rad+3,0,Math.PI*2);ctx.strokeStyle='#111';ctx.lineWidth=1.6;ctx.stroke();
+    }
+    if(S.showNum) text(String(s.i),X(s.x)+rad+2,Y(s.y)-rad,{s:10.5,a:'left',w:500,c:'#333'});
+  });
+}
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const seg=(t,a,b)=>Math.max(0,Math.min(1,(t-a)/(b-a)));
+
+function draw(){
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,FW*sc,FH*sc);
+  drawBase();
+  if(S.mode==='explain') drawExplain(); else if(S.mode==='heat') drawHeat(); else drawChallenge();
+  drawFrame();
+}
+function drawExplain(){
+  const p=S.pts, v=S.v, st=S.step;
+  if(st<=3) drawAxes();
+  if(st===1){
+    drawSchools(p,v,{ringAll:true});
+    if(S.sel){const s=S.sel;ctx.save();ctx.setLineDash([4,4]);ctx.strokeStyle='#2f4f8a';ctx.lineWidth=1.3;
+      ctx.beginPath();ctx.moveTo(X(s.x),Y(s.y));ctx.lineTo(X(s.x),Y(0));ctx.moveTo(X(s.x),Y(s.y));ctx.lineTo(X(0),Y(s.y));ctx.stroke();ctx.restore();
+      text(f2(s.x),X(s.x),Y(0)-9,{s:11,w:700,c:'#2f4f8a'});text(f2(s.y),X(0)+4,Y(s.y)-9,{s:11,w:700,a:'left',c:'#2f4f8a'});
+      text(`(${f2(s.x)}, ${f2(s.y)})`,X(s.x)+11,Y(s.y)+14,{s:12.5,w:700,a:'left',c:'#111'});}
+  }
+  if(st===2){
+    const cm=S.cm, wt=cm!=='m', m=mean(p), wm=wmean(p), c=cm==='w'?wm:m, t=ease(S.a2), pre=cm==='w'?'加權 ':'';
+    const tx=seg(t,0,.42), ty=seg(t,.42,.84), tc=seg(t,.84,1);
+    const barL=s=>wt?4+wr(s)*1.3:10, barC=wt?COL.wt:(v==='es'?COL.es:COL.hs);
+    drawSchools(p,v,{wt,ringAll:true});
+    if(tx>0){ctx.save();p.forEach(s=>{const yy=Y(s.y)+(Y(0)-Y(s.y))*Math.min(1,tx*1.6);
+        ctx.fillStyle=barC;ctx.globalAlpha=.75;ctx.fillRect(X(s.x)-1.5,yy-7,3,barL(s));});
+      ctx.restore();
+      const a=seg(tx,.55,1); if(a>0){ctx.save();ctx.globalAlpha=a;ctx.strokeStyle=COL.red;ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(X(c.x),Y(0));ctx.lineTo(X(c.x),Y(9));ctx.stroke();ctx.restore();
+        ctx.save();ctx.globalAlpha=a;text(pre+'X̄ = '+f2(c.x),X(c.x),Y(0)-10,{s:12,w:700,c:COL.red});ctx.restore();}}
+    if(ty>0){ctx.save();p.forEach(s=>{const xx=X(s.x)+(X(0)-X(s.x))*Math.min(1,ty*1.6);
+        ctx.fillStyle=barC;ctx.globalAlpha=.75;const L=barL(s);ctx.fillRect(xx+7-L,Y(s.y)-1.5,L,3);});
+      ctx.restore();
+      const a=seg(ty,.55,1); if(a>0){ctx.save();ctx.globalAlpha=a;ctx.strokeStyle=COL.red;ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(X(0),Y(c.y));ctx.lineTo(X(12.5),Y(c.y));ctx.stroke();ctx.restore();
+        ctx.save();ctx.globalAlpha=a;text(pre+'Ȳ = '+f2(c.y),X(0)+6,Y(c.y)-10,{s:12,w:700,a:'left',c:COL.red});ctx.restore();}}
+    if(tc>0){ctx.save();ctx.globalAlpha=tc;
+      if(cm==='both'){ arrow(m,wm); square(X(m.x),Y(m.y),12); cross(X(wm.x),Y(wm.y),10,'#8a0010');
+        const d=Math.hypot(wm.x-m.x,wm.y-m.y), dn=wm.y<=m.y;
+        text('平均中心',X(m.x),Y(m.y)+(dn?-17:19),{s:12,w:700,c:COL.red});
+        text(`加權平均中心（相差 ${m0(d)} m）`,X(wm.x),Y(wm.y)+(dn?21:-19),{s:12,w:700,c:'#8a0010'}); }
+      else if(cm==='w') cross(X(wm.x),Y(wm.y),10,'#8a0010');
+      else square(X(m.x),Y(m.y),12);
+      ctx.restore();}
+  }
+  if(st===3){
+    const m=mean(p), sd=sdist(p,m), t=ease(S.a3), tl=seg(t,0,.5), tr=seg(t,.5,1);
+    if(tr>0) circle(m,sd*tr,{});
+    if(tl>0){ctx.save();p.forEach((s,k)=>{const q=Math.min(1,tl*1.4-k*0.4/p.length);if(q<=0)return;
+        ctx.strokeStyle=S.sel===s?'#111':'rgba(80,60,120,.55)';ctx.lineWidth=S.sel===s?2.4:1.2;ctx.beginPath();ctx.moveTo(X(m.x),Y(m.y));
+        ctx.lineTo(X(m.x+(s.x-m.x)*q),Y(m.y+(s.y-m.y)*q));ctx.stroke();});ctx.restore();}
+    drawSchools(p,v,{c:m,r:tr>=1?sd:null,tint:true,ringAll:true});
+    square(X(m.x),Y(m.y),12);
+    if(S.sel&&tl>=1){const s=S.sel,d=Math.hypot(s.x-m.x,s.y-m.y);text(`d = ${f2(d)} km`,(X(s.x)+X(m.x))/2,(Y(s.y)+Y(m.y))/2-10,{s:12,w:700,c:'#111'});}
+    if(tr>=1){ // 半徑標示
+      ctx.strokeStyle=COL.red;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(X(m.x),Y(m.y));ctx.lineTo(X(m.x+sd*Math.cos(-.5)),Y(m.y+sd*Math.sin(-.5)));ctx.stroke();
+      text(`標準距離 ${m0(sd)} 公尺`,X(m.x+sd*Math.cos(-.5)*.55)+8,Y(m.y+sd*Math.sin(-.5)*.55)+12,{s:12.5,w:700,a:'left',c:COL.red});}
+  }
+  if(st===4){
+    const A=S.cmp.es, B=S.cmp.hs, ma=mean(A), mb=mean(B), sa=sdist(A,ma), sb=sdist(B,mb);
+    circle(ma,sa,{fill:'rgba(0,160,146,.10)',stroke:COL.es,lw:2.4});
+    circle(mb,sb,{fill:'rgba(143,134,195,.14)',stroke:'#6f63b3',lw:2.4});
+    drawSchools(A,'es',{ringAll:true}); drawSchools(B,'hs',{ringAll:true});
+    square(X(ma.x),Y(ma.y),12,COL.es); square(X(mb.x),Y(mb.y),12,'#6f63b3');
+    text(`國小 ${m0(sa)} m`,X(ma.x-sa*.72),Y(ma.y+sa*.72)-4,{s:12.5,w:700,c:'#00796d'});
+    text(`高中 ${m0(sb)} m`,X(mb.x+sb*.7),Y(mb.y-sb*.72)+6,{s:12.5,w:700,c:'#5b4fa5'});
+  }
+}
+
+/* ---------- 挑戰模式的地圖 ---------- */
+function drawChallenge(){
+  const ch=S.ch;
+  if(ch.lv===1){
+    const p=S.pts, m=mean(p), sd=sdist(p,m);
+    drawSchools(p,S.v,{ringAll:true});
+    if(ch.guess){ circle(ch.guess,ch.r,{fill:'rgba(47,79,138,.12)',stroke:'#2f4f8a',dash:[7,5],lw:2.2});
+      ctx.fillStyle='#2f4f8a';ctx.beginPath();ctx.arc(X(ch.guess.x),Y(ch.guess.y),6,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+      // 半徑把手
+      const hx=X(ch.guess.x+ch.r), hy=Y(ch.guess.y);ctx.beginPath();ctx.arc(hx,hy,7,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#2f4f8a';ctx.lineWidth=2.4;ctx.stroke();
+      text('我猜的',X(ch.guess.x),Y(ch.guess.y)-16,{s:12,w:700,c:'#2f4f8a'}); }
+    if(ch.revealed){ circle(m,sd,{}); square(X(m.x),Y(m.y),12);
+      if(ch.guess){ctx.setLineDash([3,3]);ctx.strokeStyle='#111';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(X(m.x),Y(m.y));ctx.lineTo(X(ch.guess.x),Y(ch.guess.y));ctx.stroke();ctx.setLineDash([]);}
+    }
+  } else {
+    const T=TASKS[ch.task], p=ch.tp, o=T.v==='es'?S.cmp.es:S.cmp.hs, mo=mean(o), so=sdist(o,mo), m=mean(p), sd=sdist(p,m);
+    circle(mo,so,{fill:false,stroke:'rgba(80,80,80,.6)',dash:[5,5],lw:1.6});
+    ctx.fillStyle='rgba(80,80,80,.6)';ctx.fillRect(X(mo.x)-4,Y(mo.y)-4,8,8);
+    circle(m,sd,{});
+    drawSchools(p,T.v,{moved:true,ringAll:true});
+    square(X(m.x),Y(m.y),12);
+  }
+}
+
+/* ---------- 互動 ---------- */
+function evKm(e){const r=cv.getBoundingClientRect();return toKm(e.clientX-r.left,e.clientY-r.top);}
+function hit(p,list){let best=null,bd=Infinity;list.forEach(s=>{const d=Math.hypot(s.x-p.x,s.y-p.y)*sc;if(d<bd){bd=d;best=s;}});return bd<=13?best:null;}
+let drag=null;
+cv.addEventListener('pointerdown',e=>{
+  const p=evKm(e);
+  if(S.mode==='challenge'){
+    const ch=S.ch;
+    if(ch.lv===1){ if(ch.revealed){toast('按「再猜一次」重新開始');return;}
+      if(ch.guess&&Math.hypot(p.x-(ch.guess.x+ch.r),p.y-ch.guess.y)*sc<14){drag={kind:'r'};}
+      else if(ch.guess&&Math.hypot(p.x-ch.guess.x,p.y-ch.guess.y)*sc<14){drag={kind:'c'};}
+      else {ch.guess={x:p.x,y:p.y};drag={kind:'c'};renderPanel();}
+      cv.setPointerCapture(e.pointerId);req();return; }
+    const h=hit(p,ch.tp); if(h){drag={kind:'s',s:h,moved:false,sx:e.clientX,sy:e.clientY,from:{x:h.x,y:h.y}};cv.setPointerCapture(e.pointerId);}
+    return;
+  }
+  if(S.mode==='heat'){heatClick(p);return;}
+  if(S.step===4)return;
+  const h=hit(p,S.pts);
+  if(h){drag={kind:'s',s:h,moved:false,sx:e.clientX,sy:e.clientY,from:{x:h.x,y:h.y}};S.sel=h;cv.setPointerCapture(e.pointerId);renderPanel();req();}
+  else if(S.sel){S.sel=null;renderPanel();req();}
+});
+cv.addEventListener('pointermove',e=>{
+  if(!drag){ const p=evKm(e);let over=false;
+    if(S.mode==='challenge'&&S.ch.lv===1&&S.ch.guess&&!S.ch.revealed) over=Math.hypot(p.x-(S.ch.guess.x+S.ch.r),p.y-S.ch.guess.y)*sc<14||Math.hypot(p.x-S.ch.guess.x,p.y-S.ch.guess.y)*sc<14;
+    else if(S.mode==='challenge'&&S.ch.lv===2) over=!!hit(p,S.ch.tp);
+    else if(S.mode==='explain'&&S.step<4) over=!!hit(p,S.pts);
+    else if(S.mode==='heat'){cv.style.cursor=S.hm.tool!=='view'||S.hm.st>=2?'crosshair':'';return;}
+    cv.style.cursor=over?'grab':(S.mode==='challenge'&&S.ch.lv===1&&!S.ch.revealed?'crosshair':''); return; }
+  const p=evKm(e);
+  if(drag.kind==='r'){S.ch.r=Math.max(0.2,Math.min(6,Math.hypot(p.x-S.ch.guess.x,p.y-S.ch.guess.y)));panelLive();req();return;}
+  if(drag.kind==='c'){S.ch.guess={x:Math.max(X0,Math.min(X1,p.x)),y:Math.max(Y0,Math.min(Y1,p.y))};req();return;}
+  if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>3)drag.moved=true; if(!drag.moved)return;
+  drag.s.x=Math.max(X0,Math.min(X1,p.x)); drag.s.y=Math.max(Y0,Math.min(Y1,p.y)); panelLive(); req();
+});
+cv.addEventListener('pointerup',()=>{
+  if(!drag)return; const d=drag; drag=null;
+  if(d.kind==='s'&&d.moved&&!inCity(d.s.x,d.s.y)){d.s.x=d.from.x;d.s.y=d.from.y;toast('學校要放在嘉義市範圍內');}
+  if(S.mode==='challenge'&&S.ch.lv===2&&d.kind==='s') checkTask();
+  renderPanel(); renderTools(); req();
+});
+
+let tt=0; function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2200);}
+function animate(key,dur,done){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){S[key]=1;done&&done();renderPanel();req();return;}
+  const t0=performance.now(); S[key]=0;
+  const tick=now=>{S[key]=Math.min(1,(now-t0)/dur);draw();if(S[key]<1)requestAnimationFrame(tick);else{done&&done();renderPanel();}};
+  requestAnimationFrame(tick);
+}
+
+/* ---------- 面板 ---------- */
+const panel=document.getElementById('panel');
+const STEPS=['點變座標','平均中心','標準距離','兩者比較'];
+function segHTML(name,opts,cur,dis){return `<div class="seg" data-name="${name}">`+opts.map(([v,t])=>`<button data-val="${v}" aria-pressed="${String(v)===String(cur)}" ${dis&&dis.includes(v)?'disabled':''}>${t}</button>`).join('')+`</div>`;}
+function stepsHTML(){return `<ol class="steps">`+STEPS.map((t,i)=>`<li><button data-step="${i+1}" ${S.step===i+1?'aria-current="step"':''}><b>${i+1}</b>${t}</button></li>`).join('')+`</ol>`;}
+function edited(p){return p.some(s=>Math.abs(s.x-s.ox)>1e-6||Math.abs(s.y-s.oy)>1e-6||s.w!==s.ow);}
+
+function renderPanel(){
+  if(S.mode==='challenge'){renderChallenge();return;}
+  if(S.mode==='heat'){renderHeat();return;}
+  const p=S.pts, v=S.v, n=p.length, N=NAME[v];
+  let h=stepsHTML()+`<div class="body" id="pb">`;
+  if(S.step===1){
+    h+=`<h2>每間學校都是一個點</h2><p class="lead">在地圖上放一組 X、Y 座標軸，每間${N}的位置就能寫成一組數字 (X, Y)。</p>
+    <p>這裡的單位是公里，原點 (0, 0) 設在嘉義市的西南角。</p>
+    <div class="hint">點一下任一間學校，看它的座標；也可以直接拖曳學校。</div>`;
+    h+=selHTML();
+    h+=tableHTML(false);
+  }
+  if(S.step===2){
+    const cm=S.cm, m=mean(p), wm=wmean(p), sx=p.reduce((a,s)=>a+s.x,0), sy=p.reduce((a,s)=>a+s.y,0);
+    const ttl={m:'平均中心',w:'加權平均中心',both:'平均中心 vs 加權平均中心'}[cm];
+    const lead={m:'把所有學校的 X 平均、Y 平均，就得到大家的平均位置。',w:'學生多的學校「比較重」，平均位置會被它拉過去。',both:'兩個中心放在一起比：紅方塊只看位置，十字還考慮了學生數。'}[cm];
+    h+=`<h2>${ttl}</h2><p class="lead">${lead}</p>`;
+    h+=`<div class="ctl"><div class="lab">顯示</div>${segHTML('cm',[['m','平均中心'],['w','加權平均'],['both','兩者比較']],cm)}</div>`;
+    let f='';
+    if(cm!=='w') f+=`<div class="eq"><span class="over">X</span> = ΣX ÷ n = ${f2(sx)} ÷ ${n} = <b>${f2(m.x)}</b></div><div class="eq"><span class="over">Y</span> = ΣY ÷ n = ${f2(sy)} ÷ ${n} = <b>${f2(m.y)}</b></div>`;
+    if(cm!=='m') f+=`<div class="eq"><span class="over">X</span><sub>w</sub> = Σ(w·X) ÷ Σw = <b>${f2(wm.x)}</b></div><div class="eq"><span class="over">Y</span><sub>w</sub> = Σ(w·Y) ÷ Σw = <b>${f2(wm.y)}</b></div>`;
+    f+=`<small>${cm!=='w'?'n：學校數量；':''}${cm!=='m'?'w：學生數（權重），Σw = '+wm.sw.toLocaleString()+' 人；':''}Σ：全部加起來</small>`;
+    h+=`<div class="formula">${f}</div>`;
+    h+=`<div class="btnrow"><button class="btn" id="go2">${S.done2?'再算一次':'開始計算'}</button></div>`;
+    if(S.done2){
+      if(cm==='both'){const d=Math.hypot(wm.x-m.x,wm.y-m.y);
+        h+=`<div class="stat"><div><span>平均中心（■）</span><strong style="font-size:18px">(${f2(m.x)}, ${f2(m.y)})</strong><small>${where(m)}</small></div><div><span>加權平均中心（＋）</span><strong style="font-size:18px">(${f2(wm.x)}, ${f2(wm.y)})</strong><small>${where(wm)}</small></div></div>
+        <p>加權後往<b>${dirWord(wm.x-m.x,wm.y-m.y)}</b>移動了 <b>${m0(d)} 公尺</b>。想一想：學生數多的大學校（大圓點）集中在哪一側？</p>`;}
+      else {const c=cm==='w'?wm:m;
+        h+=`<div class="stat"><div><span>${cm==='w'?'加權平均中心':'平均中心'}</span><strong>(${f2(c.x)}, ${f2(c.y)})</strong></div><div><span>位在</span><strong>${where(c)}</strong></div></div>`;
+        h+=cm==='w'?`<div class="hint">切到「兩者比較」，看加權前後差多少。也可以在下方表格改學生數，看十字怎麼移動。</div>`:`<div class="hint">把一間學校拖到很遠的地方，看紅方塊怎麼移動。平均中心很容易被「離很遠的點」拉走。</div>`;}
+    }
+    h+=tableHTML(true);
+  }
+  if(S.step===3){
+    const m=mean(p), sd=sdist(p,m), inC=p.filter(s=>Math.hypot(s.x-m.x,s.y-m.y)<=sd).length, sum=p.reduce((a,s)=>a+(s.x-m.x)**2+(s.y-m.y)**2,0);
+    h+=`<h2>標準距離</h2><p class="lead">量出每間學校到平均中心的距離 d，再算出「平均起來大約多遠」，就是圓的半徑。</p>
+    <div class="formula"><div class="eq">SD = √( Σd² ÷ n )</div><div class="eq sub">= √( ${f2(sum)} ÷ ${n} ) = <b>${f3(sd)} 公里</b></div><small>d² = (X − X̄)² + (Y − Ȳ)²。課本稱為「標準差」，GIS 軟體多稱「標準距離」。</small></div>
+    <div class="btnrow"><button class="btn" id="go3">${S.done3?'再畫一次':'畫出標準距離'}</button></div>`;
+    if(S.done3) h+=`<div class="stat"><div><span>標準距離（半徑）</span><strong>${m0(sd)} <small>公尺</small></strong></div><div><span>圈內的學校</span><strong>${inC} <small>/ ${n}</small></strong></div></div>
+      <div class="hint">圓越大＝分布越分散；圓越小＝越集中在平均中心附近。試著把圈外的一間學校拖進圈內，半徑會怎麼變？</div>`;
+    h+=selHTML();
+    if(S.done3) h+=distTableHTML(m);
+  }
+  if(S.step===4){
+    const A=S.cmp.es,B=S.cmp.hs,ma=mean(A),mb=mean(B),sa=sdist(A,ma),sb=sdist(B,mb);
+    h+=`<h2>國小 vs 高中</h2><p class="lead">把兩張圖疊在一起，比一比中心在哪、圓有多大。</p>
+    <table class="cmp"><thead><tr><th></th><th><span class="sw" style="background:var(--es)"></span>國小</th><th><span class="sw" style="background:var(--hs)"></span>高中</th></tr></thead><tbody>
+    <tr><th>學校數</th><td>${A.length}</td><td>${B.length}</td></tr>
+    <tr><th>平均中心</th><td>${where(ma)}</td><td>${where(mb)}</td></tr>
+    <tr><th>標準距離</th><td><b>${m0(sa)}</b> m</td><td><b>${m0(sb)}</b> m</td></tr></tbody></table>
+    <p style="font-size:13.5px;margin-bottom:4px">課本的結論：</p><p><b style="color:var(--ink)">國小</b>：平均中心在東區、西區交界附近，標準距離較大，分布<b style="color:var(--ink)">較分散而均勻</b>。</p>
+    <p><b style="color:var(--ink)">高中</b>：平均中心在東區，標準距離較小，分布<b style="color:var(--ink)">較集中</b>。</p>
+    <div class="hint">想一想：為什麼國小分布得比較散、高中比較集中？（提示：學區、通學距離、學生人數）</div>`;
+  }
+  h+=`</div>`+legendHTML();
+  if(S.step===2&&S.cm!=='m') S.tblOpen=S.tblOpen!==false;
+  if(S.step<4&&edited(p)) h=h.replace('<div class="body" id="pb">','<div class="body" id="pb"><div class="hint" style="margin-top:0;background:var(--red-soft)">你移動過學校，數值已和課本不同。按地圖左上「還原課本資料」可恢復。</div>');
+  panel.innerHTML=h; bindPanel();
+}
+function dirWord(dx,dy){const a=Math.atan2(dy,dx)*180/Math.PI;const w=['東','東北','北','西北','西','西南','南','東南'];return w[Math.round(((a+360)%360)/45)%8];}
+function selHTML(){
+  if(!S.sel)return '';
+  const s=S.sel, m=mean(S.pts), d=Math.hypot(s.x-m.x,s.y-m.y);
+  let h=`<div class="sel"><h3>${NAME[S.v]} ${s.i}${s.nm?'｜'+s.nm+(S.v==='es'?'國小':''):''}<span style="font-weight:400;color:var(--ink2);font-size:14px">（${district(s.x,s.y)||'—'}）</span></h3>
+  <div class="num">X = ${f2(s.x)} 公里，Y = ${f2(s.y)} 公里</div>`;
+  h+=S.v==='es'?`<div class="num" style="color:var(--ink2);font-size:14px">學生數分級：${CLS[s.c].t} 人（計算用 ${s.w} 人）</div>`:`<div class="num" style="color:var(--ink2);font-size:14px">${s.nm?'114 年度學生數 '+s.w.toLocaleString()+' 人':'未對應到學校，人數推估 '+s.w.toLocaleString()+' 人'}</div>`;
+  if(S.step===3) h+=`<div class="num">d² = (${f2(s.x)} − ${f2(m.x)})² + (${f2(s.y)} − ${f2(m.y)})² = ${f2(d*d)}</div><div class="num">d = <b>${f2(d)} 公里</b></div>`;
+  return h+`</div>`;
+}
+function tableHTML(open){
+  const p=S.pts, wt=S.cm!=='m'&&S.step===2;
+  let h=`<details id="tblD" ${S.tblOpen?'open':''}><summary>看全部 ${p.length} 所的座標</summary><div class="tbl"><table class="w"><thead><tr><th>${NAME[S.v]}</th><th>X</th><th>Y</th>${wt?'<th>學生數 w</th>':''}</tr></thead><tbody>`;
+  p.forEach(s=>{h+=`<tr class="${S.sel===s?'hl':''}"><td>${s.i}${S.v==='hs'&&s.nm?' '+s.nm:''}</td><td>${f2(s.x)}</td><td>${f2(s.y)}</td>${wt?`<td><input class="winp" type="number" min="0" step="10" data-i="${s.i}" value="${s.w}" aria-label="${NAME[S.v]} ${s.i} 學生數"></td>`:''}</tr>`;});
+  const sx=p.reduce((a,s)=>a+s.x,0), sy=p.reduce((a,s)=>a+s.y,0);
+  h+=`</tbody><tfoot><tr><td>合計</td><td>${f2(sx)}</td><td>${f2(sy)}</td>${wt?`<td>${p.reduce((a,s)=>a+s.w,0).toLocaleString()}</td>`:''}</tr><tr><td>平均</td><td>${f2(sx/p.length)}</td><td>${f2(sy/p.length)}</td>${wt?'<td></td>':''}</tr></tfoot></table></div></details>`;
+  if(wt) h+=S.v==='es'?`<p style="font-size:13px;margin-top:4px">學生數依課本圖 2-38 的分級，每級取一個代表值（950、790、650、450、200 人）。表格裡的人數可以直接修改。</p>`
+    :`<p style="font-size:13px;margin-top:4px">高中學生數為 114 年度各校總人數（教師依地址對應課本圖上的點）。第 11、13 點對不上現有學校，人數以約中位數 1,000 人推估。表格裡的人數可以直接修改。</p>`;
+  return h;
+}
+function distTableHTML(m){
+  const p=S.pts; let sum=0;
+  let h=`<details id="tblD" ${S.tblOpen?'open':''}><summary>看每一所的 d 與 d²</summary><div class="tbl"><table class="w"><thead><tr><th>${NAME[S.v]}</th><th>X − X̄</th><th>Y − Ȳ</th><th>d²</th><th>d</th></tr></thead><tbody>`;
+  p.forEach(s=>{const dx=s.x-m.x,dy=s.y-m.y,d2=dx*dx+dy*dy;sum+=d2;h+=`<tr class="${S.sel===s?'hl':''}"><td>${s.i}</td><td>${f2(dx)}</td><td>${f2(dy)}</td><td>${f2(d2)}</td><td>${f2(Math.sqrt(d2))}</td></tr>`;});
+  return h+`</tbody><tfoot><tr><td>合計</td><td></td><td></td><td>${f2(sum)}</td><td></td></tr><tr><td colspan="5">√(${f2(sum)} ÷ ${p.length}) = ${f3(Math.sqrt(sum/p.length))} 公里</td></tr></tfoot></table></div></details>`;
+}
+function legendHTML(){
+  if(S.mode==='heat') return heatLegend();
+  const wt=S.mode==='explain'&&S.step===2&&S.cm!=='m';
+  const items=[];
+  const d=(c,r)=>`<span class="lg"><i style="width:${r}px;height:${r}px;border-radius:50%;background:${c}"></i></span>`;
+  const sq=c=>`<span class="lg"><i style="width:11px;height:11px;background:${c}"></i></span>`;
+  if(S.mode==='explain'&&S.step===4){items.push(d(COL.es,12)+'國小位置',d(COL.hs,12)+'高中位置',sq(COL.es)+'國小平均中心',sq('#6f63b3')+'高中平均中心','<span class="lg"><i style="width:15px;height:15px;border-radius:50%;border:2px solid var(--ink2)"></i></span>標準距離（圓的半徑）');}
+  else if(wt){items.push('<span class="t" style="margin-bottom:0">學生人數（人）</span>');
+    const reps=S.v==='es'?[[950,'≧886'],[790,'702～885'],[650,'591～701'],[450,'311～590'],[200,'≦310']]:[[2000,'2,000'],[1000,'1,000'],[500,'500'],[100,'100']];
+    reps.forEach(([w,t])=>items.push(d(COL.wt,2*wr({w}))+t));
+    if(S.cm==='both') items.push(sq(COL.red)+'平均中心點');
+    items.push('<span class="lg" style="color:#8a0010;font-weight:700;font-size:22px;line-height:1">+</span>加權平均中心點');}
+  else {items.push(d(S.v==='es'?COL.es:COL.hs,12)+NAME[S.v]+'位置');
+    if(S.mode==='challenge'||S.step>=2) items.push(sq(COL.red)+'平均中心點');
+    if(S.mode==='challenge'||S.step>=3) items.push('<span class="lg"><i style="width:15px;height:15px;border-radius:50%;border:2px solid #e60012;background:rgba(230,0,18,.15)"></i></span>標準距離');
+    if(S.mode==='challenge'&&S.ch.lv===1) items.push('<span class="lg"><i style="width:15px;height:15px;border-radius:50%;border:2px dashed #2f4f8a"></i></span>我猜的中心與圓');
+    if(S.mode==='challenge'&&S.ch.lv===2) items.push('<span class="lg"><i style="width:15px;height:15px;border-radius:50%;border:2px dashed #777"></i></span>原本（課本）的圓');}
+  return `<div class="legend"><div class="t">圖例</div>`+items.map(t=>t.startsWith('<span class="t"')?t:`<div>${t}</div>`).join('')+`</div>`;
+}
+function panelLive(){ // 拖曳時只更新數字，不重建面板以免閃動
+  clearTimeout(panelLive.t); panelLive.t=setTimeout(()=>{ if(!drag)return; if(S.mode==='challenge'&&S.ch.lv===1){const el=document.getElementById('rv');if(el)el.textContent=m0(S.ch.r)+' 公尺';const rg=document.getElementById('rr');if(rg)rg.value=S.ch.r;} else renderPanel(); },60);
+}
+function bindPanel(){
+  panel.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>setStep(+b.dataset.step));
+  panel.querySelectorAll('.seg[data-name]').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const n=sg.dataset.name, v=b.dataset.val;
+    if(n==='cm'){const was=S.done2;S.cm=v; if(!was){S.a2=0;}}
+    if(n==='hst'){setHeatStep(+v);return;}
+    if(n==='lv'){S.ch.lv=+v; if(S.ch.lv===2) loadTask(S.ch.task);}
+    renderPanel(); renderTools(); req();
+  }));
+  const td=document.getElementById('tblD'); if(td) td.ontoggle=()=>{S.tblOpen=td.open;};
+  panel.querySelectorAll('.winp').forEach(inp=>{const s=S.pts.find(q=>q.i===+inp.dataset.i);
+    inp.oninput=()=>{const v=parseFloat(inp.value);if(!isNaN(v)&&v>=0){s.w=v;req();}};
+    inp.onchange=()=>{renderPanel();renderTools();const again=panel.querySelector(`.winp[data-i="${s.i}"]`);};});
+  const g2=document.getElementById('go2'); if(g2) g2.onclick=()=>{S.done2=false;renderPanel();animate('a2',2600,()=>{S.done2=true;});};
+  const g3=document.getElementById('go3'); if(g3) g3.onclick=()=>{S.done3=false;renderPanel();animate('a3',2200,()=>{S.done3=true;});};
+  const rr=document.getElementById('rr'); if(rr) rr.oninput=()=>{S.ch.r=+rr.value;document.getElementById('rv').textContent=m0(S.ch.r)+' 公尺';req();};
+  const rv=document.getElementById('chReveal'); if(rv) rv.onclick=()=>{S.ch.revealed=true;renderPanel();req();};
+  const ag=document.getElementById('chAgain'); if(ag) ag.onclick=()=>{S.ch.revealed=false;S.ch.guess=null;S.ch.r=1.5;renderPanel();req();};
+  const sw=document.getElementById('chSwitch'); if(sw) sw.onclick=()=>{setVar(S.v==='es'?'hs':'es');S.ch.revealed=false;S.ch.guess=null;S.ch.r=1.5;renderPanel();req();};
+  panel.querySelectorAll('[data-task]').forEach(b=>b.onclick=()=>{loadTask(+b.dataset.task);renderPanel();req();});
+  const tr=document.getElementById('tReset'); if(tr) tr.onclick=()=>{loadTask(S.ch.task);renderPanel();req();};
+}
+function setStep(n){
+  S.step=n; if(n===2){S.done2=false;S.a2=0;} if(n===3){S.done3=false;S.a3=0;}
+  if(n===4){S.cmp[S.v]=S.pts;S.sel=null;} // 比較時用目前的資料
+  renderPanel(); renderTools(); req();
+  if(n===4&&edited(S.pts)) toast('比較圖使用你改過的'+NAME[S.v]+'位置');
+}
+
+/* ---------- 挑戰模式 ---------- */
+const TASKS=[
+  {v:'hs',max:2,t:'讓高中比國小還分散',d:'最多搬 2 所高中，讓標準距離超過 2,148 公尺（國小的值）。',ok:(m,sd)=>sd>2.148,prog:(m,sd)=>Math.min(1,(sd-1.683)/(2.148-1.683)),fmt:(m,sd)=>`目前 ${m0(sd)} 公尺`},
+  {v:'es',max:3,t:'讓國小更集中',d:'最多搬 3 所國小，讓標準距離小於 1,800 公尺。',ok:(m,sd)=>sd<1.8,prog:(m,sd)=>Math.min(1,Math.max(0,(2.148-sd)/(2.148-1.8))),fmt:(m,sd)=>`目前 ${m0(sd)} 公尺`},
+  {v:'hs',max:3,t:'把高中的平均中心拉進西區',d:'最多搬 3 所高中，讓紅方塊（平均中心）跑進西區。',ok:m=>district(m.x,m.y)==='西區',prog:m=>Math.min(1,Math.max(0,(7.56-m.x)/(7.56-5.95))),fmt:m=>`平均中心目前在${district(m.x,m.y)||'兩區交界'}`}
+];
+const doneT=new Set();
+function loadTask(i){S.ch.task=i;S.ch.tp=mk(TASKS[i].v);setVar(TASKS[i].v,true);}
+function movedCount(p){return p.filter(s=>Math.hypot(s.x-s.ox,s.y-s.oy)>0.05).length;}
+function checkTask(){const T=TASKS[S.ch.task],p=S.ch.tp,m=mean(p),sd=sdist(p,m);
+  if(movedCount(p)<=T.max&&T.ok(m,sd)&&!doneT.has(S.ch.task)){doneT.add(S.ch.task);toast('任務完成！');}}
+function renderChallenge(){
+  const ch=S.ch; let h=`<div class="ctl" style="margin-top:0">${segHTML('lv',[[1,'第 1 關　猜中心'],[2,'第 2 關　搬學校']],ch.lv)}</div><div class="body">`;
+  if(ch.lv===1){
+    const p=S.pts, m=mean(p), sd=sdist(p,m), N=NAME[S.v];
+    if(!ch.revealed){
+      h+=`<h2>用眼睛估：${N}的中心在哪？</h2><p class="lead">先不計算，憑地圖判斷${N}的平均中心和標準距離。</p>
+      <div class="hint">① 在地圖上點一下，放下你猜的中心（可拖曳）。<br>② 拖曳圓邊上的白色把手，或用下方滑桿調整半徑。</div>
+      <div class="ctl"><div class="lab">我猜的標準距離<strong id="rv">${m0(ch.r)} 公尺</strong></div><input type="range" id="rr" min="0.3" max="4" step="0.01" value="${ch.r}" ${ch.guess?'':'disabled'} aria-label="我猜的標準距離"></div>
+      <div class="btnrow"><button class="btn" id="chReveal" ${ch.guess?'':'disabled'}>揭曉答案</button></div>`;
+    } else {
+      const ce=Math.hypot(ch.guess.x-m.x,ch.guess.y-m.y), re=ch.r-sd;
+      const s1=Math.round(60*Math.max(0,1-ce/1.5)), s2=Math.round(40*Math.max(0,1-Math.abs(re)/1.0)), sc2=s1+s2;
+      const cls=sc2>=80?'good':sc2>=50?'':'bad';
+      h+=`<h2>揭曉答案</h2><div class="score">得分 <strong class="${cls}">${sc2}</strong> / 100</div>
+      <table class="cmp"><thead><tr><th></th><th>你猜的</th><th>答案</th><th>差距</th></tr></thead><tbody>
+      <tr><th>中心</th><td>(${f2(ch.guess.x)}, ${f2(ch.guess.y)})</td><td>(${f2(m.x)}, ${f2(m.y)})</td><td>${m0(ce)} m</td></tr>
+      <tr><th>半徑</th><td>${m0(ch.r)} m</td><td>${m0(sd)} m</td><td>${re>0?'多':'少'} ${m0(Math.abs(re))} m</td></tr></tbody></table>
+      <p style="font-size:14px">中心 ${s1}/60 分：差 1,500 公尺以上得 0 分。半徑 ${s2}/40 分：差 1,000 公尺以上得 0 分。</p>
+      <p>${ce<0.4?'中心抓得很準！':'中心偏了。眼睛常被「一群點」吸引，卻忽略了邊緣零星的學校。'}${Math.abs(re)<0.3?'半徑也很接近。':re>0?'圓畫太大了。':'圓畫太小了。'}</p>
+      <div class="btnrow"><button class="btn" id="chAgain">再猜一次</button><button class="btn ghost" id="chSwitch">換${S.v==='es'?'高中':'國小'}挑戰</button></div>`;
+    }
+  } else {
+    const T=TASKS[ch.task], p=ch.tp, m=mean(p), sd=sdist(p,m), mv=movedCount(p), ok=mv<=T.max&&T.ok(m,sd);
+    h+=`<h2>搬學校任務</h2><p class="lead">拖曳學校改變分布，達成任務條件。虛線是課本原本的圓。</p><div class="tasks">`;
+    TASKS.forEach((t,i)=>{h+=`<button class="task ${doneT.has(i)?'done':''}" data-task="${i}" aria-pressed="${i===ch.task}"><span class="ck">${doneT.has(i)?'✓':''}</span><span><b>任務 ${i+1}｜${t.t}</b><small>${t.d}</small></span></button>`;});
+    h+=`</div><div class="stat"><div><span>已搬動</span><strong class="${mv>T.max?'bad':''}">${mv} <small>/ 最多 ${T.max} 所</small></strong></div><div><span>狀態</span><strong class="${ok?'good':''}" style="font-size:17px">${ok?'達成 ✓':mv>T.max?'搬太多了':'還沒達成'}</strong></div></div>
+    <div style="font-size:14px;color:var(--ink2)">${T.fmt(m,sd)}</div><div class="meter"><i style="width:${Math.round(T.prog(m,sd)*100)}%"></i></div>
+    <div class="btnrow"><button class="btn ghost" id="tReset">重來這一題</button></div>
+    <div class="hint">想一想：搬「離中心最遠」的學校，和搬「靠近中心」的學校，哪一種對平均中心和標準距離的影響比較大？</div>`;
+  }
+  h+=`</div>`+legendHTML();
+  panel.innerHTML=h; bindPanel();
+}
+
+/* ---------- 熱區地圖（課本圖 2-34） ---------- */
+const HG=0.05, HX0=-0.2, HY0=-0.2, HNX=Math.ceil(12.6/HG), HNY=Math.ceil(9.1/HG);
+let HC=null;
+function kde(pts,r,n){ // 密度計算：每家補習班在計算範圍內的影響（越近越大）
+  const g=new Float32Array(HNX*HNY), R=Math.ceil(r/HG);
+  for(let k=0;k<n;k++){const s=pts[k], ci=Math.floor((s.x-HX0)/HG), cj=Math.floor((s.y-HY0)/HG);
+    for(let j=Math.max(0,cj-R);j<=Math.min(HNY-1,cj+R);j++)for(let i=Math.max(0,ci-R);i<=Math.min(HNX-1,ci+R);i++){
+      const dx=HX0+(i+.5)*HG-s.x, dy=HY0+(j+.5)*HG-s.y, q=(dx*dx+dy*dy)/(r*r); if(q<1) g[j*HNX+i]+=(1-q)*(1-q);}}
+  return g;
+}
+const HSTOP=[[0,[255,255,255,0]],[.06,[252,236,228,.6]],[.3,[244,180,152,.85]],[.6,[227,100,82,.92]],[1,[132,36,58,.96]]];
+function heatCol(t){t=Math.max(0,Math.min(1,t));for(let i=1;i<HSTOP.length;i++)if(t<=HSTOP[i][0]){const a=HSTOP[i-1],b=HSTOP[i],f=(t-a[0])/(b[0]-a[0]);return a[1].map((v,k)=>v+(b[1][k]-v)*f);}return HSTOP[HSTOP.length-1][1];}
+function heatCanvas(){
+  const H=S.hm, n=Math.round(H.k*H.pts.length), key=H.r+'|'+H.ver+'|'+n;
+  if(HC&&HC.key===key)return HC;
+  const full=(HC&&HC.fkey===H.r+'|'+H.ver)?HC.max:null;
+  let mx=full; if(mx==null){const gf=kde(H.pts,H.r,H.pts.length);mx=0;for(const v of gf)if(v>mx)mx=v;}
+  const g=n===H.pts.length?null:kde(H.pts,H.r,n), gg=g||kde(H.pts,H.r,H.pts.length);
+  const c=document.createElement('canvas');c.width=HNX;c.height=HNY;const x=c.getContext('2d'),im=x.createImageData(HNX,HNY);
+  for(let j=0;j<HNY;j++)for(let i=0;i<HNX;i++){const col=heatCol(gg[j*HNX+i]/(mx||1)),o=((HNY-1-j)*HNX+i)*4;
+    im.data[o]=col[0];im.data[o+1]=col[1];im.data[o+2]=col[2];im.data[o+3]=col[3]*255;}
+  x.putImageData(im,0,0); HC={key,fkey:H.r+'|'+H.ver,max:mx,c}; return HC;
+}
+function countWithin(p,r){return S.hm.pts.filter(s=>Math.hypot(s.x-p.x,s.y-p.y)<=r).length;}
+function drawHeat(){
+  const H=S.hm, st=H.st;
+  if(st>=2&&H.k>0){const hc=heatCanvas();ctx.save();ctx.clip(S._city[0]);ctx.restore();
+    ctx.save();const clip=new Path2D();clip.addPath(S._city[0]);clip.addPath(S._city[1]);ctx.clip(clip);
+    ctx.imageSmoothingEnabled=true;ctx.drawImage(hc.c,X(HX0),Y(HY0+HNY*HG),HNX*HG*sc,HNY*HG*sc);ctx.restore();
+    ctx.lineJoin='round';ctx.strokeStyle=COL.line;ctx.lineWidth=1.4;ctx.stroke(S._city[0]);ctx.stroke(S._city[1]);
+    text('西區',X(2.3),Y(5.2),{s:18,w:500,c:'#3a3a3a'}); text('東區',X(10.3),Y(3.4),{s:18,w:500,c:'#3a3a3a'});}
+  if(st===2&&H.showR){ctx.save();ctx.strokeStyle='rgba(74,118,189,.35)';ctx.lineWidth=1;H.pts.forEach(s=>{ctx.beginPath();ctx.arc(X(s.x),Y(s.y),H.r*sc,0,Math.PI*2);ctx.stroke();});ctx.restore();}
+  const showP=st===1||H.showPts;
+  if(showP){const n=st===1?H.pts.length:Math.round(H.k*H.pts.length);
+    H.pts.forEach((s,k)=>{const on=k<n; dot(s,on?'#4a76bd':'rgba(74,118,189,.35)',st===1?5:3.6,{ring:st===1?'#fff':null,rw:1});});}
+  if(st===3){const es=mk('es');es.forEach(s=>dot(s,COL.es,6.5,{ring:'#fff',rw:1.6}));
+    es.filter(s=>s.nm).forEach(s=>text(s.nm,X(s.x)+(s.nm==='興嘉'?-12:12),Y(s.y)+(s.nm==='崇文'?18:-14),{s:15,w:700,a:s.nm==='興嘉'?'right':'left',c:'#1d1d1d'}));}
+  if(H.probe&&st>=2){const pr=H.probe,n=countWithin(pr,H.r);circle(pr,H.r,{fill:'rgba(20,30,50,.06)',stroke:'#1f2a36',dash:[5,4],lw:1.8});
+    ctx.beginPath();ctx.arc(X(pr.x),Y(pr.y),3.5,0,Math.PI*2);ctx.fillStyle='#1f2a36';ctx.fill();
+    text(`半徑 ${m0(H.r)} m 內：${n} 家`,X(pr.x),Y(pr.y)-H.r*sc-10,{s:12.5,w:700,c:'#1f2a36'});}
+}
+const HSTEPS=['離散型點資料','連續型面資料','熱區地圖的應用'];
+function setHeatStep(n){const H=S.hm;H.st=n;H.probe=null;if(n===2&&H.k>=1&&!H.done)H.k=0;if(n===3){H.k=1;H.done=true;H.showPts=false;}if(n===2)H.showPts=true;renderPanel();renderTools();req();}
+function densAt(p,r){let v=0;S.hm.pts.forEach(s=>{const q=((s.x-p.x)**2+(s.y-p.y)**2)/(r*r);if(q<1)v+=(1-q)*(1-q);});return v;}
+function heatDensestSchools(){const r=S.hm.r, es=mk('es'), mx=heatCanvas().max||1;return es.map(s=>({s,d:densAt(s,r)/mx*100,n:countWithin(s,r)})).sort((a,b)=>b.d-a.d);}
+function renderHeat(){
+  const H=S.hm, N=H.pts.length, west=H.pts.filter(s=>district(s.x,s.y)==='西區').length;
+  let h=`<ol class="steps" style="grid-template-columns:repeat(3,1fr)">`+HSTEPS.map((t,i)=>`<li><button data-hst="${i+1}" ${H.st===i+1?'aria-current="step"':''}><b>${i+1}</b>${t}</button></li>`).join('')+`</ol><div class="body">`;
+  if(H.st===1){
+    h+=`<h2>離散型點資料</h2><p class="lead">嘉義市國小文理／英文補習班分布情況：相較於各級學校，補習班數量較多且分布密集。</p>
+    <p>每一家補習班都是地圖上的一個點。點很多又互相重疊時，很難一眼看出主要的空間群聚處在哪裡。</p>
+    <div class="stat"><div><span>補習班</span><strong>${N} <small>家</small></strong></div><div><span>西區／東區</span><strong>${west} <small>/ ${N-west}</small></strong></div></div>
+    <div class="hint">下一步：用熱區地圖把離散型點資料轉換成連續型面資料。</div>`;
+  }
+  if(H.st===2){
+    h+=`<h2>連續型面資料：補習班分布熱區</h2><p class="lead">熱區地圖是一種用來表示資料數值強度與位置的密度地圖，可將離散型的點資料轉換成連續型面資料，以表示地理現象的群聚趨勢。</p>
+    <p>密度愈高，代表該處補習班群聚趨勢愈明顯。</p>
+    <div class="ctl"><div class="lab">計算範圍（半徑）<strong id="hrv">${m0(H.r)} 公尺</strong></div><input type="range" id="hr" min="0.2" max="1.5" step="0.05" value="${H.r}" aria-label="計算範圍（半徑）"><div style="font-size:13px;color:var(--ink2);margin-top:2px">計算每個位置周圍多大範圍內的補習班</div></div>
+    <div class="btnrow"><button class="btn" id="goH">${H.k>=1?'重新產生熱區':'產生熱區'}</button></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:15px;margin:6px 0"><input type="checkbox" id="hR" ${H.showR?'checked':''}> 顯示每家的計算範圍</label>
+    <label style="display:flex;gap:8px;align-items:center;font-size:15px;margin:6px 0"><input type="checkbox" id="hP" ${H.showPts?'checked':''}> 顯示補習班點</label>
+    <div class="hint">點一下地圖任一處，看那裡計算範圍內有幾家補習班。範圍調小，熱區變得零碎；調大，熱區連成一大片。</div>`;
+    if(H.probe){const n=countWithin(H.probe,H.r);h+=`<div class="sel"><h3>這一點（${where(H.probe)}）</h3><div>半徑 ${m0(H.r)} 公尺內有 <b>${n}</b> 家補習班</div></div>`;}
+  }
+  if(H.st===3){
+    const top=heatDensestSchools().slice(0,5);
+    h+=`<h2>熱區地圖的應用</h2><p class="lead">將國小分布與補習班熱區套疊，看看補習班群聚在哪些國小附近。</p>
+    <p style="font-size:14px;margin-bottom:0">學校所在位置的補習班密度（全市最高＝100），前 5 名：</p><table class="cmp"><thead><tr><th>國小</th><th>位在</th><th>密度</th><th>${m0(H.r)} m 內</th></tr></thead><tbody>`+
+    top.map(o=>`<tr><td>${o.s.nm?'<b>'+o.s.nm+'國小</b>':'國小 '+o.s.i}</td><td>${district(o.s.x,o.s.y)}</td><td><b>${Math.round(o.d)}</b></td><td>${o.n} 家</td></tr>`).join('')+`</tbody></table>
+    <p style="font-size:13.5px;margin-bottom:4px">課本的結論：</p><p>將國小分布與補習班熱區套疊，可看出國小附近多有補習班分布，其中又以<b style="color:var(--ink)">西區興嘉國小</b>和<b style="color:var(--ink)">東區嘉北國小、崇文國小</b>附近的補習班密度最高。</p>
+    <label style="display:flex;gap:8px;align-items:center;font-size:15px;margin:6px 0"><input type="checkbox" id="hP" ${H.showPts?'checked':''}> 顯示補習班點</label>
+    <div class="hint">想一想：補習班為什麼會聚在這幾所國小附近？（提示：學生人數、上下學動線、商業區）</div>`;
+  }
+  if(H.ver>0) h=h.replace('<div class="body">','<div class="body"><div class="hint" style="margin-top:0;background:var(--red-soft)">你新增或刪除過補習班，數值已和課本不同。</div>');
+  h+=`<p style="font-size:13px;color:var(--ink2);margin-top:10px">補習班位置依課本圖 2-34 判讀，約 ${D.cram.length} 家（重疊的點依大小推估）。</p></div>`+heatLegend();
+  panel.innerHTML=h;
+  panel.querySelectorAll('[data-hst]').forEach(b=>b.onclick=()=>setHeatStep(+b.dataset.hst));
+  const hr=document.getElementById('hr'); if(hr) hr.oninput=()=>{H.r=+hr.value;H.k=1;document.getElementById('hrv').textContent=m0(H.r)+' 公尺';req();};
+  if(hr) hr.onchange=()=>renderPanel();
+  const go=document.getElementById('goH'); if(go) go.onclick=()=>{H.done=true;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;if(reduce){H.k=1;renderPanel();req();return;}
+    const t0=performance.now(),dur=2600;const tick=now=>{H.k=Math.min(1,(now-t0)/dur);draw();if(H.k<1)requestAnimationFrame(tick);else renderPanel();};requestAnimationFrame(tick);};
+  const r1=document.getElementById('hR'); if(r1) r1.onchange=()=>{H.showR=r1.checked;req();};
+  const r2=document.getElementById('hP'); if(r2) r2.onchange=()=>{H.showPts=r2.checked;req();};
+}
+function heatLegend(){
+  const H=S.hm, it=[];
+  it.push(`<div><span class="lg"><i style="width:10px;height:10px;border-radius:50%;background:#4a76bd"></i></span>文理／英文補習班位置</div>`);
+  if(H.st>=2) it.push(`<div style="gap:6px"><span style="width:24px;flex:none">低</span><span class="grad"></span><span>高</span></div><div style="padding-left:32px;margin-top:-4px">補習班密度</div>`);
+  if(H.st===3) it.push(`<div><span class="lg"><i style="width:12px;height:12px;border-radius:50%;background:${COL.es}"></i></span>國小位置</div>`);
+  return `<div class="legend"><div class="t">圖例</div>${it.join('')}</div>`;
+}
+function heatTools(){
+  const H=S.hm;
+  tools.innerHTML=`<div class="seg" id="hTool"><button data-t="view" aria-pressed="${H.tool==='view'}">${H.st>=2?'查詢密度':'檢視'}</button><button data-t="add" aria-pressed="${H.tool==='add'}">新增補習班</button><button data-t="del" aria-pressed="${H.tool==='del'}">刪除補習班</button></div>${H.ver>0?'<button class="chip" id="hReset">還原課本資料</button>':''}`;
+  tools.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{H.tool=b.dataset.t;heatTools();});
+  const r=document.getElementById('hReset'); if(r) r.onclick=()=>{H.pts=mkCram();H.ver=0;H.probe=null;HC=null;renderPanel();heatTools();req();};
+}
+function heatClick(p){
+  const H=S.hm;
+  if(H.tool==='add'){ if(!inCity(p.x,p.y)){toast('補習班要放在嘉義市範圍內');return;} H.pts.push({x:p.x,y:p.y});H.ver++;H.k=1;renderPanel();heatTools();req();return; }
+  if(H.tool==='del'){ let b=-1,bd=1e9;H.pts.forEach((s,i)=>{const d=Math.hypot(s.x-p.x,s.y-p.y)*sc;if(d<bd){bd=d;b=i;}}); if(bd<=10){H.pts.splice(b,1);H.ver++;H.k=1;renderPanel();heatTools();req();} else toast('點在補習班上才能刪除'); return; }
+  if(H.st>=2){H.probe=inCity(p.x,p.y)?p:null;renderPanel();req();}
+}
+
+/* ---------- 工具列、切換 ---------- */
+const tools=document.getElementById('maptools');
+function renderTools(){
+  if(S.mode==='heat'){heatTools();return;}
+  if(S.mode==='explain'&&S.step<4&&edited(S.pts)){
+    tools.innerHTML=`<button class="chip" id="resetPts">還原課本資料</button>`;
+    document.getElementById('resetPts').onclick=()=>{S.pts=mk(S.v);S.cmp[S.v]=mk(S.v);S.sel=null;renderPanel();renderTools();req();};
+  } else tools.innerHTML='';
+}
+function setVar(v,silent){
+  S.v=v; S.pts=mk(v); S.sel=null; S.done2=false; S.done3=false; S.a2=0; S.a3=0;
+  document.querySelectorAll('#varSeg button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===v));
+  if(!silent){renderPanel();renderTools();req();}
+}
+document.querySelectorAll('#varSeg button').forEach(b=>b.onclick=()=>{
+  if(S.mode==='heat'){toast('熱區地圖使用補習班資料');return;}
+  if(S.mode==='challenge'&&S.ch.lv===2){toast('第 2 關由任務決定資料');return;}
+  if(S.mode==='explain'&&S.step===4){toast('第 4 步同時比較國小與高中');return;}
+  setVar(b.dataset.v); if(S.mode==='challenge'){S.ch.guess=null;S.ch.revealed=false;renderPanel();}
+});
+document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{
+  S.mode=b.dataset.m; document.querySelectorAll('#modeSeg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  S.sel=null; if(S.mode==='challenge'){S.ch.guess=null;S.ch.revealed=false; if(S.ch.lv===2)loadTask(S.ch.task); else setVar(S.v,true);}
+  else setVar(S.v,true);
+  document.querySelectorAll('#varSeg button').forEach(x=>x.disabled=S.mode==='heat');
+  document.getElementById('srcNote').textContent=S.mode==='heat'?'補習班位置依課本圖 2-34 判讀':'學校位置依課本圖 2-33 判讀；座標原點設在嘉義市西南角';
+  renderPanel(); renderTools(); req();
+});
+document.getElementById('optGrid').onchange=e=>{S.showGrid=e.target.checked;req();};
+document.getElementById('optNum').onchange=e=>{S.showNum=e.target.checked;req();};
+new ResizeObserver(()=>resize()).observe(box);
+renderPanel(); renderTools(); resize();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>draw());
+</script>
+
+</body>
+</html>
