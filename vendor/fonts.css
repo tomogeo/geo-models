@@ -1,0 +1,4 @@
+/* 網站自帶字型：思源黑體／思源宋體（Noto Sans TC / Noto Serif TC，SIL OFL 1.1 授權，見 fonts/OFL.txt）
+   只保留網站用到的字，由 fonts.py 產生。學生開網頁時不會連到 Google 等外部網站。 */
+@font-face{font-family:"Noto Sans TC";src:url("fonts/NotoSansTC.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:"Noto Serif TC";src:url("fonts/NotoSerifTC.woff2") format("woff2");font-weight:200 900;font-style:normal;font-display:swap}

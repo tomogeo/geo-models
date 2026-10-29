@@ -7,3 +7,5 @@
 - index.html：線上版首頁（GitHub Pages）。
 - geo-models.html：離線單檔版，雙擊就能用瀏覽器打開，教室沒網路也能用。
 - 改完模型後執行 `python3 build.py` 重新產生上面兩個檔。
+- 字型：vendor/fonts/ 是網站自帶的思源黑體／宋體（只含用到的字）。新模型出現新字時，build.py 會提醒執行 `python3 fonts.py` 更新。
+- 資安：每頁都有「不讓搜尋引擎收錄」與「只准載入網站自己的程式」標記；build.py 會檢查，缺了會停下來提醒。
