@@ -1574,7 +1574,17 @@ async function exportPNGNow(){
     },'image/png');
   }catch(_){toast('圖片產生失敗，請改用「列印／PDF」');}
 }
-function saveBlob(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
+/* 下載：在 claude.ai 預覽裡改用平台的下載功能；一般網站用瀏覽器下載 */
+const dlP=(window.claude&&typeof window.claude.use==='function')?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);
+async function saveBlob(b,name){
+  const dl=await dlP;
+  if(dl){
+    try{await dl.save({filename:name,data:b});}
+    catch(e){const c=e&&e.code;if(c==='declined')toast('已取消下載');else if(c==='rate_limited')toast('下載視窗已經開著，請先完成');else toast('這裡無法下載，請到正式網站下載');}
+    return;
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+}
 /* Excel 範本（.xlsx，不壓縮的 zip） */
 function crc32(buf){let crc=0xFFFFFFFF;for(let n=0;n<buf.length;n++){let c=(crc^buf[n])&0xFF;for(let k=0;k<8;k++)c=c&1?(c>>>1)^0xEDB88320:c>>>1;crc=(crc>>>8)^c;}return (crc^0xFFFFFFFF)>>>0;}
 function zipStore(files){
