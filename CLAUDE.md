@@ -19,6 +19,7 @@
   - geo-models.html：離線單檔版，所有模型與 three.js 內嵌，隨身碟／沒網路的教室用
 - vendor/three.r128.min.js：3D 元件（three.js r128，MIT 授權見 three.LICENSE）；模型以 ../vendor/three.r128.min.js 引用
 - .nojekyll：讓 GitHub Pages 原樣發布檔案
+- SECURITY.md：對外的資安通報方式（規格三）
 - Claude 上的舊版網址（需登入）：https://claude.ai/artifact/5MoM7QfdsYexHY2Ynz2WKH
   過渡期與 GitHub 版同步更新（內容用 geo-models.html），等老師確認 GitHub 版沒問題再決定是否停用。
 - 課本圖照原樣放在公開網站，是老師的決定。
@@ -68,6 +69,15 @@
 
 現有模型的說明卡是 Claude 依模型內容寫的草稿，unit 目前都是「待填」。
 第一次設定完成後，請把說明卡給老師確認，並請他補上 unit。
+
+## 規格三：資安（網站是公開的，所有檔案任何人都看得到）
+- 不放任何金鑰、密碼、權杖、私人連結（含通知用的 webhook）；需要的話放在 repo 以外的地方。
+- 不放學生個資（姓名、照片、成績）；老師的真實 email 不出現在檔案與提交紀錄（用 GitHub 的 noreply 信箱）。
+- 每頁都要有 robots noindex、Content-Security-Policy、no-referrer 標記；不得從外部網站載入程式或字型。
+- build.py 會自動檢查以上幾點，檢查不過就不組裝；不要為了通過而關掉檢查，先找出原因。
+- 發現疑似外洩：先告訴老師，不要自己改歷史紀錄；金鑰一律先到發行網站「作廢重發」，再清理檔案。
+- 每月有一次自動資安健檢（雲端排程「每月資安健檢」），有問題才通知老師。
+- 對外的資安通報方式寫在 SECURITY.md。
 
 ## 新增模型的標準流程
 1. 老師把新模型 HTML 放進 models/（或提供 claude.ai 連結，請他下載後放入）。

@@ -20,6 +20,17 @@ def safe(o):
     return json.dumps(o, ensure_ascii=False).replace('</', '<\\/')
 
 
+EXTERNAL_SCRIPT = re.compile(r'<script[^>]+src=["\']?(https?:)?//', re.I)
+SECRET = re.compile(
+    r'sk-(ant-|proj-)?[A-Za-z0-9_-]{20,}'          # Claude／OpenAI 金鑰
+    r'|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_\w{30,}'  # GitHub 權杖
+    r'|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}'     # AWS／Google 金鑰
+    r'|xox[abprs]-[A-Za-z0-9-]{10,}|hooks\.slack\.com/services/\S+'
+    r'|discord(app)?\.com/api/webhooks/\S+'
+    r'|-----BEGIN [A-Z ]*PRIVATE KEY'
+    r'|(api[_-]?key|secret|password|passwd|token)["\']?\s*[:=]\s*["\'][^"\'\s]{12,}["\']',
+    re.I)
+
 FONT_LINK = re.compile(r'<link rel="stylesheet" href="(\.\./)?vendor/fonts\.css">\n?')
 
 
@@ -36,6 +47,14 @@ for f in glob.glob('models/*.html') + ['template.html']:
         raise SystemExit(f'⚠ {f} 還在用 Google 字型，請改成 <link rel="stylesheet" href="../vendor/fonts.css">')
     if 'Content-Security-Policy' not in src or 'noindex' not in src:
         raise SystemExit(f'⚠ {f} 缺少資安標記（robots noindex 與 Content-Security-Policy），請照其他模型補上')
+    if EXTERNAL_SCRIPT.search(src):
+        raise SystemExit(f'⚠ {f} 從外部網站載入程式，請改用 vendor/ 裡的檔案')
+
+# 資安檢查：網站是公開的，任何像金鑰、密碼、私鑰的字串都不能放進來
+for f in glob.glob('models/*.html') + glob.glob('*.py') + glob.glob('*.md') + ['template.html', 'registry.json']:
+    hit = SECRET.search(open(f, encoding='utf-8').read())
+    if hit:
+        raise SystemExit(f'⚠ {f} 裡有像金鑰或密碼的字串（{hit.group(0)[:8]}…），網站是公開的，請先拿掉再組裝')
 
 # 字型檢查：有新字不在自帶字型裡就提醒
 have = set(open('vendor/fonts/chars.txt', encoding='utf-8').read())
