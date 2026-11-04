@@ -32,16 +32,28 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;font-size:15px;line-height:1.6}
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;font-size:16px;line-height:1.55}
 button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--wind);outline-offset:2px}
 
-.top{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding:16px 22px 6px}
+.top{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding:12px 22px 4px}
 .top h1{margin:0;font-size:28px;font-weight:900;letter-spacing:.02em;line-height:1.2}
 .top p{margin:0;color:var(--ink2);max-width:46em}
+.keyhelp p{margin:0;color:var(--ink2);font-size:15px;line-height:1.9}
+.keyhelp kbd{font:inherit;font-weight:700;border:1.5px solid var(--line);border-bottom-width:3px;border-radius:5px;padding:0 6px;background:var(--panel);color:var(--ink)}
 
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;padding:10px 22px 16px;align-items:start}
-@media (max-width:980px){.layout{grid-template-columns:1fr}}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;padding:8px 22px 16px;align-items:start}
+.panels{display:contents}
+/* 寬螢幕（投影）：地圖＋兩欄說明並排，整頁不用捲動 */
+@media (min-width:1100px){
+  .layout{grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);padding-bottom:10px}
+  .panel{max-height:calc(100vh - 78px);overflow:auto}
+  .stagewrap{width:max(380px, calc((100vh - 166px) * 0.845))}
+  .stage{width:100%}
+  footer{display:none}
+  .panel .srcsec{display:block}
+}
+@media (max-width:1099px){.layout{grid-template-columns:1fr}}
 
 .stagewrap{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
 .stagebar{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -49,9 +61,9 @@ button,select,input{font:inherit;color:inherit}
 .seg button{border:0;background:transparent;padding:5px 16px;cursor:pointer;font-weight:700}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .nowname{font-weight:700;font-size:17px}
-.stagetag{font-weight:700;font-size:14px;padding:3px 12px;border-radius:999px;background:var(--ink);color:var(--paper);min-height:1em}
+.stagetag{font-weight:700;font-size:15px;padding:3px 12px;border-radius:999px;background:var(--ink);color:var(--paper);min-height:1em}
 .stagetag:empty{visibility:hidden}
-.nowname small{font-weight:400;color:var(--ink2);margin-left:6px;font-size:14px}
+.nowname small{font-weight:400;color:var(--ink2);margin-left:6px;font-size:15px}
 
 .stage{position:relative;width:min(100%, calc((100vh - 170px) * 0.845));min-width:280px;aspect-ratio:0.845/1;
   border:1.5px solid var(--ink);background:var(--sea);overflow:hidden;touch-action:none}
@@ -59,7 +71,7 @@ button,select,input{font:inherit;color:inherit}
 #c3d{position:absolute;inset:0}
 #c3d canvas{cursor:grab}
 .hint{position:absolute;left:10px;right:10px;bottom:10px;background:var(--panel);border:1.5px solid var(--ink);
-  padding:7px 12px;font-size:14px;pointer-events:none}
+  padding:7px 12px;font-size:16px;pointer-events:none}
 .hint[hidden]{display:none}
 .stage.drawing canvas{cursor:crosshair}
 
@@ -79,18 +91,17 @@ button,select,input{font:inherit;color:inherit}
 .paths{display:flex;flex-direction:column;gap:6px}
 .paths button{text-align:left;border:1.5px solid var(--line);background:transparent;border-radius:8px;padding:7px 10px;cursor:pointer;display:flex;gap:10px;align-items:baseline}
 .paths button b{min-width:4.2em}
-.paths button span{color:var(--ink2);font-size:14px}
-.paths button[aria-pressed="true"]{border-color:var(--ty);background:color-mix(in srgb,var(--ty) 9%,transparent)}
-.note{margin:10px 0 0;font-size:14px;color:var(--ink2)}
+.paths button span{color:var(--ink2);font-size:15px}.paths button[aria-pressed="true"]{border-color:var(--ty);background:color-mix(in srgb,var(--ty) 9%,transparent)}
+.note{margin:10px 0 0;font-size:15px;color:var(--ink2)}
 .drawbtns{display:flex;gap:8px;margin-top:10px}
 .btn{border:1.5px solid var(--ink);background:transparent;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700}
 .btn.primary{background:var(--ink);color:var(--paper)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 
-#explain{margin:0;font-size:15px}
-.cities{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:14px}
+#explain{margin:0;font-size:16px}
+.cities{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;font-size:16px}
 .cities li{display:flex;align-items:center;gap:7px}
-.cities em{font-style:normal;color:var(--ink2);margin-left:auto;font-size:13px}
+.cities em{font-style:normal;color:var(--ink2);margin-left:auto;font-size:15px}
 .dot{width:11px;height:11px;border-radius:50%;flex:none;border:1.5px solid var(--ink2);background:transparent}
 .lv2 .dot{background:var(--wind);border-color:var(--wind)}
 .lv1 .dot{background:color-mix(in srgb,var(--wind) 45%,transparent);border-color:var(--wind)}
@@ -101,18 +112,21 @@ button,select,input{font:inherit;color:inherit}
 
 .toggles label{display:flex;gap:10px;align-items:flex-start;padding:4px 0;cursor:pointer}
 .toggles input{width:18px;height:18px;margin-top:3px;accent-color:var(--ink)}
-.toggles small{display:block;color:var(--ink2);font-size:13px;line-height:1.5}
-
-.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:14px}
+.toggles small{display:block;color:var(--ink2);font-size:15px;line-height:1.45}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:15px}
 .legend span{display:flex;align-items:center;gap:8px}
 .sw{width:22px;height:14px;border-radius:3px;flex:none}
 .arrowkey svg{width:22px;height:14px;flex:none}
 
 details{margin-top:4px}
 details summary{cursor:pointer;font-weight:700;padding:4px 0}
-details p{margin:4px 0 8px;font-size:14px;color:var(--ink2)}
+details p{margin:4px 0 8px;font-size:15px;color:var(--ink2)}
 
-footer{padding:0 22px 20px;color:var(--ink2);font-size:13px}
+footer{padding:0 22px 20px;color:var(--ink2);font-size:14px}
+.srcsec{display:none}
+.srcsec p{margin:0;font-size:14px;color:var(--ink2)}
+@media (max-width:760px){.keyhelp{display:none}}
+.tabs button kbd{font:inherit;font-size:13px;color:var(--ink2);margin-right:4px}
 @media (max-width:600px){.top h1{font-size:23px}.layout,.top,footer{padding-left:12px;padding-right:12px}}
 </style>
 </head>
@@ -141,9 +155,9 @@ footer{padding:0 22px 20px;color:var(--ink2);font-size:13px}
 
   <aside class="panel">
     <div class="tabs" role="tablist">
-      <button role="tab" id="t-preset" aria-selected="true">代表路徑</button>
-      <button role="tab" id="t-case" aria-selected="false">歷史颱風</button>
-      <button role="tab" id="t-draw" aria-selected="false">自己畫路徑</button>
+      <button role="tab" id="t-preset" aria-selected="true"><kbd>1</kbd>代表路徑</button>
+      <button role="tab" id="t-case" aria-selected="false"><kbd>2</kbd>歷史颱風</button>
+      <button role="tab" id="t-draw" aria-selected="false"><kbd>3</kbd>自己畫路徑</button>
     </div>
     <div class="sec" id="pathSec">
       <div class="paths" id="pathList"></div>
@@ -157,16 +171,19 @@ footer{padding:0 22px 20px;color:var(--ink2);font-size:13px}
       </div>
       <p class="note" id="pathNote"></p>
     </div>
-    <div class="sec">
-      <h2>現在的情況</h2>
-      <p id="explain"></p>
-      <ul class="cities" id="cities"></ul>
-    </div>
     <div class="sec toggles">
       <h2>加入其他因素</h2>
       <label><input type="checkbox" id="o-sw"><span>西南氣流<small>颱風把南海的西南季風水氣拉向臺灣</small></span></label>
       <label><input type="checkbox" id="o-ne"><span>東北季風（共伴效應）<small>秋颱的外圍環流與東北季風疊加</small></span></label>
       <label><input type="checkbox" id="o-foehn" checked><span>標示可能出現焚風的地方<small>氣流翻過高山後，在背風側下沉增溫</small></span></label>
+    </div>
+  </aside>
+
+  <aside class="panel">
+    <div class="sec">
+      <h2>現在的情況</h2>
+      <p id="explain"></p>
+      <ul class="cities" id="cities"></ul>
     </div>
     <div class="sec">
       <h2>圖例</h2>
@@ -189,6 +206,13 @@ footer{padding:0 22px 20px;color:var(--ink2);font-size:13px}
       <details><summary>西南氣流</summary><p>颱風位在臺灣北方、西北方或已進入臺灣海峽時，南側環流會把南海一帶的西南季風水氣往臺灣拉。西南部山區正對西南風，成為迎風面，常出現極端豪雨，例如莫拉克颱風。</p></details>
       <details><summary>共伴效應</summary><p>秋季東北季風南下時，若颱風經過臺灣東方或東南方，颱風外圍的東北風和季風疊加，北部、東北部的迎風坡雨量暴增，例如象神颱風。</p></details>
       <details><summary>焚風</summary><p>氣流在迎風坡上升時降下大量雨水，翻過高山後沿背風坡下沉，空氣被壓縮增溫，變得又乾又熱。颱風在臺灣北方、西北方，或中心已越過中央山脈、東部吹西風時，臺東一帶最常出現；颱風從南部或巴士海峽通過、吹強東風時，焚風則出現在新竹到臺中一帶。</p></details>
+    </div>
+    <div class="sec keyhelp">
+      <h2>快捷鍵</h2>
+      <p><kbd>空白鍵</kbd> 播放／暫停　<kbd>R</kbd> 重播<br><kbd>←</kbd><kbd>→</kbd> 前後移動　<kbd>↑</kbd><kbd>↓</kbd> 換路徑<br><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 切換分頁　<kbd>F</kbd> 全螢幕</p>
+    </div>
+    <div class="sec srcsec">
+      <p>代表路徑為依中央氣象署分類繪製的示意路徑；歷史颱風座標取自 IBTrACS、日本氣象廳、JTWC 與中央氣象署警報。迎風、背風為依研究資料整理的典型情境，個案差異大，僅供教學示意。</p>
     </div>
   </aside>
 </main>
@@ -611,6 +635,28 @@ $('#o-sw').onchange = e => { S.opts.sw = e.target.checked; dirty = true; };
 $('#o-ne').onchange = e => { S.opts.ne = e.target.checked; dirty = true; };
 $('#o-foehn').onchange = e => { S.opts.foehn = e.target.checked; dirty = true; };
 
+// ---- 快捷鍵（Esc 保留給網站回首頁；F 全螢幕由網站處理，單獨開啟時這裡處理）----
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+  const tg = e.target, typing = /^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName) && tg.type !== 'checkbox' && tg.type !== 'range';
+  if (typing) return;
+  const k = e.key;
+  if (tg.type === 'range' && k.startsWith('Arrow')) return; // 拉桿本身已會處理方向鍵
+  if (k === ' ') { e.preventDefault(); if (S.track) setPlaying(!S.playing); }
+  else if (k === 'r' || k === 'R') { if (S.track) { S.t = 0; $('#slider').value = 0; dirty = true; setPlaying(true); } }
+  else if (k === 'ArrowRight' || k === 'ArrowLeft') {
+    if (!S.track) return; e.preventDefault(); setPlaying(false);
+    S.t = Math.min(1, Math.max(0, S.t + (k === 'ArrowRight' ? 0.04 : -0.04))); $('#slider').value = Math.round(S.t * 1000); dirty = true;
+  }
+  else if (k === 'ArrowDown' || k === 'ArrowUp') {
+    const list = S.tab === 'preset' ? PRESETS : S.tab === 'case' ? CASES : null; if (!list) return;
+    e.preventDefault(); const i = list.indexOf(S.path), n = list.length;
+    setPlaying(false); setPath(list[((i < 0 ? 0 : i + (k === 'ArrowDown' ? 1 : -1)) + n) % n]);
+  }
+  else if (k === '1' || k === '2' || k === '3') setTab(['preset', 'case', 'draw'][+k - 1]);
+  else if (k === 'f' || k === 'F') { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch (_) {} }
+});
+
 // ---- 2D ----
 const cv = $('#c2d'), ctx = cv.getContext('2d');
 let W = 0, H = 0, DPR = 1;
@@ -700,7 +746,7 @@ function render2D() {
     drawTyphoonSymbol(x, y, Math.max(0.8, sc * 1.05), T.ty);
   }
   // 城市
-  const fs = Math.max(11, 13 * sc);
+  const fs = Math.max(14, 16 * sc);
   ctx.font = `700 ${fs}px "Noto Sans TC",sans-serif`; ctx.lineJoin = 'round';
   for (const [n, lon, lat] of CITIES) {
     const [x, y] = px(lon, lat), lv = cityLevel(lon, lat);

@@ -205,8 +205,11 @@ $('frame').addEventListener('load',()=>{
   try{
     f.contentWindow.focus();
     f.contentDocument.addEventListener('keydown',e=>{ if(e.key!=='Escape'||f.contentDocument.fullscreenElement||isTyping(e.target))return; setTimeout(()=>{ if(!e.defaultPrevented) goHome(); },0); });
+    /* F 全螢幕：在模型自己的按鍵處理之前接手，所有模型一致把整個播放畫面全螢幕 */
+    f.contentWindow.addEventListener('keydown',e=>{ if(!isFKey(e)||isTyping(e.target))return; e.preventDefault(); e.stopImmediatePropagation(); $('fs').click(); },true);
   }catch(_){}
 });
+function isFKey(e){ return (e.key==='f'||e.key==='F')&&!e.ctrlKey&&!e.metaKey&&!e.altKey; }
 function isTyping(el){ return !!el&&(/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)||el.isContentEditable); }
 function goHome(){
   closeModel();
@@ -227,7 +230,7 @@ function renderCard(m){
 $('info').onclick=()=>{const c=$('card'); c.hidden=!c.hidden; $('info').setAttribute('aria-expanded',String(!c.hidden)); if(c.hidden) try{$('frame').contentWindow.focus();}catch(_){} };
 $('fs').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():$('viewer').requestFullscreen();}catch(_){} setTimeout(()=>{try{$('frame').contentWindow.focus();}catch(_){}},200);};
 document.addEventListener('fullscreenchange',()=>{$('fs').textContent=document.fullscreenElement?'離開全螢幕':'全螢幕';});
-document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!current||document.fullscreenElement)return; if(!$('card').hidden){$('info').click();return;} goHome(); });
+document.addEventListener('keydown',e=>{ if(current&&isFKey(e)&&!isTyping(e.target)){ e.preventDefault(); $('fs').click(); return; } if(e.key!=='Escape'||!current||document.fullscreenElement)return; if(!$('card').hidden){$('info').click();return;} goHome(); });
 function route(){ const id=decodeURIComponent(location.hash.slice(1)); id?openModel(id):closeModel(); }
 window.addEventListener('hashchange',route);
 
