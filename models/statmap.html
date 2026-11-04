@@ -78,6 +78,10 @@ kbd{font-family:inherit;font-size:.85em;border:1px solid var(--line);border-bott
 .zoomgrp .zb{font-size:20px;font-weight:700;padding:2px 8px}
 .zr{writing-mode:vertical-lr;direction:rtl;inline-size:74px;block-size:22px;width:22px;height:74px;margin:0;padding:0}
 .mapbox.zoomed svg{cursor:grab;touch-action:none}
+.layframe{fill:#ffffff;fill-opacity:0.01;stroke:#2f4f8a;stroke-width:1.5;stroke-dasharray:5 4;vector-effect:non-scaling-stroke}
+.mapbox.layedit .lay{cursor:move}
+.mapbox.layedit svg{touch-action:none}
+.maptools .tb.lay-on{background:#b4412f;border-color:#b4412f;color:#fff}
 .mapbox.zoomed svg:active{cursor:grabbing}
 #map .sym,#map2 .sym{cursor:move}
 @media (max-width:980px){.maptools{width:auto}.zoomgrp{flex-direction:row}.zr{writing-mode:horizontal-tb;direction:ltr;inline-size:90px;width:90px;height:auto}}
@@ -127,6 +131,10 @@ kbd{font-family:inherit;font-size:.85em;border:1px solid var(--line);border-bott
 .steps button[aria-current="step"] .n{background:var(--accent);border-color:var(--accent);color:#fff}
 :root[data-theme="dark"] .steps button[aria-current="step"] .n{color:#10161d}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .steps button[aria-current="step"] .n{color:#10161d}}
+.smrow{display:flex;gap:10px;align-items:flex-start;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer}
+.smrow input{margin-top:5px;width:18px;height:18px}
+.smrow small{display:block;color:var(--ink2);font-size:14px}
+.projrow{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
 .undobar{display:none;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;background:var(--ink);color:var(--paper);font-size:15px}
 .undobar.on{display:flex}
 .undobar .btn{background:var(--paper);color:var(--ink)}
@@ -284,6 +292,15 @@ input.wide{width:100%;padding:4px 8px;border:1px solid var(--line);border-radius
     <div class="row" style="margin-top:12px;justify-content:flex-end" id="msgBtns"></div>
   </div>
 </div>
+<div class="modal" id="sampleModal" role="dialog" aria-modal="true" aria-labelledby="smTitle">
+  <div class="box">
+    <h2 id="smTitle">選擇範例資料</h2>
+    <p class="hint" id="smHint"></p>
+    <div id="smList"></div>
+    <div class="row" style="margin-top:12px;justify-content:flex-end;flex-wrap:wrap" id="smBtns"></div>
+  </div>
+</div>
+<input type="file" id="projIn" accept=".json,application/json" hidden>
 <input type="file" id="fileIn" accept=".csv,.txt,.tsv,.xlsx" hidden>
 <div class="toast" id="toast"></div>
 
@@ -367,7 +384,7 @@ const S={
   data:{tw:{cols:[],title:'',sub:'',src:''},vn34:{cols:[],title:'',sub:'',src:''},vn63:{cols:[],title:'',sub:'',src:''}},
   choro:{col:null,k:5,method:'quantile',custom:null,pal:'seq:YlOrRd'},
   prop:{col:null,rmax:34,color:SINGLE[0],base:null},
-  compare:false,edit:'L',sameClass:true,zoom:{k:1,tx:0,ty:0},exportView:'all',offsets:{},
+  compare:false,edit:'L',sameClass:true,zoom:{k:1,tx:0,ty:0},layout:{},editLayout:false,exportView:'all',offsets:{},
   dot:{col:null,unit:null,unitFor:null,size:2.2,color:SINGLE[2]},
   chart:{cols:[],kind:'pie',sized:false,pal:'Set2'},
   labelMode:{tw:'name',vn34:'name',vn63:'none'},lastLabel:'name',lang:'zh',style:'color',north:'half',
@@ -388,15 +405,15 @@ function samples(mid){
   const R=GEO[mid].regions,out=[];
   const by=f=>Object.fromEntries(R.map(r=>[r.id,f(r)]));
   if(mid==='tw'){
-    out.push(newCol({name:'老年人口比例',unit:'%',kind:'ratio',src:'內政部戶政司，民國113年底（課本圖 2-48）',vals:by(r=>TW_OLD[r.id]??null)}));
-    out.push(newCol({name:'新住民人口比例',unit:'%',kind:'ratio',src:'內政部移民署、戶政司，民國114年5月（課本表 2-4）',vals:by(r=>TW_IMM[r.id]??null)}));
-    out.push(newCol({name:'土地面積',unit:'平方公里',kind:'total',src:'內政部',vals:by(r=>r.area)}));
+    out.push(newCol({name:'老年人口比例',unit:'%',kind:'ratio',desc:'65 歲以上人口占總人口的比例',src:'內政部戶政司，民國113年底（課本圖 2-48）',vals:by(r=>TW_OLD[r.id]??null)}));
+    out.push(newCol({name:'新住民人口比例',unit:'%',kind:'ratio',desc:'新住民人數占戶籍人口的比例',src:'內政部移民署、戶政司，民國114年5月（課本表 2-4）',vals:by(r=>TW_IMM[r.id]??null)}));
+    out.push(newCol({name:'土地面積',unit:'平方公里',kind:'total',desc:'各縣市的土地面積，可用來算密度',src:'內政部',vals:by(r=>r.area)}));
   }else if(mid==='vn34'){
-    out.push(newCol({name:'人口規模',unit:'人',kind:'total',src:VN_SRC,vals:by(r=>r.pop)}));
-    out.push(newCol({name:'土地面積',unit:'平方公里',kind:'total',src:VN_SRC,vals:by(r=>r.area)}));
-    out.push(newCol({name:'人口密度',unit:'人/平方公里',kind:'ratio',src:VN_SRC+'（人口規模 ÷ 面積）',vals:by(r=>Math.round(r.pop/r.area*10)/10)}));
+    out.push(newCol({name:'人口規模',unit:'人',kind:'total',desc:'2025 年合併時公布的人口規模（含換算的暫住人口）',src:VN_SRC,vals:by(r=>r.pop)}));
+    out.push(newCol({name:'土地面積',unit:'平方公里',kind:'total',desc:'合併後各省市的土地面積',src:VN_SRC,vals:by(r=>r.area)}));
+    out.push(newCol({name:'人口密度',unit:'人/平方公里',kind:'ratio',desc:'人口規模 ÷ 面積',src:VN_SRC+'（人口規模 ÷ 面積）',vals:by(r=>Math.round(r.pop/r.area*10)/10)}));
   }else{
-    out.push(newCol({name:'土地面積（約略）',unit:'平方公里',kind:'total',src:'由 Nguyễn Duy Liêm（2025）邊界資料計算，約略值',vals:by(r=>r.area)}));
+    out.push(newCol({name:'土地面積（約略）',unit:'平方公里',kind:'total',desc:'2025 年合併前 63 省的面積（由邊界計算）',src:'由 Nguyễn Duy Liêm（2025）邊界資料計算，約略值',vals:by(r=>r.area)}));
   }
   return out;
 }
@@ -572,7 +589,11 @@ function mapSVG(v,pfx,zOverride,forExport){
   const type=v.type;
   let fillOf=()=>ST.base,legend='',symbols='',dotsLayer='',title='',cA=null,unitLine='';
   const missFill=S.style==='bw'?'#ffffff':'#cfd3d8';
-  const anchor=r=>r.c?T(r.c[0],r.c[1]):null;
+  const LO=(S.layout&&S.layout[v.map])||{},off=k=>LO[k]||[0,0];
+  const insetIdx=r=>v.map==='tw'?(r.id==='連江縣'?0:r.id==='金門縣'?1:-1):-1;
+  const isOff=(i)=>i>=0?off('inset'+i):[0,0];
+  const rc=r=>{const o=isOff(insetIdx(r));return [r.c[0]+o[0],r.c[1]+o[1]];};
+  const anchor=r=>r.c?T(...rc(r)):null;
   if(type==='choro'){
     cA=pickColV(v,'choro');
     if(cA){
@@ -601,28 +622,30 @@ function mapSVG(v,pfx,zOverride,forExport){
   }
   // ── 會跟著放大縮小的圖層：小圖框、海岸線、各區 ──
   const geo=[];
-  g.insets.forEach(b=>{const [x,y,w,h]=b.box;geo.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${ST.sea}" stroke="${ST.frame}" stroke-width="0.9"${NS_}/>`);});
+  g.insets.forEach((b,i)=>{const [x,y,w,h]=b.box,o=off('inset'+i);geo.push(`<g class="lay" data-lay="inset${i}" transform="translate(${o[0]},${o[1]})"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${ST.sea}" stroke="${ST.frame}" stroke-width="0.9"${NS_}/></g>`);});
+  const isleOff=p=>off('inset'+(p[0]==='hs'?0:1));
+  const wrapR=(r,html)=>{const i=insetIdx(r);if(i<0)return html;const o=off('inset'+i);return `<g transform="translate(${o[0]},${o[1]})">${html}</g>`;};
   const coast=[],fills=[];
   for(const r of R){
-    coast.push(`<path d="${r.d}" fill="${ST.coast}" stroke="${ST.coast}" stroke-width="${ST.coastW*2}" stroke-linejoin="round"${NS_}/>`);
-    if(r.isl)for(const p of r.isl)coast.push(`<circle cx="${p[1]}" cy="${p[2]}" r="${(1.9+ST.coastW*0.6)/Z.k}" fill="${ST.coast}"/>`);
+    coast.push(wrapR(r,`<path d="${r.d}" fill="${ST.coast}" stroke="${ST.coast}" stroke-width="${ST.coastW*2}" stroke-linejoin="round"${NS_}/>`));
+    if(r.isl)for(const p of r.isl){const o=isleOff(p);coast.push(`<circle cx="${p[1]+o[0]}" cy="${p[2]+o[1]}" r="${(1.9+ST.coastW*0.6)/Z.k}" fill="${ST.coast}"/>`);}
   }
   geo.push(`<g${ST.shadow?` filter="url(#${pfx}sh)"`:''}>${coast.join('')}</g>`);
   for(const r of R){
     const f=fillOf(r);
-    fills.push(`<path class="rg" data-id="${esc(r.id)}" d="${r.d}" fill="${f}" fill-rule="evenodd" stroke="${ST.inner}" stroke-width="${ST.innerW}" stroke-linejoin="round"${NS_}/>`);
-    if(r.isl)for(const p of r.isl)fills.push(`<circle class="rg" data-id="${esc(r.id)}" cx="${p[1]}" cy="${p[2]}" r="${1.9/Z.k}" fill="${f}"/>`);
+    fills.push(wrapR(r,`<path class="rg" data-id="${esc(r.id)}" d="${r.d}" fill="${f}" fill-rule="evenodd" stroke="${ST.inner}" stroke-width="${ST.innerW}" stroke-linejoin="round"${NS_}/>`));
+    if(r.isl)for(const p of r.isl){const o=isleOff(p);fills.push(`<circle class="rg" data-id="${esc(r.id)}" cx="${p[1]+o[0]}" cy="${p[2]+o[1]}" r="${1.9/Z.k}" fill="${f}"/>`);}
   }
   geo.push(`<g>${fills.join('')}</g>`);
-  if(S.hl&&v===S&&!forExport){const r=R.find(r=>r.id===S.hl);if(r)geo.push(`<path d="${r.d}" fill="none" stroke="#1f2a36" stroke-width="2.4"${NS_} pointer-events="none"/>`);}
+  if(S.hl&&v===S&&!forExport){const r=R.find(r=>r.id===S.hl);if(r)geo.push(wrapR(r,`<path d="${r.d}" fill="none" stroke="#1f2a36" stroke-width="2.4"${NS_} pointer-events="none"/>`));}
   geo.push(dotsLayer);
   parts.push(`<g clip-path="url(#${pfx}fr)"><g transform="translate(${Z.tx.toFixed(2)},${Z.ty.toFixed(2)}) scale(${Z.k})">${geo.join('')}</g>`);
   parts.push(symbols);
   // ── 標籤：依面積分大小、自動避開、放不下就拉線 ──
   const lm=S.labelMode[v.map];
   if(lm!=='none'){
-    parts.push(placeLabels(v,R,cA,type,lm,Z,legend?MAPS[v.map].legend:null));
-    g.insets.forEach(b=>{const [x,y]=T(b.box[0],b.box[1]);b.label.split('|').forEach((ln,i)=>parts.push(txt(x+7,y+17+i*15,ln,{size:12,w:500,fill:ST.sub,halo:ST.sea==='#ffffff'?false:ST.sea,hw:3,ho:1})));});
+    parts.push(placeLabels(v,R,cA,type,lm,Z,legend?[MAPS[v.map].legend[0]+off('legend')[0],MAPS[v.map].legend[1]+off('legend')[1]]:null,rc,off));
+    g.insets.forEach((b,i)=>{const o=off('inset'+i);const [x,y]=T(b.box[0]+o[0],b.box[1]+o[1]);parts.push('<g pointer-events="none">'+b.label.split('|').map((ln,i)=>txt(x+7,y+17+i*15,ln,{size:12,w:500,fill:ST.sub,halo:ST.sea==='#ffffff'?false:ST.sea,hw:3,ho:1})).join('')+'</g>');});
   }
   parts.push(`</g>`);
   parts.push(`<rect x="4" y="4" width="${W-8}" height="${H-8}" fill="none" stroke="${ST.frame}" stroke-width="1.2"/>`);
@@ -631,23 +654,22 @@ function mapSVG(v,pfx,zOverride,forExport){
   const sub=(v===S?(d.sub||'').trim():'')||(unitLine?`單位：${unitLine}`:'');
   const halo=ST.sea==='#ffffff'?false:'#ffffff';
   if(Z.k>1.001)parts.push(`<rect x="5" y="5" width="${W-10}" height="${sub?78:56}" fill="${ST.sea==='#ffffff'?'#ffffff':'#eef4f8'}" fill-opacity="0.88"/>`);
-  parts.push(`<rect x="${M.scale[0]-8}" y="${M.scale[1]-26}" width="150" height="54" rx="6" fill="#ffffff" fill-opacity="${Z.k>1.001?0.88:0}"/>`);
-  parts.push(txt(W/2,44,T0,{size:26,bold:true,anchor:'middle',fill:ST.text,halo,hw:5,ho:0.9,ls:'0.04em'}));
-  if(sub)parts.push(txt(W/2,68,sub,{size:15,w:500,anchor:'middle',fill:ST.sub,halo,hw:4,ho:0.9}));
-  parts.push(legend);
-  parts.push(northArrow(S.north,...M.north,ST));
-  parts.push(scaleBar(g.kmPerPx/Z.k,...M.scale,ST));
+  parts.push(`<rect x="${M.scale[0]-8+off('scale')[0]}" y="${M.scale[1]-26+off('scale')[1]}" width="150" height="54" rx="6" fill="#ffffff" fill-opacity="${Z.k>1.001?0.88:0}"/>`);
+  const lay=(k,html)=>{const o=off(k);return `<g class="lay" data-lay="${k}" transform="translate(${o[0]},${o[1]})">${html}</g>`;};
+  parts.push(lay('title',txt(W/2,44,T0,{size:26,bold:true,anchor:'middle',fill:ST.text,halo,hw:5,ho:0.9,ls:'0.04em'})+(sub?txt(W/2,68,sub,{size:15,w:500,anchor:'middle',fill:ST.sub,halo,hw:4,ho:0.9}):'')));
+  parts.push(lay('legend',legend));
+  parts.push(lay('north',northArrow(S.north,...M.north,ST)));
+  parts.push(lay('scale',scaleBar(g.kmPerPx/Z.k,...M.scale,ST)));
   if(Z.k>1.01)parts.push(txt(W-14,H-13,`放大 ${Math.round(Z.k*100)}%`,{size:11,anchor:'end',fill:ST.sub,halo,hw:3}));
   let src=(d.src||'').trim();
   if(!src){const used=type==='chart'?chartColsV(v):(cA?[cA]:[]);src=[...new Set(used.map(c=>c.src).filter(Boolean))].join('；');}
   const srcLine=`資料來源：${src||'（請在「③ 圖名與下載」填寫）'}`;
-  parts.push(txt(16,H-30,srcLine.length>72?srcLine.slice(0,72)+'…':srcLine,{size:12,w:500,fill:ST.sub,halo,hw:3}));
-  parts.push(txt(16,H-13,`${g.note}；行政界線經簡化，僅供教學示意。`,{size:11,fill:ST.sub,halo,hw:3}));
+  parts.push(lay('source',txt(16,H-30,srcLine.length>72?srcLine.slice(0,72)+'…':srcLine,{size:12,w:500,fill:ST.sub,halo,hw:3})+txt(16,H-13,`${g.note}；行政界線經簡化，僅供教學示意。`,{size:11,fill:ST.sub,halo,hw:3})));
   return {svg:parts.join(''),title:T0,sub,src,W,H};
 }
 
 /* 標籤排列 */
-function placeLabels(v,R,cA,type,lm,Z,legendXY){
+function placeLabels(v,R,cA,type,lm,Z,legendXY,rc,off){
   const g=GEO[v.map],W=g.W,H=g.H;
   const showV=(lm==='value'||lm==='both')&&cA&&type!=='chart';
   const showN=lm==='name'||lm==='both'||type==='chart';
@@ -658,7 +680,7 @@ function placeLabels(v,R,cA,type,lm,Z,legendXY){
   const zk=Math.min(1.6,1+(Z.k-1)*0.25);
   const boxes=[[0,0,W,78]];
   if(legendXY)boxes.push([legendXY[0]-12,legendXY[1]-24,250,choroLegend.h||200]);
-  g.insets.forEach(b=>{const p=[b.box[0]*Z.k+Z.tx,b.box[1]*Z.k+Z.ty];boxes.push([p[0],p[1],(b.label.includes('|')?160:120),b.label.includes('|')?34:20]);});
+  g.insets.forEach((b,i)=>{const o=off('inset'+i);const p=[(b.box[0]+o[0])*Z.k+Z.tx,(b.box[1]+o[1])*Z.k+Z.ty];boxes.push([p[0],p[1],(b.label.includes('|')?160:120),b.label.includes('|')?34:20]);});
   const hit=(b)=>boxes.some(o=>b[0]<o[0]+o[2]&&b[0]+b[2]>o[0]&&b[1]<o[1]+o[3]&&b[1]+b[3]>o[1]);
   const land=landPath(v.map);
   const onLand=(x,y)=>{if(!hitCtx)hitCtx=document.createElement('canvas').getContext('2d');return hitCtx.isPointInPath(land,(x-Z.tx)/Z.k,(y-Z.ty)/Z.k,'evenodd');};
@@ -668,7 +690,7 @@ function placeLabels(v,R,cA,type,lm,Z,legendXY){
     const a=r.area||0,fs=(a>=q2?base+1.5:a>=q1?base:base-1.5)*zk;
     const lines=[nm,vv].filter(Boolean);
     const w=Math.max(...lines.map((s,i)=>textW(s,fs,i===0&&nm?500:700)))+4,h=lines.length*fs*1.15+2;
-    const [x,y]=[r.c[0]*Z.k+Z.tx,r.c[1]*Z.k+Z.ty];
+    const cc=rc(r);const [x,y]=[cc[0]*Z.k+Z.tx,cc[1]*Z.k+Z.ty];
     return {r,nm,vv,fs,w,h,x,y,a};
   }).filter(o=>o.nm||o.vv).sort((a,b)=>b.a-a.a);
   const out=[],lead=[];
@@ -741,7 +763,9 @@ function drawMap(keepTools){
     svg.setAttribute('viewBox',`0 0 ${o.W} ${o.H}`);
     svg.innerHTML=o.svg;svg.setAttribute('aria-label',o.title);svg.setAttribute('font-family',FONT);
     svg.classList.toggle('editing',S.compare&&V()===v);
+    if(S.editLayout)svg.querySelectorAll('.lay').forEach(gl=>{try{const b=gl.getBBox();if(!b.width)return;const r=document.createElementNS(NS,'rect');r.setAttribute('x',b.x-4);r.setAttribute('y',b.y-4);r.setAttribute('width',b.width+8);r.setAttribute('height',b.height+8);r.setAttribute('class','layframe');gl.insertBefore(r,gl.firstChild);}catch(_){}});
   }
+  box.classList.toggle('layedit',!!S.editLayout);
   if(!keepTools)renderMapTools();else{const zr=$('[data-zr]');if(zr)zr.value=Math.round(S.zoom.k*100);}
   renderAlerts();
   saveState();
@@ -923,6 +947,8 @@ function renderMapTools(){
   h+=`<button class="tb" data-lmmenu aria-haspopup="true" title="地圖上的名稱或數值（N）">標籤<small>${lname}</small></button>`;
   if(S.lmOpen)h+=`<div class="menu" style="top:178px">${LABEL_MODES.map(([k,n])=>`<button data-lm="${k}" aria-pressed="${cur===k}">${n}</button>`).join('')}</div>`;
   h+=`<button class="tb" data-cmp aria-pressed="${!!S.compare}" title="左右兩張地圖比較">並排<small>${S.compare?'開':'關'}</small></button>`;
+  h+=`<button class="tb${S.editLayout?' lay-on':''}" data-layedit aria-pressed="${!!S.editLayout}" title="拖曳圖名、圖例、指北針、比例尺、小圖框">${S.editLayout?'鎖定':'編排'}<small>${S.editLayout?'排好按這裡':'移動圖例等'}</small></button>`;
+  if(S.editLayout)h+=`<button class="tb" data-layreset title="回到原本位置">位置<small>重來</small></button>`;
   el.innerHTML=h;
 }
 function setLabelMode(m){if(m!=='none')S.lastLabel=m;S.labelMode[S.map]=m;drawMap();}
@@ -981,7 +1007,8 @@ function panelData(){
     `<button class="btn" data-act="sample">載入範例資料<small>先試試看</small></button>`+
     `<button class="btn" data-act="paste">貼上 Excel 資料<small>從試算表複製</small></button>`+
     `<button class="btn" data-act="upload">上傳檔案<small>CSV 或 .xlsx</small></button>`+
-    `<button class="btn" data-act="template">下載空白範本<small>Excel，名稱已列好</small></button></div>`;
+    `<button class="btn" data-act="template">下載範本<small>Excel，可含範例資料</small></button></div>`+
+    `<div class="projrow"><button class="btn sm" data-act="projopen">📂 開啟作品檔</button><button class="btn sm" data-act="projsave">💾 存成作品檔</button></div>`;
   if(S.map==='vn63')h+=`<div class="alert info" style="margin:10px 0"><span>2025 年 7 月以前的 63 省。<b>總量</b>資料可以加起來變成 34 省。</span>${d.cols.length?'<button class="btn sm" data-act="merge">合併成 34 省</button>':''}</div>`;
   h+=`<h3>資料欄位 ${info('<b>總量</b>：人口數、產量、面積等，可以相加，適合比例符號圖、點子圖。<br><b>比率</b>：百分比、密度、平均值等，不能直接相加，適合面量圖。<br>總量按「÷面積」可以算成密度。','總量和比率')}</h3>`;
   if(!d.cols.length)h+=`<p class="hint">還沒有資料。用上面的按鈕放入，或 <button class="btn sm" data-act="addcol">＋ 自己新增一欄</button></p>`;
@@ -1153,6 +1180,7 @@ function panelText(){
   h+=`<h3>指北針</h3><div class="norths">${Object.entries(NORTHS).map(([k,n])=>`<button data-act="north" data-k="${k}" aria-pressed="${S.north===k}" title="${n}" aria-label="${n}"><svg viewBox="-34 -40 68 72">${northArrow(k,0,0,STYLES.clean)}</svg></button>`).join('')}</div>`;
   if(M.lang)h+=`<h3>地名用</h3><div class="seg" role="group">${[['zh','中文'],['vi','越南文'],['both','中＋越']].map(([k,n])=>`<button data-act="lang" data-k="${k}" aria-pressed="${S.lang===k}">${n}</button>`).join('')}</div>`;
   h+=`<h3>下載範圍</h3><div class="seg" role="group"><button data-act="ev" data-k="all" aria-pressed="${S.exportView!=='view'}">整張地圖</button><button data-act="ev" data-k="view" aria-pressed="${S.exportView==='view'}">目前畫面</button></div><p class="hint">${(S.zoom.k||1)>1.001?`地圖目前放大 ${Math.round(S.zoom.k*100)}%。選「目前畫面」只下載看到的範圍，圖名、圖例會保留。`:'地圖沒有放大時，兩者相同。'}</p>`;
+  h+=`<h3>作品檔 ${info('作品檔會存下資料、圖種、配色、圖名和地圖上各項目的位置。存在隨身碟或雲端硬碟，換電腦也能繼續；也可以交給老師檢查。')}</h3><div class="row"><button class="btn" data-act="projsave">💾 存成作品檔</button><button class="btn" data-act="projopen">📂 開啟作品檔</button></div>`;
   h+=`<h3>下載</h3><div class="row"><button class="btn pri" data-act="png">下載 PNG 圖片</button><button class="btn" data-act="print">列印／另存 PDF</button></div>`;
   h+=`<p class="hint" style="margin-top:12px">${info('好的統計地圖要有：圖名、圖例、指北針、比例尺、資料來源，本模型會自動加上。標籤可用地圖左上角的「標籤」或按 N 切換。列印時選「另存為 PDF」就能得到 PDF 檔。','小提醒')}</p>`;
   h+=footHtml();
@@ -1173,7 +1201,9 @@ pb.addEventListener('click',e=>{
   else if(a==='symreset'){const v=V();if(v.offsets)delete v.offsets[symKey(v)];renderAll();toast('圖表位置已重來');}
   else if(a==='ev'){S.exportView=b.dataset.k;renderAll();}
   else if(a==='edit'){S.edit=b.dataset.k;renderAll();}
-  else if(a==='sample')loadSamples();
+  else if(a==='sample')openSamples('load');
+  else if(a==='projsave')saveProject();
+  else if(a==='projopen')$('#projIn').click();
   else if(a==='paste')openPaste();
   else if(a==='upload')$('#fileIn').click();
   else if(a==='merge')merge63();
@@ -1193,7 +1223,7 @@ pb.addEventListener('click',e=>{
   else if(a==='north'){S.north=b.dataset.k;renderAll();}
   else if(a==='png')exportPNG();
   else if(a==='print')doPrint();
-  else if(a==='template')downloadTemplate();
+  else if(a==='template')openSamples('tpl');
   else if(a==='wipe'){ask('確定清除這台電腦上的統計地圖暫存？\n所有資料會清掉，畫面重新開始。','清除','取消').then(ok=>{if(ok){try{localStorage.removeItem(LS_KEY);}catch(_){}wiped=true;location.reload();}});}
   else if(a==='unmok'){const sel=b.parentElement.querySelector('select');const i=+b.dataset.i;const u=(D().unmatched||[])[i];if(u&&sel&&sel.value){for(const [cid,v] of Object.entries(u.vals)){const c=colById(cid);if(c)c.vals[sel.value]=v;}D().unmatched.splice(i,1);toast(`「${u.name}」已對應到 ${sel.value}`);renderAll();}else toast('請先選要對應的地名');}
   else if(a==='unmdel'){D().unmatched.splice(+b.dataset.i,1);renderAll();}
@@ -1230,8 +1260,30 @@ pb.addEventListener('change',e=>{
 });
 
 /* ---------- 資料操作 ---------- */
-function loadSamples(){
-  const d=D();const ss=samples(S.map);
+let sampleCache=null;
+function openSamples(mode){
+  sampleCache=samples(S.map);
+  const M=MAPS[S.map];
+  $('#smTitle').textContent=mode==='tpl'?'下載範本':'選擇範例資料';
+  $('#smList').innerHTML=sampleCache.map((c,i)=>`<label class="smrow"><input type="checkbox" data-si="${i}" checked><span><b>${esc(c.name)}</b>（${esc(c.unit)}，${c.kind==='total'?'總量':'比率'}）<small>${esc(c.desc||'')}｜來源：${esc(c.src)}</small></span></label>`).join('');
+  $('#smBtns').innerHTML=`<button class="btn" data-sm="cancel">取消</button><button class="btn" data-sm="blank">下載空白範本</button><button class="btn" data-sm="xlsx">下載成 Excel（含勾選的資料）</button><button class="btn pri" data-sm="load">放進地圖</button>`;
+  $('#smHint').textContent=`底圖：${M.label}。勾選要用的範例資料。Excel 範本已填好數字，可以在 Excel 裡修改或補新欄位，再按「上傳檔案」。`;
+  $('#sampleModal').classList.add('on');
+}
+$('#sampleModal').addEventListener('click',e=>{
+  if(e.target.id==='sampleModal'){$('#sampleModal').classList.remove('on');return;}
+  const b=e.target.closest('[data-sm]');if(!b)return;
+  const pick=[...document.querySelectorAll('#smList [data-si]')].filter(x=>x.checked).map(x=>sampleCache[+x.dataset.si]);
+  const a=b.dataset.sm;
+  if(a==='cancel'){$('#sampleModal').classList.remove('on');return;}
+  if(a==='blank'){$('#sampleModal').classList.remove('on');downloadTemplate(D().cols.length?D().cols:null,false);return;}
+  if(!pick.length){toast('請至少勾選一份資料');return;}
+  $('#sampleModal').classList.remove('on');
+  if(a==='xlsx')downloadTemplate(pick,true);
+  else loadSamples(pick);
+});
+function loadSamples(pick){
+  const d=D();const ss=pick||samples(S.map);
   const have=new Set(d.cols.map(c=>c.name));
   let n=0;for(const c of ss)if(!have.has(c.name)){d.cols.push(c);n++;}
   S.tab='data';
@@ -1420,6 +1472,8 @@ $('#mapbox').addEventListener('pointerdown',e=>{
   const svg=svgOf(e.target);if(!svg||e.button>0)return;
   S._dragged=false;ptrs.set(e.pointerId,[e.clientX,e.clientY]);
   if(ptrs.size===2){const [a,b]=[...ptrs.values()];gest={type:'pinch',svg,d0:Math.hypot(a[0]-b[0],a[1]-b[1])||1,z0:Object.assign({},S.zoom),mid:toSvg(svg,(a[0]+b[0])/2,(a[1]+b[1])/2),moved:true};return;}
+  const lay=S.editLayout&&e.target.closest('.lay');
+  if(lay){const k=lay.dataset.lay;S.layout=S.layout||{};const L=S.layout[S.map]=S.layout[S.map]||{};const o=L[k]||[0,0];gest={type:'lay',svg,key:k,sx:e.clientX,sy:e.clientY,o0:o.slice(),inset:k.startsWith('inset'),moved:false};try{svg.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();return;}
   const sym=e.target.closest('.sym');
   if(sym&&(V().type==='prop'||V().type==='chart')){const v=svg.id==='map2'?S2:S;const p=v&&v._pos&&v._pos[sym.dataset.sym];if(p){gest={type:'sym',svg,v,id:sym.dataset.sym,sx:e.clientX,sy:e.clientY,p0:[p[0],p[1]],a:[p[2],p[3]],moved:false};try{svg.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();return;}}
   if(S.zoom.k>1.001){gest={type:'pan',svg,sx:e.clientX,sy:e.clientY,z0:Object.assign({},S.zoom),moved:false};}
@@ -1432,6 +1486,7 @@ document.addEventListener('pointermove',e=>{
   gest.moved=true;S._dragged=true;tip.style.display='none';
   const sc=gest.svg.getScreenCTM().a,dx=(e.clientX-gest.sx)/sc,dy=(e.clientY-gest.sy)/sc;
   if(gest.type==='pan'){S.zoom={k:gest.z0.k,tx:gest.z0.tx+dx,ty:gest.z0.ty+dy};clampZoom();drawMap(true);}
+  else if(gest.type==='lay'){const f=gest.inset?(S.zoom.k||1):1;S.layout[S.map][gest.key]=[Math.round(gest.o0[0]+dx/f),Math.round(gest.o0[1]+dy/f)];drawMap(true);}
   else if(gest.type==='sym'){const v=gest.v;v.offsets=v.offsets||{};const k=symKey(v);v.offsets[k]=v.offsets[k]||{};v.offsets[k][gest.id]=[gest.p0[0]+dx-gest.a[0],gest.p0[1]+dy-gest.a[1]];drawMap(true);}
 });
 function endPtr(e){ptrs.delete(e.pointerId);if(gest&&(ptrs.size===0||gest.type==='pinch')){const was=gest;gest=null;if(was.moved){renderMapTools();saveState();}}}
@@ -1457,6 +1512,7 @@ function placeAt(el,cx,cy){
 }
 mapbox.addEventListener('click',e=>{
   if(S._dragged){S._dragged=false;return;}
+  if(S.editLayout)return;
   if(e.target.closest('.sym'))return;
   const svg=e.target.closest('svg');
   if(S.compare&&svg){const want=svg.id==='map2'?'R':'L';if(S.edit!==want){S.edit=want;renderTop();renderPanel();renderMapTools();$('#map').classList.toggle('editing',want==='L');$('#map2').classList.toggle('editing',want==='R');}}
@@ -1607,12 +1663,13 @@ function zipStore(files){
 }
 function xe(s){return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
 function colLetter(i){let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26);}return s;}
-function downloadTemplate(){
-  const R=regions(),M=MAPS[S.map],cols=D().cols;
+function downloadTemplate(cols,withData){
+  const R=regions(),M=MAPS[S.map];cols=cols||[];
   const head=[M.lang?'省市':'縣市'];if(M.lang)head.push('越南文名稱');
   head.push(...(cols.length?cols.map(c=>c.name+(c.unit?`（${c.unit}）`:'')):['資料1（單位）','資料2（單位）']));
-  const rows=[head,...R.map(r=>M.lang?[r.zh,r.vi]:[r.zh])];
-  const xml=rows.map((row,ri)=>`<row r="${ri+1}">`+row.map((v,ci)=>`<c r="${colLetter(ci)}${ri+1}" t="inlineStr"${ri===0?' s="1"':''}><is><t>${xe(v)}</t></is></c>`).join('')+`</row>`).join('');
+  const rows=[head,...R.map(r=>(M.lang?[r.zh,r.vi]:[r.zh]).concat(withData?cols.map(c=>c.vals[r.id]==null?'':c.vals[r.id]):[]))];
+  const cell=(v,ri,ci)=>typeof v==='number'?`<c r="${colLetter(ci)}${ri+1}"><v>${v}</v></c>`:(v===''?'':`<c r="${colLetter(ci)}${ri+1}" t="inlineStr"${ri===0?' s="1"':''}><is><t>${xe(v)}</t></is></c>`);
+  const xml=rows.map((row,ri)=>`<row r="${ri+1}">`+row.map((v,ci)=>cell(v,ri,ci)).join('')+`</row>`).join('');
   const NSM='http://schemas.openxmlformats.org/spreadsheetml/2006/main',NSR='http://schemas.openxmlformats.org/officeDocument/2006/relationships',NSP='http://schemas.openxmlformats.org/package/2006/relationships';
   const X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
   const files=[
@@ -1623,9 +1680,30 @@ function downloadTemplate(){
     {name:'xl/styles.xml',text:X+`<styleSheet xmlns="${NSM}"><fonts count="2"><font><sz val="12"/><name val="Calibri"/></font><font><b/><sz val="12"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`},
     {name:'xl/worksheets/sheet1.xml',text:X+`<worksheet xmlns="${NSM}"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="${head.length}" width="20" customWidth="1"/></cols><sheetData>${xml}</sheetData></worksheet>`},
   ];
-  saveBlob(zipStore(files),`統計地圖範本_${M.label.replace(/[（）()\s]/g,'')}.xlsx`);
-  toast('已下載 Excel 範本：填好數字後按「上傳檔案」');
+  saveBlob(zipStore(files),`統計地圖範本_${M.label.replace(/[（）()\s]/g,'')}${withData?'_含資料':''}.xlsx`);
+  toast(withData?'已下載含資料的 Excel：改好後按「上傳檔案」':'已下載空白範本：填好數字後按「上傳檔案」');
 }
+/* 作品檔（下載成 .json，下次開啟） */
+function projectData(){return {app:'statmap',v:1,saved:new Date().toISOString(),colSeq,S2,S:Object.assign({},S,{hl:null,lmOpen:false,_dragged:false,tab:'data'})};}
+function saveProject(){
+  const t=(mapSVG(S,'pj').title||'統計地圖').replace(/[\\/:*?"<>|]/g,'');
+  saveBlob(new Blob([JSON.stringify(projectData())],{type:'application/json'}),`統計地圖_${t}.json`);
+  toast('已存成作品檔：下次按「📂 開啟作品檔」選這個檔案就能繼續');
+}
+$('#projIn').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const o=JSON.parse(await f.text());
+    if(!o||o.app!=='statmap'||!o.S||!o.S.data)throw new Error('這不是統計地圖的作品檔');
+    snapshotAll();
+    for(const k of Object.keys(S))if(o.S[k]!==undefined)S[k]=o.S[k];
+    S2=o.S2||null;colSeq=Math.max(colSeq,o.colSeq||1);S.tab='data';S.hl=null;
+    renderAll();toast(`已開啟作品檔「${f.name}」`,3000);
+  }catch(err){say('打不開這個檔案：'+(err&&err.message||err)+'\n請選擇用「💾 存成作品檔」存下來的 .json 檔。');}
+});
+function snapshotAll(){try{undoAll=JSON.stringify(projectData());}catch(_){}}
+let undoAll=null;
+
 /* 暫存（這台電腦） */
 const LS_KEY='geo-statmap-v1';let saveT=null,wiped=false;
 function saveState(){
@@ -1656,6 +1734,8 @@ $('#maptools').addEventListener('click',e=>{
   if(e.target.closest('[data-lmmenu]')){S.lmOpen=!S.lmOpen;renderMapTools();return;}
   const b=e.target.closest('[data-lm]');if(b){S.lmOpen=false;setLabelMode(b.dataset.lm);return;}
   if(e.target.closest('[data-cmp]')){toggleCompare();return;}
+  if(e.target.closest('[data-layedit]')){S.editLayout=!S.editLayout;drawMap();toast(S.editLayout?'編排模式：拖曳虛線框裡的項目，排好按「鎖定」':'已鎖定，地圖上的項目不會再被拖動',2500);return;}
+  if(e.target.closest('[data-layreset]')){if(S.layout)delete S.layout[S.map];drawMap();toast('位置已重來');return;}
   const ed=e.target.closest('[data-edit]');if(ed){S.edit=ed.dataset.edit;renderAll();}
 });
 function toggleCompare(){
@@ -1668,7 +1748,7 @@ document.addEventListener('pointerdown',e=>{if(S.lmOpen&&!e.target.closest('#map
 function resetSettings(){
   Object.assign(S.choro,{k:5,method:'quantile',custom:null,pal:'seq:YlOrRd'});
   Object.assign(S.prop,{rmax:34,color:SINGLE[0],base:null});
-  S.compare=false;S.edit='L';S2=null;S.zoom={k:1,tx:0,ty:0};S.offsets={};delete S.chart.scale;delete S.chart.spread;S.prop.spread=false;
+  S.compare=false;S.edit='L';S2=null;S.zoom={k:1,tx:0,ty:0};S.layout={};S.editLayout=false;S.offsets={};delete S.chart.scale;delete S.chart.spread;S.prop.spread=false;
   Object.assign(S.dot,{unitFor:null,size:2.2,color:SINGLE[2]});
   Object.assign(S.chart,{kind:'pie',sized:false,pal:'Set2'});
   S.style='color';S.north='half';
