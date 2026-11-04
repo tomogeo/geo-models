@@ -19,6 +19,7 @@
   - geo-models.html：離線單檔版，所有模型與 three.js 內嵌，隨身碟／沒網路的教室用
 - vendor/three.r128.min.js：3D 元件（three.js r128，MIT 授權見 three.LICENSE）；模型以 ../vendor/three.r128.min.js 引用
 - .nojekyll：讓 GitHub Pages 原樣發布檔案
+- SECURITY.md：對外的資安通報方式（規格三）
 - Claude 上的舊版網址（需登入）：https://claude.ai/artifact/5MoM7QfdsYexHY2Ynz2WKH
   過渡期與 GitHub 版同步更新（內容用 geo-models.html），等老師確認 GitHub 版沒問題再決定是否停用。
 - 課本圖照原樣放在公開網站，是老師的決定。
@@ -69,9 +70,33 @@
 現有模型的說明卡是 Claude 依模型內容寫的草稿，unit 目前都是「待填」。
 第一次設定完成後，請把說明卡給老師確認，並請他補上 unit。
 
+## 規格三：資安（網站是公開的，所有檔案任何人都看得到）
+- 不放任何金鑰、密碼、權杖、私人連結（含通知用的 webhook）；需要的話放在 repo 以外的地方。
+- 不放學生個資（姓名、照片、成績）；老師的真實 email 不出現在檔案與提交紀錄（用 GitHub 的 noreply 信箱）。
+- 每頁都要有 robots noindex、Content-Security-Policy、no-referrer 標記；不得從外部網站載入程式或字型。
+- build.py 會自動檢查以上幾點，檢查不過就不組裝；不要為了通過而關掉檢查，先找出原因。
+- 發現疑似外洩：先告訴老師，不要自己改歷史紀錄；金鑰一律先到發行網站「作廢重發」，再清理檔案。
+- 每月有一次自動資安健檢（雲端排程「每月資安健檢」），有問題才通知老師。
+- 對外的資安通報方式寫在 SECURITY.md。
+
 ## 新增模型的標準流程
 1. 老師把新模型 HTML 放進 models/（或提供 claude.ai 連結，請他下載後放入）。
 2. 檢查是否符合規格一；不符合的地方先列出來問老師，再修改。
 3. 在 registry.json 加一筆，說明卡欄位不清楚的地方問老師，不要自己編 unit。
 4. 組裝、在瀏覽器測試（開啟、快捷鍵、Esc 回首頁、手機寬度），提交並推上線。
 5. 回報：加了什麼、網址、有沒有需要老師注意的地方。
+
+## 小 Claude 通知站（老師桌面上的提醒）
+有兩個小 Claude，通知時兩個都要更新，欄位相同：
+`{"state": "working" | "done" | "ask" | "idle", "message": "一句話摘要（30 字內）", "updatedAt": 現在的毫秒時間戳}`
+（取時間可用 `date +%s%3N`）
+1. 網頁版：https://claude.ai/artifact/GJyBbCrdMbLotJkQdzgWam
+   用 ArtifactData 工具寫入 collection `pet`、doc_id `status`（先 get 讀出 version，寫入時帶 if_version）。
+2. 桌面版（Windows 透明桌面寵物，專案 tomogeo/xiao-claude-pet）：
+   更新該專案 `pet-status` 分支的 `status.json`。這個專案不在本對話時，先用 add_repo 加入
+   （access: push），再用 GitHub 工具 get_file_contents 取 sha、create_or_update_file 寫入。
+   桌面版每 90 秒讀一次，最慢約 2～3 分鐘才出現。
+- 什麼時候寫：
+  - 開始一項較長的任務 → `working`
+  - 任務完成、等老師看結果 → `done`
+  - 需要老師回答問題或親自操作 → `ask`，message 寫問題摘要
