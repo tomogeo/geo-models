@@ -67,7 +67,16 @@ kbd{font-family:inherit;font-size:.85em;border:1px solid var(--line);border-bott
 .alert.info b{color:var(--accent)}
 .alerts{display:flex;flex-direction:column;gap:6px}
 .alerts:empty{display:none}
-.maptools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.maptools{position:absolute;left:10px;top:10px;z-index:4;display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.maptools .tb{border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:6px 8px;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.12);min-width:58px;line-height:1.25}
+.maptools .tb[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .maptools .tb[aria-pressed="true"]{color:#10161d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .maptools .tb[aria-pressed="true"]{color:#10161d}}
+.maptools .tb small{display:block;font-size:12px;opacity:.75}
+.maptools .menu{position:absolute;left:66px;background:var(--paper);border:1px solid var(--line);border-radius:9px;box-shadow:0 6px 18px rgba(0,0,0,.18);padding:4px;display:flex;flex-direction:column;min-width:130px}
+.maptools .menu button{border:0;background:none;text-align:left;padding:6px 10px;border-radius:6px;font-size:15px}
+.maptools .menu button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.alerts{margin-bottom:8px}
 .maptools .seg{border:1px solid var(--line);padding:3px}
 .maptools .mt-l{font-size:15px;color:var(--ink2);white-space:nowrap}
 .maptools .seg button{font-size:15px;padding:3px 9px}
@@ -94,13 +103,41 @@ kbd{font-family:inherit;font-size:.85em;border:1px solid var(--line);border-bott
 .nl{width:100%;height:auto;display:block;touch-action:none;user-select:none}
 .nl [data-brk]{cursor:ew-resize}
 .maptools label.ck{margin:0 0 0 4px;font-size:15px}
-@media (max-width:980px){.mapbox.two{flex-direction:column;aspect-ratio:auto}.mapbox.two #map,.mapbox.two #map2{width:100%}}
+@media (max-width:980px){.mapbox.two{flex-direction:column;aspect-ratio:auto}.mapbox.two #map,.mapbox.two #map2{width:100%}.maptools{position:static;flex-direction:row;flex-wrap:wrap;margin-bottom:6px}.mapbox{flex-direction:column}.maptools .menu{left:auto;top:44px}}
+.topinfo{color:var(--ink2);font-size:15px}
 .tip{position:absolute;pointer-events:none;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.18);display:none;max-width:280px;z-index:4}
 .tip b{display:block}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 16px;border-radius:8px;font-size:16px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:30;max-width:90vw}
 .toast.on{opacity:.95}
 
 .panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);padding:8px 8px 0;gap:2px}
+.steps button{border:0;background:none;padding:4px 2px 8px;color:var(--ink2);font-size:15px;display:flex;flex-direction:column;align-items:center;gap:3px;border-bottom:3px solid transparent;line-height:1.2}
+.steps button .n{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:15px;background:var(--paper)}
+.steps button.done .n{border-color:var(--ok);color:var(--ok)}
+.steps button[aria-current="step"]{color:var(--accent);font-weight:700;border-bottom-color:var(--accent)}
+.steps button[aria-current="step"] .n{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .steps button[aria-current="step"] .n{color:#10161d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .steps button[aria-current="step"] .n{color:#10161d}}
+.stepnav{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;border-top:1px solid var(--line);background:var(--paper)}
+.stepnav .btn{min-width:110px}
+.stepnav .btn:disabled{opacity:.35;cursor:default}
+.lead{font-size:16px;margin:0 0 10px;color:var(--ink)}
+details.info{display:inline;margin-left:4px}
+details.info>summary{display:inline-flex;align-items:center;cursor:pointer;color:var(--accent);font-size:15px;list-style:none;font-weight:500}
+details.info>summary::-webkit-details-marker{display:none}
+details.info[open]{display:block;margin:4px 0 8px;background:var(--accent-soft);border-radius:8px;padding:6px 10px;font-size:15px;color:var(--ink)}
+details.info[open]>summary{margin-bottom:4px}
+.mapcards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.mapcards button,.typecards button{border:2px solid var(--line);background:var(--paper);border-radius:10px;padding:8px 4px;font-size:15px;line-height:1.3}
+.mapcards button[aria-pressed="true"],.typecards button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.mapcards small,.typecards small{display:block;color:var(--ink2);font-size:13px;font-weight:400}
+.typecards{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+.typecards svg{width:34px;height:28px;display:block;margin:0 auto 2px}
+.bigbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bigbtns .btn{padding:10px 8px;text-align:left;font-size:16px}
+.bigbtns .btn small{display:block;color:var(--ink2);font-size:13px}
+.havedata{background:var(--ok-soft);border:1px solid var(--ok);border-radius:10px;padding:8px 12px;margin:10px 0;font-size:16px}
 .tabs{display:flex;border-bottom:1px solid var(--line)}
 .tabs button{flex:1;border:0;background:none;padding:9px 6px;font-size:16px;color:var(--ink2);border-bottom:3px solid transparent}
 .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
@@ -160,7 +197,7 @@ input.wide{width:100%;padding:4px 8px;border:1px solid var(--line);border-radius
 @media print{
   @page{size:A4 portrait;margin:10mm}
   body{background:#fff;padding:0}
-  .top,.panel,.alerts,.tip,.toast,.modal{display:none!important}
+  .top,.panel,.alerts,.tip,.toast,.modal,.maptools,.pop{display:none!important}
   .layout{display:block;height:auto;padding:0}
   .mapbox{border:0;padding:0;height:auto}
   #map{width:100%;height:auto;max-height:270mm}
@@ -171,18 +208,14 @@ input.wide{width:100%;padding:4px 8px;border:1px solid var(--line);border-radius
 <body>
 <header class="top">
   <h1>統計地圖工作室</h1>
-  <div class="seg" id="mapSeg" role="group" aria-label="底圖"></div>
-  <div class="seg" id="typeSeg" role="group" aria-label="地圖種類"></div>
+  <span class="topinfo" id="topinfo"></span>
   <span class="spacer"></span>
-  <button class="btn" id="pngBtn" title="下載 PNG 圖片">下載圖片</button>
-  <button class="btn" id="printBtn" title="列印或另存 PDF">列印／PDF</button>
   <button class="btn" id="fsBtn" title="全螢幕（F）">全螢幕</button>
 </header>
 <main class="layout">
   <section class="mapcol">
-    <div class="maptools" id="maptools"></div>
-    <div class="alerts" id="alerts"></div>
     <div class="mapbox" id="mapbox">
+      <div class="maptools" id="maptools"></div>
       <svg id="map" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="統計地圖"></svg>
       <svg id="map2" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="右圖" style="display:none"></svg>
       <div class="tip" id="tip"></div>
@@ -190,12 +223,9 @@ input.wide{width:100%;padding:4px 8px;border:1px solid var(--line);border-radius
     </div>
   </section>
   <aside class="panel">
-    <div class="tabs" role="tablist">
-      <button role="tab" data-tab="data">① 資料</button>
-      <button role="tab" data-tab="style">② 地圖設定</button>
-      <button role="tab" data-tab="text">③ 圖面與說明</button>
-    </div>
+    <nav class="steps" id="steps" aria-label="製作步驟"></nav>
     <div class="pbody" id="pbody"></div>
+    <div class="stepnav" id="stepnav"></div>
   </aside>
 </main>
 <div class="modal" id="pasteModal" role="dialog" aria-modal="true" aria-labelledby="pasteTitle">
@@ -338,16 +368,28 @@ function samples(mid){
 }
 
 /* ---------- 頂端按鈕 ---------- */
+const STEPS=[['data','資料'],['check','檢查'],['style','畫地圖'],['text','圖名與下載']];
+function stepIdx(){const i=STEPS.findIndex(x=>x[0]===S.tab);return i<0?0:i;}
 function renderTop(){
-  $('#mapSeg').innerHTML=Object.entries(MAPS).map(([k,m],i)=>`<button data-map="${k}" aria-pressed="${S.map===k}">${m.label}<span class="k">${i+1}</span></button>`).join('');
-  $('#typeSeg').innerHTML=Object.entries(TYPES).map(([k,t])=>`<button data-type="${k}" aria-pressed="${V().type===k}">${t.label}<span class="k">${t.key}</span></button>`).join('');
-  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===S.tab));
+  if(!STEPS.some(x=>x[0]===S.tab))S.tab='data';
+  const cur=stepIdx();
+  $('#steps').innerHTML=STEPS.map(([k,n],i)=>`<button data-step="${k}"${i===cur?' aria-current="step"':''} class="${i<cur?'done':''}"><span class="n">${i<cur?'✓':i+1}</span>${n}</button>`).join('');
+  const nextLabel=cur===0?'下一步：檢查資料':cur===1?'下一步：畫地圖':cur===2?'下一步：圖名與下載':'下載圖片';
+  $('#stepnav').innerHTML=`<button class="btn" data-nav="-1"${cur===0?' disabled':''}>← 上一步</button><button class="btn pri" data-nav="1">${nextLabel}${cur<3?' →':''}</button>`;
+  const d=D();
+  $('#topinfo').textContent=`${MAPS[S.map].label}｜${TYPES[V().type].label}${d.cols.length?`｜${d.cols.length} 欄資料`:'｜還沒有資料'}`;
 }
-$('#mapSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setMap(b.dataset.map);});
-$('#typeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setType(b.dataset.type);});
-document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b){S.tab=b.dataset.tab;renderAll();}});
+$('#steps').addEventListener('click',e=>{const b=e.target.closest('[data-step]');if(b)goStep(b.dataset.step);});
+$('#stepnav').addEventListener('click',e=>{
+  const b=e.target.closest('[data-nav]');if(!b||b.disabled)return;
+  const cur=stepIdx(),d=+b.dataset.nav;
+  if(d>0&&cur===3){exportPNG();return;}
+  if(d>0&&cur===0&&!D().cols.length){toast('先放入資料：可以按「載入範例資料」試試看');return;}
+  goStep(STEPS[Math.max(0,Math.min(3,cur+d))][0]);
+});
+function goStep(k){S.tab=k;renderAll();}
 function setMap(m){if(!MAPS[m]||S.map===m)return;S.map=m;S.hl=null;renderAll();}
-function setType(t){if(!TYPES[t])return;V().type=t;if(S.tab==='data'&&D().cols.length)S.tab='style';renderAll();}
+function setType(t){if(!TYPES[t])return;V().type=t;if((S.tab==='data'||S.tab==='check')&&D().cols.length)S.tab='style';renderAll();}
 
 /* ---------- 選欄 ---------- */
 function colByIdIn(mid,id){return S.data[mid].cols.find(c=>c.id===id)||null;}
@@ -562,7 +604,7 @@ function mapSVG(v,pfx){
   // 資料來源
   let src=(d.src||'').trim();
   if(!src){const used=type==='chart'?chartColsV(v):(cA?[cA]:[]);src=[...new Set(used.map(c=>c.src).filter(Boolean))].join('；');}
-  const srcLine=`資料來源：${src||'（請在「③ 圖面與說明」填寫）'}`;
+  const srcLine=`資料來源：${src||'（請在「④ 圖名與下載」填寫）'}`;
   parts.push(txt(16,H-30,srcLine.length>72?srcLine.slice(0,72)+'…':srcLine,{size:12,fill:ST.sub,halo,hw:3}));
   parts.push(txt(16,H-13,`${g.note}；行政界線經簡化，僅供教學示意。`,{size:11,fill:ST.sub,halo,hw:3}));
   return {svg:parts.join(''),title:T,sub,src,W,H};
@@ -745,12 +787,10 @@ const LABEL_MODES=[['name','名稱'],['value','數值'],['both','名稱＋數值
 function renderMapTools(){
   const el=$('#maptools');if(!el)return;
   const cur=S.labelMode[S.map];
-  let h=`<span class="mt-l">標籤 <kbd>N</kbd></span><div class="seg" role="group" aria-label="地圖標籤">${LABEL_MODES.map(([k,n])=>`<button data-lm="${k}" aria-pressed="${cur===k}">${n}</button>`).join('')}</div>`;
-  h+=`<button class="btn sm" data-cmp aria-pressed="${!!S.compare}" style="${S.compare?'background:var(--accent);color:#fff;border-color:var(--accent)':''}">並排比較${S.compare?'：開':''}</button>`;
-  if(S.compare){
-    h+=`<span class="mt-l">正在設定</span><div class="seg" role="group" aria-label="正在設定哪一張"><button data-edit="L" aria-pressed="${S.edit==='L'}">左圖</button><button data-edit="R" aria-pressed="${S.edit==='R'}">右圖</button></div>`;
-    if(S.type==='choro'&&S2&&S2.type==='choro')h+=`<label class="ck"><input type="checkbox" data-same${S.sameClass?' checked':''}> 單位相同時用同一套分級</label>`;
-  }
+  const lname=(LABEL_MODES.find(x=>x[0]===cur)||[])[1];
+  let h=`<button class="tb" data-lmmenu aria-haspopup="true" title="地圖上的名稱或數值（N）">標籤<small>${lname}</small></button>`;
+  if(S.lmOpen)h+=`<div class="menu" style="top:0">${LABEL_MODES.map(([k,n])=>`<button data-lm="${k}" aria-pressed="${cur===k}">${n}</button>`).join('')}</div>`;
+  h+=`<button class="tb" data-cmp aria-pressed="${!!S.compare}" title="左右兩張地圖比較">並排<small>${S.compare?'開':'關'}</small></button>`;
   el.innerHTML=h;
 }
 function setLabelMode(m){if(m!=='none')S.lastLabel=m;S.labelMode[S.map]=m;drawMap();}
@@ -760,22 +800,22 @@ function toggleLabels(){const cur=S.labelMode[S.map];setLabelMode(cur==='none'?(
 function renderAlerts(){
   const A=[];const d=D();
   if(!d.cols.length){
-    A.push(`<div class="alert info"><span>還沒有資料。可以在右邊 <b>① 資料</b> 載入範例、貼上 Excel 資料或上傳檔案。</span><button class="btn sm" data-act="sample">載入範例資料</button></div>`);
+    A.push(`<div class="alert info"><span>還沒有資料，請回到「① 資料」放入資料。</span><button class="btn sm" data-act="sample">載入範例資料</button></div>`);
   }else if(V().type==='choro'){
     const c=pickColV(V(),'choro');
-    if(c&&c.kind==='total')A.push(`<div class="alert warn"><span><b>注意：</b>「${esc(c.name)}」是<b>總量</b>。面量圖用顏色深淺比較，面積大的區域本來就容易「量多」，看起來會像那裡比較密集。建議改成比率或密度，或改用比例符號圖、點子圖。</span><button class="btn sm" data-act="density" data-col="${c.id}">÷ 面積算成密度</button><button class="btn sm" data-act="type" data-type="prop">改用比例符號圖</button></div>`);
+    if(c&&c.kind==='total')A.push(`<div class="alert warn"><span><b>⚠ 總量不適合面量圖</b>${info('「'+esc(c.name)+'」是總量。面量圖用顏色深淺比較，面積大的區域本來就容易「量多」，看起來會像那裡比較密集。建議改成比率或密度，或改用比例符號圖、點子圖。','為什麼')}</span><button class="btn sm" data-act="density" data-col="${c.id}">÷ 面積算成密度</button><button class="btn sm" data-act="type" data-type="prop">改用比例符號圖</button></div>`);
     if(c&&values(c).some(v=>v<0)&&V().choro.pal.startsWith('seq'))A.push(`<div class="alert info"><span>資料有正有負，可在「② 地圖設定」改用<b>雙向色</b>，讓正、負兩邊用不同顏色。</span></div>`);
   }else if(V().type==='prop'||V().type==='dot'){
     const c=pickColV(V(),V().type);
-    if(c&&c.kind==='ratio')A.push(`<div class="alert warn"><span><b>注意：</b>「${esc(c.name)}」是<b>比率／密度</b>。${V().type==='prop'?'圓的大小':'點的數量'}代表「有多少」，但比率不能這樣累加（兩個縣的比例相加沒有意義）。建議改用面量圖。</span><button class="btn sm" data-act="type" data-type="choro">改用面量圖</button></div>`);
+    if(c&&c.kind==='ratio')A.push(`<div class="alert warn"><span><b>⚠ 比率不適合${V().type==='prop'?'比例符號圖':'點子圖'}</b>${info('「'+esc(c.name)+'」是比率／密度。'+(V().type==='prop'?'圓的大小':'點的數量')+'代表「有多少」，但比率不能這樣累加（兩個縣的比例相加沒有意義）。建議改用面量圖。','為什麼')}</span><button class="btn sm" data-act="type" data-type="choro">改用面量圖</button></div>`);
     if(c&&values(c).some(v=>v<0))A.push(`<div class="alert warn"><span><b>注意：</b>有負值，${V().type==='prop'?'畫不成圓':'畫不成點'}，負值的區域會被略過。</span></div>`);
     if(V().type==='dot'&&V().dot.capped)A.push(`<div class="alert info"><span>點太多（${fmt(V().dot.total,0)} 點），只畫了一部分。請把「1 點代表」調大。</span></div>`);
   }else{
     const cs=chartColsV(V());
-    if(d.cols.length<2)A.push(`<div class="alert info"><span>圓餅圖、長條圖需要 <b>2 欄以上</b>的資料，例如一級、二級、三級產業人口。請先在「① 資料」新增欄位或貼上資料。</span></div>`);
+    if(d.cols.length<2)A.push(`<div class="alert info"><span>圓餅圖、長條圖需要 <b>2 欄以上</b>的資料（例：一級、二級、三級產業人口）。</span></div>`);
     else{
       const units=new Set(cs.map(c=>c.unit));
-      if(V().chart.kind==='pie'&&(units.size>1||new Set(cs.map(c=>c.kind)).size>1))A.push(`<div class="alert warn"><span><b>注意：</b>圓餅圖要畫「同一個整體分成幾份」，各欄應是同一種東西、同一個單位（例：一級、二級、三級產業人口）。目前選的欄位單位或類型不同。</span></div>`);
+      if(V().chart.kind==='pie'&&(units.size>1||new Set(cs.map(c=>c.kind)).size>1))A.push(`<div class="alert warn"><span><b>⚠ 各欄單位不同</b>${info('圓餅圖要畫「同一個整體分成幾份」，各欄應是同一種東西、同一個單位（例：一級、二級、三級產業人口）。','為什麼')}</span></div>`);
       else if(V().chart.kind==='bar'&&units.size>1)A.push(`<div class="alert warn"><span><b>注意：</b>選的欄位單位不同，長條高低互相比較沒有意義。</span></div>`);
     }
   }
@@ -783,9 +823,10 @@ function renderAlerts(){
     const c=pickColV(V(),V().type);
     if(c){const miss=regions().filter(r=>c.vals[r.id]==null).length;if(miss&&miss<regions().length)A.push(`<div class="alert info"><span>有 ${miss} 個區域沒有「${esc(c.name)}」的資料${V().type==='choro'?'，以灰色表示':''}。</span></div>`);}
   }
-  $('#alerts').innerHTML=A.join('');
+  const el=$('#alerts');if(el)el.innerHTML=A.join('');
 }
-$('#alerts').addEventListener('click',e=>{
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#alerts'))return;
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.act==='type')setType(b.dataset.type);
   if(b.dataset.act==='sample')loadSamples();
@@ -793,81 +834,98 @@ $('#alerts').addEventListener('click',e=>{
 });
 
 /* ---------- 面板 ---------- */
+const TYPE_ICON={"choro": "<svg viewBox=\"0 0 34 28\"><path d=\"M2 4h14v10H2z\" fill=\"#fdae61\"/><path d=\"M16 4h16v12H16z\" fill=\"#d7191c\"/><path d=\"M2 14h14v11H2z\" fill=\"#fee08b\"/><path d=\"M16 16h16v9H16z\" fill=\"#f46d43\"/></svg>", "prop": "<svg viewBox=\"0 0 34 28\"><rect x=\"1\" y=\"1\" width=\"32\" height=\"26\" rx=\"3\" fill=\"#e7eaee\"/><circle cx=\"11\" cy=\"15\" r=\"8\" fill=\"#d95f02\" opacity=\".8\"/><circle cx=\"25\" cy=\"10\" r=\"4\" fill=\"#d95f02\" opacity=\".8\"/><circle cx=\"26\" cy=\"21\" r=\"2.5\" fill=\"#d95f02\" opacity=\".8\"/></svg>", "dot": "<svg viewBox=\"0 0 34 28\"><rect x=\"1\" y=\"1\" width=\"32\" height=\"26\" rx=\"3\" fill=\"#e7eaee\"/><circle cx=\"5\" cy=\"6\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"8\" cy=\"10\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"6\" cy=\"15\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"10\" cy=\"20\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"12\" cy=\"8\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"14\" cy=\"14\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"9\" cy=\"24\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"16\" cy=\"19\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"20\" cy=\"9\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"26\" cy=\"22\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"29\" cy=\"6\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"23\" cy=\"15\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"6\" cy=\"22\" r=\"1.5\" fill=\"#1b5e9a\"/><circle cx=\"11\" cy=\"4\" r=\"1.5\" fill=\"#1b5e9a\"/></svg>", "chart": "<svg viewBox=\"0 0 34 28\"><circle cx=\"11\" cy=\"14\" r=\"9\" fill=\"#66c2a5\"/><path d=\"M11 14V5a9 9 0 0 1 8 13z\" fill=\"#fc8d62\"/><rect x=\"23\" y=\"12\" width=\"3\" height=\"12\" fill=\"#8da0cb\"/><rect x=\"27\" y=\"6\" width=\"3\" height=\"18\" fill=\"#66c2a5\"/></svg>"};
+function info(html,label='說明'){return `<details class="info"><summary>ⓘ ${label}</summary>${html}</details>`;}
 function renderPanel(){
   const p=$('#pbody');
   if(S.tab==='data')p.innerHTML=panelData();
+  else if(S.tab==='check')p.innerHTML=panelCheck();
   else if(S.tab==='style')p.innerHTML=panelStyle();
   else p.innerHTML=panelText();
 }
 function panelData(){
-  const d=D(),R=regions(),M=MAPS[S.map];
-  let h=`<h3>放入資料</h3><div class="row"><button class="btn" data-act="sample">載入範例資料</button><button class="btn" data-act="paste">貼上 Excel 資料</button><button class="btn" data-act="upload">上傳檔案</button></div>`;
-  h+=`<p class="hint">上傳可用 CSV 或 Excel（.xlsx）檔，只在這台電腦處理，不會傳到網路上。</p>`;
-  h+=`<div class="row"><button class="btn sm" data-act="template">下載空白範本（Excel）</button></div><p class="hint">範本已列好所有${M.lang?'省市名稱（中文、越南文）':'縣市名稱'}，填好數字再上傳，名稱一定對得上。</p>`;
-  if(S.map==='vn63')h+=`<div class="alert info" style="margin-bottom:10px"><span>越南 2025 年 7 月起合併成 34 省市。可以把這裡的<b>總量</b>資料加起來，變成 34 省的資料。</span><button class="btn sm" data-act="merge">合併成 34 省</button></div>`;
-  h+=`<h3>資料欄位（${d.cols.length}）</h3>`;
-  if(!d.cols.length)h+=`<p class="hint">還沒有欄位。</p>`;
-  for(const c of d.cols){
-    h+=`<div class="colcard" data-col="${c.id}"><input type="text" data-f="name" value="${esc(c.name)}" aria-label="欄位名稱"><button class="x" data-act="delcol" title="刪除這欄" aria-label="刪除這欄">×</button>`+
-      `<div class="meta">單位 <input type="text" data-f="unit" value="${esc(c.unit)}" placeholder="例：人、%" aria-label="單位"><span class="kind" role="group" aria-label="資料類型"><button data-act="kind" data-k="total" aria-pressed="${c.kind==='total'}">總量</button><button data-act="kind" data-k="ratio" aria-pressed="${c.kind==='ratio'}">比率／密度</button></span>`+
-      (c.kind==='total'?`<button class="btn sm" data-act="density" title="用內建面積算出密度">÷ 面積</button>`:'')+`</div>`+
-      (c.src?`<div class="src">來源：${esc(c.src)}</div>`:'')+`</div>`;
-  }
-  h+=`<div class="row"><button class="btn sm" data-act="addcol">＋ 新增一欄</button>${d.cols.length?'<button class="btn sm" data-act="clear">清空資料</button>':''}</div>`;
-  h+=`<p class="hint"><b>總量</b>：人口數、產量、面積等，可以相加。<b>比率／密度</b>：百分比、人口密度、平均值等，不能直接相加。</p>`;
-  if(d.cols.length){
-    h+=`<h3>數值表（也可以直接點地圖上的區域輸入）</h3><div class="tablewrap"><table class="dt"><thead><tr><th>${M.lang?'省市':'縣市'}</th>${d.cols.map(c=>`<th data-h="${c.id}">${esc(c.name)}</th>`).join('')}</tr></thead><tbody>`;
-    for(const r of R){
-      h+=`<tr data-r="${esc(r.id)}"${S.hl===r.id?' class="hl"':''}><td class="nm" title="${esc(r.zh)} ${esc(r.vi||'')}">${esc(r.zh)}${r.vi?`<small>${esc(r.vi)}${r.to?' → '+esc(GEO.vn34.regions.find(x=>x.id===r.to).zh):''}</small>`:''}</td>`+
-        d.cols.map(c=>`<td><input inputmode="decimal" data-c="${c.id}" value="${c.vals[r.id]==null?'':c.vals[r.id]}" aria-label="${esc(r.zh)} ${esc(c.name)}"></td>`).join('')+`</tr>`;
-    }
-    h+=`</tbody></table></div>`;
-  }
+  const d=D(),M=MAPS[S.map];
+  let h=`<p class="lead">選一張底圖，再把資料放進來。</p>`;
+  h+=`<h3>底圖</h3><div class="mapcards">${Object.entries(MAPS).map(([k,m],i)=>`<button data-map="${k}" aria-pressed="${S.map===k}">${k==='tw'?'臺灣':k==='vn34'?'越南':'越南（舊制）'}<small>${k==='tw'?'22 縣市':k==='vn34'?'34 省市':'63 省市'}｜按 ${i+1}</small></button>`).join('')}</div>`;
+  if(S.map==='vn63')h+=`<p class="hint">2025 年 7 月以前的行政區。資料放好後，可以在「② 檢查」合併成 34 省。</p>`;
+  h+=`<h3>放入資料</h3><div class="bigbtns">`+
+    `<button class="btn" data-act="sample">載入範例資料<small>先試試看</small></button>`+
+    `<button class="btn" data-act="paste">貼上 Excel 資料<small>從試算表複製</small></button>`+
+    `<button class="btn" data-act="upload">上傳檔案<small>CSV 或 .xlsx</small></button>`+
+    `<button class="btn" data-act="template">下載空白範本<small>Excel，名稱已列好</small></button></div>`;
+  h+=`<p class="hint">${info('檔案只在這台電腦處理，不會傳到網路上。範本已列好所有'+(M.lang?'省市名稱（中文、越南文）':'縣市名稱')+'，填好數字再上傳，名稱一定對得上。名稱寫法不同也認得，例如「台北」「臺北市」、「Ho Chi Minh」「胡志明」。')}</p>`;
+  if(d.cols.length)h+=`<div class="havedata">✓ 已有 ${d.cols.length} 欄資料：${d.cols.map(c=>esc(c.name)).join('、')}<br><small>按下方「下一步」檢查資料。</small></div><div class="row"><button class="btn sm" data-act="addcol">＋ 自己新增一欄</button><button class="btn sm" data-act="clear">清空資料</button></div>`;
+  else h+=`<div class="row" style="margin-top:8px"><button class="btn sm" data-act="addcol">＋ 自己新增一欄，手動輸入</button></div>`;
   h+=storageNote();
   h+=footHtml();
   return h;
 }
-function storageNote(){return `<h3>這台電腦的暫存</h3><p class="hint">資料和設定會自動存在這台電腦的瀏覽器，關掉再開還在。<b>共用電腦用完請按清除</b>，下一位同學才不會看到。</p><button class="btn sm" data-act="wipe">清除這台電腦的暫存，重新開始</button>`;}
+function panelCheck(){
+  const d=D(),R=regions(),M=MAPS[S.map];
+  if(!d.cols.length)return `<p class="lead">還沒有資料。</p><button class="btn" data-act="sample">載入範例資料</button> <button class="btn" data-act="gostep" data-k="data">回到 ① 資料</button>`+footHtml();
+  let h=`<p class="lead">確認每一欄的<b>單位</b>，和它是<b>總量</b>還是<b>比率</b>。${info('<b>總量</b>：人口數、產量、面積等，可以相加，適合比例符號圖、點子圖。<br><b>比率／密度</b>：百分比、人口密度、平均值等，不能直接相加，適合面量圖。<br>總量按「÷ 面積」可以算成密度。')}</p>`;
+  if(S.map==='vn63')h+=`<div class="alert info" style="margin-bottom:10px"><span>可以把<b>總量</b>資料加起來，變成 34 省的資料。</span><button class="btn sm" data-act="merge">合併成 34 省</button></div>`;
+  for(const c of d.cols){
+    const miss=R.filter(r=>c.vals[r.id]==null).length;
+    h+=`<div class="colcard" data-col="${c.id}"><input type="text" data-f="name" value="${esc(c.name)}" aria-label="欄位名稱"><button class="x" data-act="delcol" title="刪除這欄" aria-label="刪除這欄">×</button>`+
+      `<div class="meta">單位 <input type="text" data-f="unit" value="${esc(c.unit)}" placeholder="例：人、%" aria-label="單位"><span class="kind" role="group" aria-label="資料類型"><button data-act="kind" data-k="total" aria-pressed="${c.kind==='total'}">總量</button><button data-act="kind" data-k="ratio" aria-pressed="${c.kind==='ratio'}">比率／密度</button></span>`+
+      (c.kind==='total'?`<button class="btn sm" data-act="density" title="用內建面積算出密度">÷ 面積</button>`:'')+`</div>`+
+      `<div class="src">${miss?`<span style="color:var(--warn)">⚠ ${miss} 個${M.lang?'省市':'縣市'}沒有資料</span>`:`<span style="color:var(--ok)">✓ ${R.length} 個${M.lang?'省市':'縣市'}都有資料</span>`}${c.src?`｜來源：${esc(c.src)}`:''}</div></div>`;
+  }
+  h+=`<div class="row"><button class="btn sm" data-act="addcol">＋ 新增一欄</button></div>`;
+  h+=`<h3>數值表 ${info('也可以直接點地圖上的區域輸入數值。','小技巧')}</h3><div class="tablewrap"><table class="dt"><thead><tr><th>${M.lang?'省市':'縣市'}</th>${d.cols.map(c=>`<th data-h="${c.id}">${esc(c.name)}</th>`).join('')}</tr></thead><tbody>`;
+  for(const r of R){
+    h+=`<tr data-r="${esc(r.id)}"${S.hl===r.id?' class="hl"':''}><td class="nm" title="${esc(r.zh)} ${esc(r.vi||'')}">${esc(r.zh)}${r.vi?`<small>${esc(r.vi)}${r.to?' → '+esc(GEO.vn34.regions.find(x=>x.id===r.to).zh):''}</small>`:''}</td>`+
+      d.cols.map(c=>`<td><input inputmode="decimal" data-c="${c.id}" value="${c.vals[r.id]==null?'':c.vals[r.id]}" aria-label="${esc(r.zh)} ${esc(c.name)}"></td>`).join('')+`</tr>`;
+  }
+  h+=`</tbody></table></div>`;
+  h+=footHtml();
+  return h;
+}
+function storageNote(){return `<p class="hint" style="margin-top:14px">💾 會自動存在這台電腦。<b>共用電腦用完請清除。</b> <button class="btn sm" data-act="wipe">清除暫存</button>${info('資料和設定存在這台電腦的瀏覽器，關掉再開還在；按「清除暫存」後，下一位同學就看不到。')}</p>`;}
 function colOptions(sel,filter){return D().cols.map(c=>`<option value="${c.id}"${c.id===sel?' selected':''}>${esc(c.name)}（${c.kind==='total'?'總量':'比率'}）</option>`).join('');}
 function panelStyle(){
   const d=D();
   if(!d.cols.length)return `<p class="hint">請先在「① 資料」放入資料。</p><button class="btn" data-act="sample">載入範例資料</button>`+footHtml();
   let h='';
   const t=V().type;
-  h+=`<h3>地圖種類：${TYPES[t].label}</h3>`;
+  if(S.compare)h+=`<div class="row" style="margin-bottom:10px"><b>並排比較：</b>正在設定 <div class="seg" role="group"><button data-act="edit" data-k="L" aria-pressed="${S.edit==='L'}">左圖</button><button data-act="edit" data-k="R" aria-pressed="${S.edit==='R'}">右圖</button></div>${S.type==='choro'&&S2&&S2.type==='choro'?`<label class="ck"><input type="checkbox" data-same${S.sameClass?' checked':''}> 單位相同時用同一套分級</label>`:''}</div>`;
+  h+=`<h3>地圖種類</h3><div class="typecards">${Object.entries(TYPES).map(([k,o])=>`<button data-type="${k}" aria-pressed="${t===k}">${TYPE_ICON[k]}${o.label}<small>按 ${o.key}</small></button>`).join('')}</div>`;
+  h+=`<p class="hint">${t==='choro'?'用顏色深淺比較各區，適合<b>比率、密度</b>。':t==='prop'?'用圓的大小表示多少，適合<b>總量</b>。':t==='dot'?'用點的多少表示數量，適合<b>總量</b>。':'用圓餅或長條比較好幾欄，適合<b>結構、組成</b>。'}</p>`;
+  h+=`<div id="alerts" class="alerts"></div>`;
   if(t==='choro'){
     const c=pickColV(V(),'choro');
     h+=`<div class="row">資料欄 <select data-set="choro.col">${colOptions(c.id)}</select></div>`;
     if(sharedActive(V())){h+=`<div class="alert info"><span>右圖使用<b>左圖的分級與配色</b>，兩張圖的顏色才能互相比較。要分開設定，請取消地圖上方的「單位相同時用同一套分級」。</span></div>`+footHtml();return h;}
     h+=`<h3>分幾級</h3><div class="seg" role="group">${[3,4,5,6,7].map(k=>`<button data-act="k" data-k="${k}" aria-pressed="${V().choro.k===k}">${k} 級</button>`).join('')}</div>`;
     h+=`<h3>分級方法</h3><div class="seg" role="group">${[['quantile','等量'],['equal','等距'],['jenks','自然斷點'],['custom','自訂']].map(([k,n])=>`<button data-act="method" data-m="${k}" aria-pressed="${V().choro.method===k}">${n}</button>`).join('')}</div>`;
-    h+=`<p class="hint">${V().choro.method==='quantile'?'等量：每一級的區域數差不多。':V().choro.method==='equal'?'等距：每一級的數值範圍一樣寬。':V().choro.method==='jenks'?'自然斷點：把數值接近的分在同一級，差很多的分開；適合資料分布不平均時。':'自訂：自己輸入分界值，用逗號隔開。'}</p>`;
+    h+=`<p class="hint">${V().choro.method==='quantile'?'每一級的區域數差不多。':V().choro.method==='equal'?'每一級的數值範圍一樣寬。':V().choro.method==='jenks'?'數值接近的分在同一級。':'自己輸入分界值，或拖曳下方數線。'} ${info('<b>等量</b>：每一級的區域數差不多。<br><b>等距</b>：每一級的數值範圍一樣寬。<br><b>自然斷點</b>：把數值接近的分在同一級、差很多的分開，適合資料分布不平均時。<br><b>自訂</b>：自己決定分界值，例如用全國平均當分界。','四種方法')}</p>`;
     const cl=classifyV(V(),c);
     if(V().choro.method==='custom'){
       const cur=V().choro.custom||(cl?cl.br.map(v=>+v.toFixed(cl.bd)):[]);
       h+=`<input class="wide" data-set="custom" value="${cur.join(', ')}" placeholder="例：16, 18, 20, 22"><p class="hint">資料最小 ${cl?fmt(cl.min,cl.bd):'—'}、最大 ${cl?fmt(cl.max,cl.bd):'—'}；分界值要介於兩者之間。</p>`;
     }
-    if(cl)h+=`<p class="hint counts">${countsText(cl)}</p><h3>資料分布（拖曳分界線可以調整）</h3><div id="nlbox">${numberLine(V(),c)}</div><p class="hint gvf">${gvfText(cl)}</p>`;
-    h+=`<h3>配色（ColorBrewer 地圖學色票）</h3><p class="hint"><b>單色漸層</b>：由少到多，最常用。這一類都<span class="badge">色盲友善</span>，黑白列印也分得出深淺。${S.style==='color'&&/Blues|PuBu|GnBu|YlGnBu|BuPu/.test(V().choro.pal)?'<br>目前是藍色系，和海的顏色接近；想更清楚可以在「③ 圖面與說明」改用簡潔風格。':''}</p><div class="pals">`;
+    if(cl)h+=`<h3>資料分布 ${info('每個點是一個'+(MAPS[S.map].lang?'省市':'縣市')+'，黑色方塊可以左右拖曳，地圖會跟著改。<br>「分得好不好」：同一級裡的數值越接近、不同級差越多，分數越高（滿分 100）。','怎麼用')}</h3><div id="nlbox">${numberLine(V(),c)}</div><p class="hint gvf">${gvfText(cl)}</p><p class="hint counts">${countsText(cl)}</p>`;
+    h+=`<h3>配色 ${info('色票來自地圖學常用的 ColorBrewer。<b>單色漸層</b>由少到多，最常用，都<span class="badge">色盲友善</span>，黑白列印也分得出深淺。<b>雙向色</b>用在資料有正負，或要和中間值（例如全國平均）比較時。')}</h3>${S.style==='color'&&/Blues|PuBu|GnBu|YlGnBu|BuPu/.test(V().choro.pal)?'<p class="hint">藍色系和海的顏色接近，可在「④ 圖名與下載」改用簡潔風格。</p>':''}<p class="hint"><b>單色漸層</b></p><div class="pals">`;
     const K=cl?Math.max(3,Math.min(7,cl.K)):5;
     for(const n in SEQ_NAMES)h+=palBtn('seq',n,CB.seq[n][K],SEQ_NAMES[n],false,false);
-    h+=`</div><p class="hint" style="margin-top:10px"><b>雙向色</b>：資料有正負，或要和中間值（例如全國平均）比較高低時用。</p><div class="pals">`;
+    h+=`</div><p class="hint" style="margin-top:10px"><b>雙向色</b>（有正負時用）</p><div class="pals">`;
     for(const n in DIV_NAMES)h+=palBtn('div',n,CB.div[n][K],DIV_NAMES[n],DIV_CB_SAFE.includes(n),false);
     h+=`</div>`;
   }else if(t==='prop'){
     const c=pickColV(V(),'prop');
     h+=`<div class="row">資料欄 <select data-set="prop.col">${colOptions(c.id)}</select></div>`;
     h+=`<h3>底色（疊一張面量圖）</h3><div class="row"><select data-set="prop.base"><option value="">不疊底色</option>${D().cols.map(x=>`<option value="${x.id}"${x.id===V().prop.base?' selected':''}>${esc(x.name)}（${x.kind==='total'?'總量':'比率'}）</option>`).join('')}</select></div>`;
-    if(V().prop.base)h+=`<p class="hint">底色的級數、分級方法和配色，沿用「面量圖」的設定（按上方「面量圖」可以調整）。底色建議用<b>比率或密度</b>，圓圈用<b>總量</b>。</p>`;
+    if(V().prop.base)h+=`<p class="hint">底色用<b>比率</b>、圓圈用<b>總量</b>。${info('底色的級數、分級方法和配色，沿用「面量圖」的設定，切到面量圖就能調整。')}</p>`;
     h+=`<h3>最大的圓</h3><div class="row"><input type="range" min="14" max="60" value="${V().prop.rmax}" data-set="prop.rmax" aria-label="最大圓半徑"> 半徑 ${V().prop.rmax}</div>`;
     h+=`<h3>顏色</h3>${colorBtns('prop')}`;
-    h+=`<p class="hint">圓的<b>面積</b>（不是半徑）與數值成正比：數值是 4 倍，圓的半徑是 2 倍。</p>`;
+    h+=`<p class="hint">${info('圓的<b>面積</b>（不是半徑）與數值成正比：數值是 4 倍，圓的半徑是 2 倍。','圓的大小怎麼算')}</p>`;
   }else if(t==='dot'){
     const c=pickColV(V(),'dot');
     if(V().dot.unitFor!==c.id+'|'+S.map){V().dot.unit=autoDotUnit(S.map,c);V().dot.unitFor=c.id+'|'+S.map;}
     h+=`<div class="row">資料欄 <select data-set="dot.col">${colOptions(c.id)}</select></div>`;
     h+=`<h3>1 點代表多少</h3><div class="row"><input class="num" inputmode="decimal" data-set="dot.unit" value="${V().dot.unit}"> ${esc(c.unit||'')}　<button class="btn sm" data-act="dotauto">自動</button></div>`;
-    h+=`<p class="hint">數值 ÷ 每點代表的數量 = 點數（四捨五入）。點太少看不出差異，太多會糊成一片。</p>`;
+    h+=`<p class="hint">${info('數值 ÷ 每點代表的數量 = 點數（四捨五入）。點太少看不出差異，太多會糊成一片。')}</p>`;
     h+=`<h3>點的大小</h3><div class="row"><input type="range" min="1" max="4" step="0.2" value="${V().dot.size}" data-set="dot.size" aria-label="點的大小"> ${V().dot.size}</div>`;
     h+=`<h3>顏色</h3>${colorBtns('dot')}`;
   }else{
@@ -934,31 +992,35 @@ function colorBtns(k){return `<div class="colors">${SINGLE.map(c=>`<button data-
 function panelText(){
   const d=D(),M=MAPS[S.map];
   const ck=allChecks();const bad=ck.filter(x=>!x.ok).length;
-  let h=`<h3>作品檢核 ${bad?`<span style="color:var(--warn)">（${bad} 項待確認）</span>`:'<span style="color:var(--ok)">（全部通過）</span>'}</h3><ul class="checks">${checksHtml(ck)}</ul>`;
-  h+=`<h3>地圖風格</h3><div class="seg" role="group">${Object.entries(STYLES).map(([k,o])=>`<button data-act="style" data-k="${k}" aria-pressed="${S.style===k}">${o.label}</button>`).join('')}</div>`;
-  h+=`<p class="hint">${S.style==='color'?'彩色：海洋淺藍、陸地有陰影，適合投影與簡報。':S.style==='clean'?'簡潔：白底、只畫主角，適合放進報告。':'黑白列印：細黑線、灰色色票，影印也看得清楚。'}</p>`;
-  h+=`<h3>指北針</h3><div class="norths">${Object.entries(NORTHS).map(([k,n])=>`<button data-act="north" data-k="${k}" aria-pressed="${S.north===k}" title="${n}" aria-label="${n}"><svg viewBox="-34 -40 68 72">${northArrow(k,0,0,STYLES.clean)}</svg></button>`).join('')}</div>`;
+  const good=ck.filter(x=>x.ok);
+  let h=`<h3>作品檢核 ${bad?`<span style="color:var(--warn)">（${bad} 項待確認）</span>`:'<span style="color:var(--ok)">（全部通過）</span>'}</h3><ul class="checks">${checksHtml(ck.filter(x=>!x.ok))}<li style="display:block;border:0"><details><summary>已通過 ${good.length} 項</summary><ul class="checks">${checksHtml(good)}</ul></details></li></ul>`;
   h+=`<h3>圖名</h3><input class="wide" data-set="title" value="${esc(d.title)}" placeholder="留白＝自動：${esc(M.full)}＋資料名稱">`;
-  h+=`<h3>副標題（年份、單位）</h3><input class="wide" data-set="sub" value="${esc(d.sub)}" placeholder="例：2025 年底｜單位：%（留白＝自動顯示單位）">`;
+  h+=`<h3>副標題（年份、單位）</h3><input class="wide" data-set="sub" value="${esc(d.sub)}" placeholder="例：2025 年底｜單位：%">`;
   h+=`<h3>資料來源</h3><input class="wide" data-set="src" value="${esc(d.src)}" placeholder="留白＝自動使用欄位的來源">`;
-  h+=`<p class="hint">好的統計地圖要有：圖名、圖例、指北針、比例尺、資料來源。本模型會自動加上，圖名、副標題和來源可以自己改。</p>`;
-  h+=`<h3>地圖標籤</h3><p class="hint">在地圖上方切換「名稱、數值、名稱＋數值、隱藏」，或按 <kbd>N</kbd> 一鍵顯示／隱藏。</p>`;
-  if(M.lang)h+=`<div class="row">名稱用 <div class="seg" role="group">${[['zh','中文'],['vi','越南文'],['both','中＋越']].map(([k,n])=>`<button data-act="lang" data-k="${k}" aria-pressed="${S.lang===k}">${n}</button>`).join('')}</div></div>`;
-  h+=`<h3>輸出</h3><div class="row"><button class="btn" data-act="png">下載 PNG 圖片</button><button class="btn" data-act="print">列印／另存 PDF</button></div><p class="hint">列印時選「另存為 PDF」就能得到 PDF 檔。</p>`;
+
+  h+=`<h3>地圖風格</h3><div class="seg" role="group">${Object.entries(STYLES).map(([k,o])=>`<button data-act="style" data-k="${k}" aria-pressed="${S.style===k}">${o.label}</button>`).join('')}</div>`;
+  h+=`<p class="hint">${S.style==='color'?'適合投影與簡報。':S.style==='clean'?'白底，適合放進報告。':'灰色色票，影印也清楚。'}</p>`;
+  h+=`<h3>指北針</h3><div class="norths">${Object.entries(NORTHS).map(([k,n])=>`<button data-act="north" data-k="${k}" aria-pressed="${S.north===k}" title="${n}" aria-label="${n}"><svg viewBox="-34 -40 68 72">${northArrow(k,0,0,STYLES.clean)}</svg></button>`).join('')}</div>`;
+  if(M.lang)h+=`<h3>地名用</h3><div class="seg" role="group">${[['zh','中文'],['vi','越南文'],['both','中＋越']].map(([k,n])=>`<button data-act="lang" data-k="${k}" aria-pressed="${S.lang===k}">${n}</button>`).join('')}</div>`;
+  h+=`<h3>下載</h3><div class="row"><button class="btn pri" data-act="png">下載 PNG 圖片</button><button class="btn" data-act="print">列印／另存 PDF</button></div>`;
+  h+=`<p class="hint" style="margin-top:12px">${info('好的統計地圖要有：圖名、圖例、指北針、比例尺、資料來源，本模型會自動加上。標籤可用地圖左上角的「標籤」或按 N 切換。列印時選「另存為 PDF」就能得到 PDF 檔。','小提醒')}</p>`;
   h+=footHtml();
   return h;
 }
 function footHtml(){
-  return `<div class="foot">快捷鍵：<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 換底圖　<kbd>4</kbd>～<kbd>7</kbd> 換地圖種類　<kbd>N</kbd> 標籤　<kbd>R</kbd> 設定重來　<kbd>F</kbd> 全螢幕<br>`+
-  `邊界：臺灣依內政部（taiwan-atlas）、越南依 Nguyễn Duy Liêm（2025）資料，經簡化；越南南海群島依越南官方行政區劃繪製。配色：ColorBrewer（Cynthia Brewer, Penn State）。理想化模型，僅供教學示意。</div>`;
+  return `<div class="foot">${info('<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 換底圖　<kbd>4</kbd>～<kbd>7</kbd> 換地圖種類　<kbd>←</kbd><kbd>→</kbd> 上一步／下一步　<kbd>N</kbd> 標籤　<kbd>R</kbd> 設定重來　<kbd>F</kbd> 全螢幕','快捷鍵')} ${info('邊界：臺灣依內政部（taiwan-atlas）、越南依 Nguyễn Duy Liêm（2025）資料，經簡化；越南南海群島依越南官方行政區劃繪製。配色：ColorBrewer（Cynthia Brewer, Penn State）。理想化模型，僅供教學示意。','資料來源')}</div>`;
 }
 
 /* ---------- 面板事件 ---------- */
 const pb=$('#pbody');
 pb.addEventListener('click',e=>{
+  const mb=e.target.closest('[data-map]');if(mb){setMap(mb.dataset.map);return;}
+  const tb=e.target.closest('[data-type]');if(tb&&!tb.closest('#alerts')){setType(tb.dataset.type);return;}
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;const card=b.closest('.colcard');const col=card&&colById(card.dataset.col);
-  if(a==='sample')loadSamples();
+  if(a==='gostep')goStep(b.dataset.k);
+  else if(a==='edit'){S.edit=b.dataset.k;renderAll();}
+  else if(a==='sample')loadSamples();
   else if(a==='paste')openPaste();
   else if(a==='upload')$('#fileIn').click();
   else if(a==='merge')merge63();
@@ -997,6 +1059,7 @@ pb.addEventListener('input',e=>{
 });
 pb.addEventListener('change',e=>{
   const t=e.target;const k=t.dataset.set;
+  if(t.matches('[data-same]')){S.sameClass=t.checked;renderAll();return;}
   if(t.dataset.chartcol){
     const ids=[...pb.querySelectorAll('[data-chartcol]')].filter(x=>x.checked).map(x=>x.dataset.chartcol);
     if(ids.length>6){t.checked=false;toast('最多選 6 欄');return;}
@@ -1013,8 +1076,8 @@ function loadSamples(){
   const d=D();const ss=samples(S.map);
   const have=new Set(d.cols.map(c=>c.name));
   let n=0;for(const c of ss)if(!have.has(c.name)){d.cols.push(c);n++;}
-  S.tab=S.tab==='data'?'data':S.tab;
-  renderAll();toast(n?`已載入 ${n} 欄範例資料`:'範例資料已經在表裡了');
+  if(S.tab==='data')S.tab='check';
+  renderAll();toast(n?`已載入 ${n} 欄範例資料，請檢查單位與類型`:'範例資料已經在表裡了');
 }
 function makeDensity(col){
   const R=regions();const unit=col.unit?`${col.unit}/平方公里`:'每平方公里';
@@ -1039,7 +1102,7 @@ function merge63(){
     }
     S.data.vn34.cols.push(newCol({name:c.name+'（由 63 省合併）',unit:c.unit,kind:'total',src:(c.src?c.src+'；':'')+'依 2025 年行政區合併相加',vals}));
   }
-  S.map='vn34';S.tab='data';renderAll();
+  S.map='vn34';S.tab='check';renderAll();
   let msg=`已把 ${tot.length} 欄總量資料合併成 34 省。`;
   if(rat.length)msg+=`\n\n「${rat.map(c=>c.name).join('、')}」是比率／密度，不能直接相加，所以沒有合併。\n要得到 34 省的比率，請把分子和分母（例如人口數與面積）各自合併後再相除。`;
   if(incomplete.length)msg+=`\n\n${[...new Set(incomplete)].join('、')} 有部分舊省缺資料，合併後留白。`;
@@ -1101,7 +1164,7 @@ function importRows(rows,how){
   }
   if(!newCols.length){alert('有對到名稱，但沒有讀到數字欄位。');return;}
   S.data[mid].cols.push(...newCols);
-  S.tab='data';renderAll();
+  S.tab='check';renderAll();
   const total=GEO[mid].regions.length;
   let msg=`${how}完成：新增 ${newCols.length} 欄（${newCols.map(c=>c.name+'＝'+(c.kind==='total'?'總量':'比率')).join('、')}），對到 ${new Set(matched).size}／${total} 個區域。`;
   if(unmatched.length)msg+=`\n\n這些名稱對不到，已略過：${unmatched.slice(0,12).join('、')}${unmatched.length>12?'…':''}`;
@@ -1202,7 +1265,7 @@ pop.addEventListener('click',e=>{
   const a=b.dataset.pop,rid=pop.dataset.r;
   if(a==='close')closePop();
   else if(a==='add'){D().cols.push(newCol({name:'資料1'}));const rr=pop.getBoundingClientRect();renderAll();openPop(rid,rr.left,rr.top);}
-  else if(a==='table'){pop.style.display='none';S.tab='data';renderAll();const tr=pb.querySelector(`tr[data-r="${CSS.escape(rid)}"]`);if(tr){tr.scrollIntoView({block:'center'});const i=tr.querySelector('input');if(i)i.focus({preventScroll:true});}}
+  else if(a==='table'){pop.style.display='none';S.tab='check';renderAll();const tr=pb.querySelector(`tr[data-r="${CSS.escape(rid)}"]`);if(tr){tr.scrollIntoView({block:'center'});const i=tr.querySelector('input');if(i)i.focus({preventScroll:true});}}
 });
 document.addEventListener('pointerdown',e=>{if(pop.style.display==='block'&&!pop.contains(e.target)&&!e.target.closest('.rg'))closePop();});
 
@@ -1229,11 +1292,11 @@ function checksFor(v,tag){
     if(v.chart.kind==='pie')add(new Set(cs.map(c=>c.unit)).size<=1&&new Set(cs.map(c=>c.kind)).size<=1,'圓餅圖各欄單位相同','圓餅圖要畫「同一個整體分成幾份」，例如一級、二級、三級產業人口');
   }
   const noUnit=used.filter(c=>c&&!String(c.unit||'').trim());
-  add(!noUnit.length,'資料有寫單位',noUnit.length?`「${noUnit.map(c=>c.name).join('、')}」沒有單位，請在「① 資料」的欄位卡片填寫`:'');
+  add(!noUnit.length,'資料有寫單位',noUnit.length?`「${noUnit.map(c=>c.name).join('、')}」沒有單位，請在「② 檢查」填寫`:'');
   const o=mapSVG(v,'ck');
   add(/臺灣|台灣|越南|縣|省|市|[A-Za-z]/.test(o.title),'圖名寫出地點與主題',`圖名：「${o.title}」`);
-  add(/\d{4}|民國\s*\d+|\d+\s*年/.test(o.title+' '+(o.sub||'')),'圖名或副標題寫出時間','建議在「③ 圖面與說明」的副標題寫年份，例如「2025 年底」');
-  add(!!o.src,'寫出資料來源',o.src?'':'請在「③ 圖面與說明」填寫資料來源');
+  add(/\d{4}|民國\s*\d+|\d+\s*年/.test(o.title+' '+(o.sub||'')),'圖名或副標題寫出時間','建議在「④ 圖名與下載」的副標題寫年份，例如「2025 年底」');
+  add(!!o.src,'寫出資料來源',o.src?'':'請在「④ 圖名與下載」填寫資料來源');
   add(true,'圖例、指北針、比例尺','模型已自動加上');
   return out;
 }
@@ -1329,8 +1392,6 @@ function loadState(){
     return true;
   }catch(_){return false;}
 }
-$('#pngBtn').addEventListener('click',exportPNG);
-$('#printBtn').addEventListener('click',doPrint);
 function toggleFS(){try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}catch(_){}}
 $('#fsBtn').addEventListener('click',toggleFS);
 
@@ -1341,17 +1402,18 @@ function setStyle(k){
   S.style=k;renderAll();
 }
 $('#maptools').addEventListener('click',e=>{
-  const b=e.target.closest('[data-lm]');if(b){setLabelMode(b.dataset.lm);return;}
+  if(e.target.closest('[data-lmmenu]')){S.lmOpen=!S.lmOpen;renderMapTools();return;}
+  const b=e.target.closest('[data-lm]');if(b){S.lmOpen=false;setLabelMode(b.dataset.lm);return;}
   if(e.target.closest('[data-cmp]')){toggleCompare();return;}
   const ed=e.target.closest('[data-edit]');if(ed){S.edit=ed.dataset.edit;renderAll();}
 });
-$('#maptools').addEventListener('change',e=>{if(e.target.matches('[data-same]')){S.sameClass=e.target.checked;renderAll();}});
 function toggleCompare(){
   S.compare=!S.compare;
-  if(S.compare){if(!S2)makeS2();S.edit='R';toast('並排比較：左右各一張，地圖上方選「正在設定」哪一張',3200);}
+  if(S.compare){if(!S2)makeS2();S.edit='R';S.tab='style';toast('並排比較：右邊「③ 畫地圖」可以選要設定左圖或右圖',3200);}
   else S.edit='L';
   renderAll();
 }
+document.addEventListener('pointerdown',e=>{if(S.lmOpen&&!e.target.closest('#maptools')){S.lmOpen=false;renderMapTools();}});
 function resetSettings(){
   Object.assign(S.choro,{k:5,method:'quantile',custom:null,pal:'seq:YlOrRd'});
   Object.assign(S.prop,{rmax:34,color:SINGLE[0],base:null});
@@ -1371,6 +1433,7 @@ document.addEventListener('keydown',e=>{
   if(k==='f'||k==='F'){toggleFS();e.preventDefault();}
   else if(k==='r'||k==='R'){resetSettings();}
   else if(k==='n'||k==='N'){toggleLabels();}
+  else if(k==='ArrowRight'||k==='ArrowLeft'){const cur=stepIdx(),n=Math.max(0,Math.min(3,cur+(k==='ArrowRight'?1:-1)));if(n!==cur)goStep(STEPS[n][0]);e.preventDefault();}
   else if(k==='1')setMap('tw');else if(k==='2')setMap('vn34');else if(k==='3')setMap('vn63');
   else{const t=Object.entries(TYPES).find(([,v])=>v.key===k);if(t)setType(t[0]);}
 });
