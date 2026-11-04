@@ -67,12 +67,20 @@ kbd{font-family:inherit;font-size:.85em;border:1px solid var(--line);border-bott
 .alert.info b{color:var(--accent)}
 .alerts{display:flex;flex-direction:column;gap:6px}
 .alerts:empty{display:none}
-.maptools{position:absolute;left:10px;top:10px;z-index:4;display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.maptools{position:absolute;left:10px;top:10px;z-index:4;display:flex;flex-direction:column;gap:6px;align-items:stretch;width:66px}
 .maptools .tb{border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:6px 8px;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.12);min-width:58px;line-height:1.25}
 .maptools .tb[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
 :root[data-theme="dark"] .maptools .tb[aria-pressed="true"]{color:#10161d}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .maptools .tb[aria-pressed="true"]{color:#10161d}}
 .maptools .tb small{display:block;font-size:12px;opacity:.75}
+.zoomgrp{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:4px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.zoomgrp .tb{box-shadow:none;min-width:50px}
+.zoomgrp .zb{font-size:20px;font-weight:700;padding:2px 8px}
+.zr{writing-mode:vertical-lr;direction:rtl;inline-size:74px;block-size:22px;width:22px;height:74px;margin:0;padding:0}
+.mapbox.zoomed svg{cursor:grab;touch-action:none}
+.mapbox.zoomed svg:active{cursor:grabbing}
+#map .sym,#map2 .sym{cursor:move}
+@media (max-width:980px){.maptools{width:auto}.zoomgrp{flex-direction:row}.zr{writing-mode:horizontal-tb;direction:ltr;inline-size:90px;width:90px;height:auto}}
 .maptools .menu{position:absolute;left:66px;background:var(--paper);border:1px solid var(--line);border-radius:9px;box-shadow:0 6px 18px rgba(0,0,0,.18);padding:4px;display:flex;flex-direction:column;min-width:130px}
 .maptools .menu button{border:0;background:none;text-align:left;padding:6px 10px;border-radius:6px;font-size:15px}
 .maptools .menu button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
@@ -111,7 +119,7 @@ kbd{font-family:inherit;font-size:.85em;border:1px solid var(--line);border-bott
 .toast.on{opacity:.95}
 
 .panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.steps{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);padding:8px 8px 0;gap:2px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line);padding:8px 8px 0;gap:2px}
 .steps button{border:0;background:none;padding:4px 2px 8px;color:var(--ink2);font-size:15px;display:flex;flex-direction:column;align-items:center;gap:3px;border-bottom:3px solid transparent;line-height:1.2}
 .steps button .n{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:15px;background:var(--paper)}
 .steps button.done .n{border-color:var(--ok);color:var(--ok)}
@@ -119,6 +127,25 @@ kbd{font-family:inherit;font-size:.85em;border:1px solid var(--line);border-bott
 .steps button[aria-current="step"] .n{background:var(--accent);border-color:var(--accent);color:#fff}
 :root[data-theme="dark"] .steps button[aria-current="step"] .n{color:#10161d}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .steps button[aria-current="step"] .n{color:#10161d}}
+.undobar{display:none;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;background:var(--ink);color:var(--paper);font-size:15px}
+.undobar.on{display:flex}
+.undobar .btn{background:var(--paper);color:var(--ink)}
+.collist{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:8px}
+.colrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:7px 8px;border-top:1px solid var(--line)}
+.colrow.colcard{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:7px 8px;margin:0;border:0;border-top:1px solid var(--line);border-radius:0}
+.colrow.colcard>input[data-f=name]{flex:1 1 150px}
+.colrow.colcard>input[data-f=unit]{flex:0 0 76px}
+.colrow.colcard:first-child{border-top:0}
+.colrow.colcard input[type=text]{width:auto;min-width:0}
+.colrow>input[data-f=name]{flex:1 1 150px}
+.colrow>input[data-f=unit]{flex:0 0 76px}
+.colrow:first-child{border-top:0}
+.colrow input[type=text]{width:100%;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);min-width:0}
+.colrow .st{flex:1 1 100%;font-size:13px;color:var(--ink2);margin-top:-2px}
+.colrow .kind button{padding:2px 7px;font-size:14px}
+.unm{border:1px solid var(--warn);background:var(--warn-soft);border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.unm .r{display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap}
+.unm .r b{color:var(--warn)}
 .stepnav{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;border-top:1px solid var(--line);background:var(--paper)}
 .stepnav .btn{min-width:110px}
 .stepnav .btn:disabled{opacity:.35;cursor:default}
@@ -225,6 +252,7 @@ input.wide{width:100%;padding:4px 8px;border:1px solid var(--line);border-radius
   <aside class="panel">
     <nav class="steps" id="steps" aria-label="製作步驟"></nav>
     <div class="pbody" id="pbody"></div>
+    <div class="undobar" id="undobar"></div>
     <div class="stepnav" id="stepnav"></div>
   </aside>
 </main>
@@ -248,6 +276,12 @@ input.wide{width:100%;padding:4px 8px;border:1px solid var(--line);border-radius
       <button class="btn" id="ckBack">回去修改</button>
       <button class="btn pri" id="ckGo">仍要繼續</button>
     </div>
+  </div>
+</div>
+<div class="modal" id="msgModal" role="dialog" aria-modal="true">
+  <div class="box" style="max-width:520px">
+    <div id="msgText" style="white-space:pre-line;font-size:16px"></div>
+    <div class="row" style="margin-top:12px;justify-content:flex-end" id="msgBtns"></div>
   </div>
 </div>
 <input type="file" id="fileIn" accept=".csv,.txt,.tsv,.xlsx" hidden>
@@ -333,7 +367,7 @@ const S={
   data:{tw:{cols:[],title:'',sub:'',src:''},vn34:{cols:[],title:'',sub:'',src:''},vn63:{cols:[],title:'',sub:'',src:''}},
   choro:{col:null,k:5,method:'quantile',custom:null,pal:'seq:YlOrRd'},
   prop:{col:null,rmax:34,color:SINGLE[0],base:null},
-  compare:false,edit:'L',sameClass:true,
+  compare:false,edit:'L',sameClass:true,zoom:{k:1,tx:0,ty:0},exportView:'all',offsets:{},
   dot:{col:null,unit:null,unitFor:null,size:2.2,color:SINGLE[2]},
   chart:{cols:[],kind:'pie',sized:false,pal:'Set2'},
   labelMode:{tw:'name',vn34:'name',vn63:'none'},lastLabel:'name',lang:'zh',style:'color',north:'half',
@@ -368,14 +402,14 @@ function samples(mid){
 }
 
 /* ---------- 頂端按鈕 ---------- */
-const STEPS=[['data','資料'],['check','檢查'],['style','畫地圖'],['text','圖名與下載']];
+const STEPS=[['data','資料'],['style','畫地圖'],['text','圖名與下載']];
 function stepIdx(){const i=STEPS.findIndex(x=>x[0]===S.tab);return i<0?0:i;}
 function renderTop(){
   if(!STEPS.some(x=>x[0]===S.tab))S.tab='data';
   const cur=stepIdx();
   $('#steps').innerHTML=STEPS.map(([k,n],i)=>`<button data-step="${k}"${i===cur?' aria-current="step"':''} class="${i<cur?'done':''}"><span class="n">${i<cur?'✓':i+1}</span>${n}</button>`).join('');
-  const nextLabel=cur===0?'下一步：檢查資料':cur===1?'下一步：畫地圖':cur===2?'下一步：圖名與下載':'下載圖片';
-  $('#stepnav').innerHTML=`<button class="btn" data-nav="-1"${cur===0?' disabled':''}>← 上一步</button><button class="btn pri" data-nav="1">${nextLabel}${cur<3?' →':''}</button>`;
+  const nextLabel=cur===0?'下一步：畫地圖':cur===1?'下一步：圖名與下載':'下載圖片';
+  $('#stepnav').innerHTML=`<button class="btn" data-nav="-1"${cur===0?' disabled':''}>← 上一步</button><button class="btn pri" data-nav="1">${nextLabel}${cur<2?' →':''}</button>`;
   const d=D();
   $('#topinfo').textContent=`${MAPS[S.map].label}｜${TYPES[V().type].label}${d.cols.length?`｜${d.cols.length} 欄資料`:'｜還沒有資料'}`;
 }
@@ -383,13 +417,13 @@ $('#steps').addEventListener('click',e=>{const b=e.target.closest('[data-step]')
 $('#stepnav').addEventListener('click',e=>{
   const b=e.target.closest('[data-nav]');if(!b||b.disabled)return;
   const cur=stepIdx(),d=+b.dataset.nav;
-  if(d>0&&cur===3){exportPNG();return;}
+  if(d>0&&cur===2){exportPNG();return;}
   if(d>0&&cur===0&&!D().cols.length){toast('先放入資料：可以按「載入範例資料」試試看');return;}
-  goStep(STEPS[Math.max(0,Math.min(3,cur+d))][0]);
+  goStep(STEPS[Math.max(0,Math.min(2,cur+d))][0]);
 });
 function goStep(k){S.tab=k;renderAll();}
-function setMap(m){if(!MAPS[m]||S.map===m)return;S.map=m;S.hl=null;renderAll();}
-function setType(t){if(!TYPES[t])return;V().type=t;if((S.tab==='data'||S.tab==='check')&&D().cols.length)S.tab='style';renderAll();}
+function setMap(m){if(!MAPS[m]||S.map===m)return;S.map=m;S.hl=null;S.zoom={k:1,tx:0,ty:0};renderAll();}
+function setType(t){if(!TYPES[t])return;V().type=t;if(S.tab==='data'&&D().cols.length)S.tab='style';renderAll();}
 
 /* ---------- 選欄 ---------- */
 function colByIdIn(mid,id){return S.data[mid].cols.find(c=>c.id===id)||null;}
@@ -496,8 +530,22 @@ function pathBBox(mid,r){
 let hitCtx=null;
 function inPath(p,x,y){if(!hitCtx)hitCtx=document.createElement('canvas').getContext('2d');return hitCtx.isPointInPath(p,x,y,'evenodd');}
 
-function legendBox(x,y,w,h){return `<rect x="${x-10}" y="${y-22}" width="${w+20}" height="${h+30}" rx="8" fill="#ffffff" fill-opacity="0.94" stroke="#c3cad2" stroke-width="0.8"/>`;}
-function txt(x,y,s,o={}){return `<text x="${x}" y="${y}" font-size="${o.size||14}"${o.bold?' font-weight="700"':''}${o.anchor?` text-anchor="${o.anchor}"`:''} fill="${o.fill||'#1f2a36'}"${o.halo?` stroke="${o.halo===true?'#ffffff':o.halo}" stroke-width="${o.hw||3}" paint-order="stroke" stroke-linejoin="round"`:''}>${esc(s)}</text>`;}
+function legendBox(x,y,w,h){return `<rect x="${x-10}" y="${y-22}" width="${w+20}" height="${h+30}" rx="8" fill="#ffffff" fill-opacity="0.95" stroke="#c3cad2" stroke-width="0.8"/>`;}
+function txt(x,y,s,o={}){
+  const w=o.bold?' font-weight="700"':o.w?` font-weight="${o.w}"`:'';
+  const ls=o.ls?` letter-spacing="${o.ls}"`:'';
+  const tab=o.tab?' style="font-variant-numeric:tabular-nums"':'';
+  const halo=o.halo?` stroke="${o.halo===true?'#ffffff':o.halo}" stroke-width="${o.hw||2.6}" stroke-opacity="${o.ho||0.85}" paint-order="stroke" stroke-linejoin="round"`:'';
+  return `<text x="${(+x).toFixed(1)}" y="${(+y).toFixed(1)}" font-size="${o.size||14}"${w}${ls}${tab}${o.anchor?` text-anchor="${o.anchor}"`:''} fill="${o.fill||'#1f2a36'}"${halo}>${esc(s)}</text>`;
+}
+/* 量字寬（用來避開重疊） */
+let measCtx=null;
+function textW(s,size,weight){if(!measCtx)measCtx=document.createElement('canvas').getContext('2d');measCtx.font=`${weight||500} ${size}px ${FONT}`;return measCtx.measureText(s).width+String(s).length*size*0.06;}
+/* 每張地圖的陸地範圍（判斷標籤有沒有拉到海上） */
+const LAND={};
+function landPath(mid){if(!LAND[mid]){const p=new Path2D();for(const r of GEO[mid].regions)p.addPath(new Path2D(r.d));LAND[mid]=p;}return LAND[mid];}
+function zoomOf(z){z=z||S.zoom||{k:1,tx:0,ty:0};return {k:z.k||1,tx:z.tx||0,ty:z.ty||0};}
+
 function fmtShort(v,d){
   if(v==null||!isFinite(v))return '';
   const a=Math.abs(v);
@@ -507,31 +555,24 @@ function fmtShort(v,d){
 }
 
 /* 畫出一張地圖，回傳 {svg, title}；v＝檢視設定（地圖、圖種、分級…），pfx＝SVG 內 id 前綴 */
-function mapSVG(v,pfx){
+function mapSVG(v,pfx,zOverride,forExport){
   const g=GEO[v.map],M=MAPS[v.map],R=g.regions,d=S.data[v.map],ST=STYLES[S.style]||STYLES.color;
   const parts=[];
   const W=g.W,H=g.H;
+  const Z=zoomOf(zOverride),T=(x,y)=>[x*Z.k+Z.tx,y*Z.k+Z.ty];
+  const NS_=' vector-effect="non-scaling-stroke"';
   parts.push(`<defs>`+
     `<clipPath id="${pfx}fr"><rect x="4" y="4" width="${W-8}" height="${H-8}"/></clipPath>`+
-    g.insets.map((b,i)=>`<clipPath id="${pfx}in${i}"><rect x="${b.box[0]}" y="${b.box[1]}" width="${b.box[2]}" height="${b.box[3]}"/></clipPath>`).join('')+
     `<filter id="${pfx}sh" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#18283a" flood-opacity="0.35"/></filter>`+
     `<filter id="${pfx}ss" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0.8" dy="1.4" stdDeviation="1.3" flood-color="#000" flood-opacity="0.32"/></filter>`+
     `<radialGradient id="${pfx}gl" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.55" stop-color="#fff" stop-opacity="0.08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>`+
     `</defs>`);
   parts.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>`);
   parts.push(`<rect x="4" y="4" width="${W-8}" height="${H-8}" fill="${ST.sea}"/>`);
-  if(ST.nb&&g.nb&&g.nb.main)parts.push(`<path d="${g.nb.main}" fill="${ST.nb}" stroke="${ST.nbLine}" stroke-width="0.8" stroke-linejoin="round" clip-path="url(#${pfx}fr)"/>`);
-  // 小圖框
-  const keys=Object.keys(g.nb||{}).filter(k=>k!=='main');
-  g.insets.forEach((b,i)=>{
-    const [x,y,w,h]=b.box;
-    parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${ST.sea}" stroke="${ST.frame}" stroke-width="0.9"/>`);
-    const nbk=v.map==='tw'?(i===0?'mz':'km'):null;
-    if(ST.nb&&nbk&&g.nb[nbk])parts.push(`<path d="${g.nb[nbk]}" fill="${ST.nb}" stroke="${ST.nbLine}" stroke-width="0.8" clip-path="url(#${pfx}in${i})"/>`);
-  });
   const type=v.type;
-  let fillOf=()=>ST.base,legend='',symbols='',title='',cA=null,unitLine='';
+  let fillOf=()=>ST.base,legend='',symbols='',dotsLayer='',title='',cA=null,unitLine='';
   const missFill=S.style==='bw'?'#ffffff':'#cfd3d8';
+  const anchor=r=>r.c?T(r.c[0],r.c[1]):null;
   if(type==='choro'){
     cA=pickColV(v,'choro');
     if(cA){
@@ -550,68 +591,148 @@ function mapSVG(v,pfx){
     const bc=v.prop.base&&colByIdIn(v.map,v.prop.base);
     if(bc){const c=classifyV(v,bc);if(c){const pal=palColorsV(v,c.K);fillOf=r=>{const i=c.cls(bc.vals[r.id]);return i<0?missFill:pal[i];};baseLeg=choroLegend(v,bc,c,pal,R);
       pos=M.legend2||[M.legend[0],M.legend[1]+choroLegend.h+30];}}
-    if(cA){const o=propSymbols(v,cA,R,pfx,pos,!!bc);symbols=o.s;legend=baseLeg+o.l;title=bc?`${M.full}${cA.name}與${bc.name}`:`${M.full}${cA.name}`;unitLine=bc?[cA.unit,bc.unit].filter(Boolean).join('；'):cA.unit;}
+    if(cA){const o=propSymbols(v,cA,R,pfx,pos,!!bc,anchor);symbols=o.s;legend=baseLeg+o.l;title=bc?`${M.full}${cA.name}與${bc.name}`:`${M.full}${cA.name}`;unitLine=bc?[cA.unit,bc.unit].filter(Boolean).join('；'):cA.unit;}
   }else if(type==='dot'){
     cA=pickColV(v,'dot');
-    if(cA){const o=dotSymbols(v,cA,R);symbols=o.s;legend=o.l;title=`${M.full}${cA.name}`;unitLine=cA.unit;}
+    if(cA){const o=dotSymbols(v,cA,R,Z.k);dotsLayer=o.s;legend=o.l;title=`${M.full}${cA.name}`;unitLine=cA.unit;}
   }else{
     const cs=chartColsV(v);
-    if(cs.length){const o=chartSymbols(v,cs,R,pfx);symbols=o.s;legend=o.l;title=`${M.full}${cs.map(c=>c.name).join('、')}`;unitLine=[...new Set(cs.map(c=>c.unit).filter(Boolean))].join('、');}
+    if(cs.length){const o=chartSymbols(v,cs,R,pfx,anchor);symbols=o.s;legend=o.l;title=`${M.full}${cs.map(c=>c.name).join('、')}`;unitLine=[...new Set(cs.map(c=>c.unit).filter(Boolean))].join('、');}
   }
-  // 海岸線（外框加粗）＋陰影
+  // ── 會跟著放大縮小的圖層：小圖框、海岸線、各區 ──
+  const geo=[];
+  g.insets.forEach(b=>{const [x,y,w,h]=b.box;geo.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${ST.sea}" stroke="${ST.frame}" stroke-width="0.9"${NS_}/>`);});
   const coast=[],fills=[];
   for(const r of R){
-    coast.push(`<path d="${r.d}" fill="${ST.coast}" stroke="${ST.coast}" stroke-width="${ST.coastW*2}" stroke-linejoin="round"/>`);
-    if(r.isl)for(const p of r.isl)coast.push(`<circle cx="${p[1]}" cy="${p[2]}" r="${1.9+ST.coastW*0.6}" fill="${ST.coast}"/>`);
+    coast.push(`<path d="${r.d}" fill="${ST.coast}" stroke="${ST.coast}" stroke-width="${ST.coastW*2}" stroke-linejoin="round"${NS_}/>`);
+    if(r.isl)for(const p of r.isl)coast.push(`<circle cx="${p[1]}" cy="${p[2]}" r="${(1.9+ST.coastW*0.6)/Z.k}" fill="${ST.coast}"/>`);
   }
-  parts.push(`<g${ST.shadow?` filter="url(#${pfx}sh)"`:''}>${coast.join('')}</g>`);
+  geo.push(`<g${ST.shadow?` filter="url(#${pfx}sh)"`:''}>${coast.join('')}</g>`);
   for(const r of R){
     const f=fillOf(r);
-    fills.push(`<path class="rg" data-id="${esc(r.id)}" d="${r.d}" fill="${f}" fill-rule="evenodd" stroke="${ST.inner}" stroke-width="${ST.innerW}" stroke-linejoin="round"/>`);
-    if(r.isl)for(const p of r.isl)fills.push(`<circle class="rg" data-id="${esc(r.id)}" cx="${p[1]}" cy="${p[2]}" r="1.9" fill="${f}"/>`);
+    fills.push(`<path class="rg" data-id="${esc(r.id)}" d="${r.d}" fill="${f}" fill-rule="evenodd" stroke="${ST.inner}" stroke-width="${ST.innerW}" stroke-linejoin="round"${NS_}/>`);
+    if(r.isl)for(const p of r.isl)fills.push(`<circle class="rg" data-id="${esc(r.id)}" cx="${p[1]}" cy="${p[2]}" r="${1.9/Z.k}" fill="${f}"/>`);
   }
-  parts.push(`<g>${fills.join('')}</g>`);
-  if(S.hl&&v===S){const r=R.find(r=>r.id===S.hl);if(r)parts.push(`<path d="${r.d}" fill="none" stroke="#1f2a36" stroke-width="2.4" pointer-events="none"/>`);}
+  geo.push(`<g>${fills.join('')}</g>`);
+  if(S.hl&&v===S&&!forExport){const r=R.find(r=>r.id===S.hl);if(r)geo.push(`<path d="${r.d}" fill="none" stroke="#1f2a36" stroke-width="2.4"${NS_} pointer-events="none"/>`);}
+  geo.push(dotsLayer);
+  parts.push(`<g clip-path="url(#${pfx}fr)"><g transform="translate(${Z.tx.toFixed(2)},${Z.ty.toFixed(2)}) scale(${Z.k})">${geo.join('')}</g>`);
   parts.push(symbols);
-  // 標籤
+  // ── 標籤：依面積分大小、自動避開、放不下就拉線 ──
   const lm=S.labelMode[v.map];
   if(lm!=='none'){
-    const L=[];const fs=v.map==='vn63'?9:11;
-    const showV=(lm==='value'||lm==='both')&&cA&&type!=='chart';
-    const dd=cA?colDecIn(v.map,cA):0;
-    for(const r of R){
-      if(!r.c)continue;
-      const nm=(lm==='name'||lm==='both'||type==='chart')?labelName(v.map,r):'';
-      const vv=showV?fmtShort(cA.vals[r.id],dd):'';
-      const o={size:fs,anchor:'middle',halo:true,fill:'#1f2a36'};
-      if(nm&&vv){L.push(txt(r.c[0],r.c[1]-1,nm,o)+txt(r.c[0],r.c[1]+fs+1,vv,Object.assign({},o,{bold:true})));}
-      else if(nm||vv)L.push(txt(r.c[0],r.c[1]+4,nm||vv,Object.assign({},o,{bold:!!vv})));
-    }
-    parts.push(`<g pointer-events="none">${L.join('')}</g>`);
+    parts.push(placeLabels(v,R,cA,type,lm,Z,legend?MAPS[v.map].legend:null));
+    g.insets.forEach(b=>{const [x,y]=T(b.box[0],b.box[1]);b.label.split('|').forEach((ln,i)=>parts.push(txt(x+7,y+17+i*15,ln,{size:12,w:500,fill:ST.sub,halo:ST.sea==='#ffffff'?false:ST.sea,hw:3,ho:1})));});
   }
-  // 小圖框標題
-  if(lm!=='none')g.insets.forEach(b=>{const [x,y]=b.box;b.label.split('|').forEach((ln,i)=>parts.push(txt(x+7,y+17+i*15,ln,{size:12,fill:ST.sub,halo:ST.sea==='#ffffff'?false:ST.sea,hw:3})));});
+  parts.push(`</g>`);
   parts.push(`<rect x="4" y="4" width="${W-8}" height="${H-8}" fill="none" stroke="${ST.frame}" stroke-width="1.2"/>`);
-  // 圖名、副標題
-  const T=(v===S?(d.title||'').trim():'')||title||`${M.full}統計地圖`;
+  // ── 不跟著縮放：圖名、圖例、指北針、比例尺、來源 ──
+  const T0=(v===S?(d.title||'').trim():'')||title||`${M.full}統計地圖`;
   const sub=(v===S?(d.sub||'').trim():'')||(unitLine?`單位：${unitLine}`:'');
   const halo=ST.sea==='#ffffff'?false:'#ffffff';
-  parts.push(txt(W/2,44,T,{size:26,bold:true,anchor:'middle',fill:ST.text,halo,hw:5}));
-  if(sub)parts.push(txt(W/2,68,sub,{size:15,anchor:'middle',fill:ST.sub,halo,hw:4}));
+  if(Z.k>1.001)parts.push(`<rect x="5" y="5" width="${W-10}" height="${sub?78:56}" fill="${ST.sea==='#ffffff'?'#ffffff':'#eef4f8'}" fill-opacity="0.88"/>`);
+  parts.push(`<rect x="${M.scale[0]-8}" y="${M.scale[1]-26}" width="150" height="54" rx="6" fill="#ffffff" fill-opacity="${Z.k>1.001?0.88:0}"/>`);
+  parts.push(txt(W/2,44,T0,{size:26,bold:true,anchor:'middle',fill:ST.text,halo,hw:5,ho:0.9,ls:'0.04em'}));
+  if(sub)parts.push(txt(W/2,68,sub,{size:15,w:500,anchor:'middle',fill:ST.sub,halo,hw:4,ho:0.9}));
   parts.push(legend);
   parts.push(northArrow(S.north,...M.north,ST));
-  parts.push(scaleBar(g.kmPerPx,...M.scale,ST));
-  // 資料來源
+  parts.push(scaleBar(g.kmPerPx/Z.k,...M.scale,ST));
+  if(Z.k>1.01)parts.push(txt(W-14,H-13,`放大 ${Math.round(Z.k*100)}%`,{size:11,anchor:'end',fill:ST.sub,halo,hw:3}));
   let src=(d.src||'').trim();
   if(!src){const used=type==='chart'?chartColsV(v):(cA?[cA]:[]);src=[...new Set(used.map(c=>c.src).filter(Boolean))].join('；');}
-  const srcLine=`資料來源：${src||'（請在「④ 圖名與下載」填寫）'}`;
-  parts.push(txt(16,H-30,srcLine.length>72?srcLine.slice(0,72)+'…':srcLine,{size:12,fill:ST.sub,halo,hw:3}));
+  const srcLine=`資料來源：${src||'（請在「③ 圖名與下載」填寫）'}`;
+  parts.push(txt(16,H-30,srcLine.length>72?srcLine.slice(0,72)+'…':srcLine,{size:12,w:500,fill:ST.sub,halo,hw:3}));
   parts.push(txt(16,H-13,`${g.note}；行政界線經簡化，僅供教學示意。`,{size:11,fill:ST.sub,halo,hw:3}));
-  return {svg:parts.join(''),title:T,sub,src,W,H};
+  return {svg:parts.join(''),title:T0,sub,src,W,H};
 }
-function drawMap(){
+
+/* 標籤排列 */
+function placeLabels(v,R,cA,type,lm,Z,legendXY){
+  const g=GEO[v.map],W=g.W,H=g.H;
+  const showV=(lm==='value'||lm==='both')&&cA&&type!=='chart';
+  const showN=lm==='name'||lm==='both'||type==='chart';
+  const dd=cA?colDecIn(v.map,cA):0;
+  const areas=R.map(r=>r.area||0).slice().sort((a,b)=>a-b);
+  const q1=areas[Math.floor(areas.length/3)],q2=areas[Math.floor(areas.length*2/3)];
+  const base={tw:12.5,vn34:11.5,vn63:9.5}[v.map]||11;
+  const zk=Math.min(1.6,1+(Z.k-1)*0.25);
+  const boxes=[[0,0,W,78]];
+  if(legendXY)boxes.push([legendXY[0]-12,legendXY[1]-24,250,choroLegend.h||200]);
+  g.insets.forEach(b=>{const p=[b.box[0]*Z.k+Z.tx,b.box[1]*Z.k+Z.ty];boxes.push([p[0],p[1],(b.label.includes('|')?160:120),b.label.includes('|')?34:20]);});
+  const hit=(b)=>boxes.some(o=>b[0]<o[0]+o[2]&&b[0]+b[2]>o[0]&&b[1]<o[1]+o[3]&&b[1]+b[3]>o[1]);
+  const land=landPath(v.map);
+  const onLand=(x,y)=>{if(!hitCtx)hitCtx=document.createElement('canvas').getContext('2d');return hitCtx.isPointInPath(land,(x-Z.tx)/Z.k,(y-Z.ty)/Z.k,'evenodd');};
+  const items=R.filter(r=>r.c).map(r=>{
+    const nm=showN?labelName(v.map,r):'';
+    const vv=showV?fmtShort(cA.vals[r.id],dd):'';
+    const a=r.area||0,fs=(a>=q2?base+1.5:a>=q1?base:base-1.5)*zk;
+    const lines=[nm,vv].filter(Boolean);
+    const w=Math.max(...lines.map((s,i)=>textW(s,fs,i===0&&nm?500:700)))+4,h=lines.length*fs*1.15+2;
+    const [x,y]=[r.c[0]*Z.k+Z.tx,r.c[1]*Z.k+Z.ty];
+    return {r,nm,vv,fs,w,h,x,y,a};
+  }).filter(o=>o.nm||o.vv).sort((a,b)=>b.a-a.a);
+  const out=[],lead=[];
+  const inFrame=b=>b[0]>6&&b[1]>6&&b[0]+b[2]<W-6&&b[1]+b[3]<H-6;
+  for(const o of items){
+    if(o.x<-20||o.y<-20||o.x>W+20||o.y>H+20)continue;
+    const cand=[[0,0],[0,-o.h*0.75],[0,o.h*0.75],[o.w*0.55,0],[-o.w*0.55,0],[o.w*0.5,-o.h*0.6],[-o.w*0.5,-o.h*0.6],[o.w*0.5,o.h*0.6],[-o.w*0.5,o.h*0.6]];
+    let placed=null;
+    for(const [dx,dy] of cand){const b=[o.x+dx-o.w/2,o.y+dy-o.h/2,o.w,o.h];if(inFrame(b)&&!hit(b)){placed={cx:o.x+dx,cy:o.y+dy,b,leader:false};break;}}
+    if(!placed){
+      search:for(const rad of [34,48,64,82,104]){for(let ang=0;ang<360;ang+=24){
+        const cx=o.x+Math.cos(ang*Math.PI/180)*(rad+o.w/2),cy=o.y+Math.sin(ang*Math.PI/180)*(rad*0.75+o.h/2);
+        const b=[cx-o.w/2,cy-o.h/2,o.w,o.h];
+        if(!inFrame(b)||hit(b))continue;
+        if(onLand(cx,cy)||onLand(b[0],b[1])||onLand(b[0]+b[2],b[1]+b[3])||onLand(b[0],b[1]+b[3])||onLand(b[0]+b[2],b[1]))continue;
+        placed={cx,cy,b,leader:true};break search;}}
+    }
+    if(!placed)placed={cx:o.x,cy:o.y,b:[o.x-o.w/2,o.y-o.h/2,o.w,o.h],leader:false};
+    boxes.push(placed.b);
+    const st={size:o.fs,anchor:'middle',halo:true,hw:2.6,ho:0.85,fill:'#1f2a36'};
+    const top=placed.cy-o.h/2+o.fs*0.95;
+    if(placed.leader){
+      const bx=Math.max(placed.b[0],Math.min(o.x,placed.b[0]+placed.b[2])),by=Math.max(placed.b[1],Math.min(o.y,placed.b[1]+placed.b[3]));
+      lead.push(`<line x1="${o.x.toFixed(1)}" y1="${o.y.toFixed(1)}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}" stroke="#3a4552" stroke-width="0.8"/><circle cx="${o.x.toFixed(1)}" cy="${o.y.toFixed(1)}" r="1.8" fill="#3a4552"/>`);
+    }
+    if(o.nm)out.push(txt(placed.cx,top,o.nm,Object.assign({},st,{w:500,ls:'0.05em'})));
+    if(o.vv)out.push(txt(placed.cx,top+(o.nm?o.fs*1.15:0),o.vv,Object.assign({},st,{bold:true,tab:true})));
+  }
+  return `<g pointer-events="none">${lead.join('')}${out.join('')}</g>`;
+}
+
+/* 圓圈、圓餅、長條：自動錯開、可拖曳、拉線 */
+function symKey(v){return v.map+'|'+v.type;}
+function layoutSymbols(v,nodes,spread){
+  // nodes: {id, ax, ay, r}
+  const off=(v.offsets&&v.offsets[symKey(v)])||{};
+  for(const n of nodes){n.x=n.ax;n.y=n.ay;n.fixed=false;if(off[n.id]){n.x=n.ax+off[n.id][0];n.y=n.ay+off[n.id][1];n.fixed=true;}}
+  if(spread&&nodes.length>1){
+    for(let it=0;it<160;it++){
+      let moved=0;
+      for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+        const a=nodes[i],b=nodes[j];let dx=b.x-a.x,dy=b.y-a.y;let dd=Math.hypot(dx,dy);const min=a.r+b.r+2;
+        if(dd<min){if(dd<0.01){dx=Math.cos(i+j);dy=Math.sin(i+j);dd=1;}
+          const push=(min-dd)/2,ux=dx/dd,uy=dy/dd;
+          const wa=a.fixed?0:(b.fixed?2:1),wb=b.fixed?0:(a.fixed?2:1);
+          a.x-=ux*push*wa;a.y-=uy*push*wa;b.x+=ux*push*wb;b.y+=uy*push*wb;moved++;}
+      }
+      for(const n of nodes){if(!n.fixed){n.x+=(n.ax-n.x)*0.03;n.y+=(n.ay-n.y)*0.03;}}
+      if(!moved&&it>10)break;
+    }
+  }
+  v._pos=v._pos||{};
+  for(const n of nodes)v._pos[n.id]=[n.x,n.y,n.ax,n.ay];
+  return nodes;
+}
+function leaderFor(n){
+  const dx=n.x-n.ax,dy=n.y-n.ay,dd=Math.hypot(dx,dy);
+  if(dd<n.r*0.45+3)return '';
+  const ex=n.x-dx/dd*n.r,ey=n.y-dy/dd*n.r;
+  return `<line x1="${n.ax.toFixed(1)}" y1="${n.ay.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="#3a4552" stroke-width="0.9"/><circle cx="${n.ax.toFixed(1)}" cy="${n.ay.toFixed(1)}" r="2" fill="#3a4552"/>`;
+}
+function drawMap(keepTools){
   if(S.compare&&!S2)makeS2();
-  const box=$('#mapbox');box.classList.toggle('two',!!S.compare);
+  const box=$('#mapbox');box.classList.toggle('two',!!S.compare);box.classList.toggle('zoomed',(S.zoom.k||1)>1.001);
   const views=[[S,'m1',$('#map')]];
   if(S.compare){S2.map=S.map;views.push([S2,'m2',$('#map2')]);}
   $('#map2').style.display=S.compare?'':'none';
@@ -621,7 +742,7 @@ function drawMap(){
     svg.innerHTML=o.svg;svg.setAttribute('aria-label',o.title);svg.setAttribute('font-family',FONT);
     svg.classList.toggle('editing',S.compare&&V()===v);
   }
-  renderMapTools();
+  if(!keepTools)renderMapTools();else{const zr=$('[data-zr]');if(zr)zr.value=Math.round(S.zoom.k*100);}
   renderAlerts();
   saveState();
 }
@@ -692,14 +813,16 @@ function choroLegend(v,col,c,pal,R){
   choroLegend.h=h+30;
   return `<g>${legendBox(x,y,w,h)}${legendHead(x,y,col.name,col.unit)}${s}</g>`;
 }
-function propSymbols(v,col,R,pfx,pos,over){
+function propSymbols(v,col,R,pfx,pos,over,anchor){
   const vs=valuesIn(v.map,col);const vmax=Math.max(0,...vs);
   const rmax=v.prop.rmax,color=S.style==='bw'?'#555555':v.prop.color;
-  const items=R.filter(r=>r.c&&col.vals[r.id]!=null&&col.vals[r.id]>0).map(r=>({r,v:col.vals[r.id]})).sort((a,b)=>b.v-a.v);
-  let s='';
-  if(vmax>0)for(const it of items){const rad=(rmax*Math.sqrt(it.v/vmax)).toFixed(1);const[cx,cy]=it.r.c;
-    s+=`<g filter="url(#${pfx}ss)"><circle cx="${cx}" cy="${cy}" r="${rad}" fill="${color}" fill-opacity="${over?0.7:0.78}" stroke="${over?'#1f2a36':'#ffffff'}" stroke-width="${over?0.9:1.1}"/></g>`+
-       (S.style==='bw'?'':`<circle cx="${cx}" cy="${cy}" r="${rad}" fill="url(#${pfx}gl)" pointer-events="none"/>`);}
+  let nodes=R.filter(r=>r.c&&col.vals[r.id]!=null&&col.vals[r.id]>0).map(r=>{const [ax,ay]=anchor(r);return {id:r.id,ax,ay,r:vmax>0?rmax*Math.sqrt(col.vals[r.id]/vmax):0,val:col.vals[r.id]};});
+  nodes=layoutSymbols(v,nodes,!!v.prop.spread).sort((a,b)=>b.r-a.r);
+  let s='',ld='';
+  if(vmax>0)for(const n of nodes){const rad=n.r.toFixed(1);ld+=leaderFor(n);
+    s+=`<g class="sym" data-sym="${esc(n.id)}"><g filter="url(#${pfx}ss)"><circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${rad}" fill="${color}" fill-opacity="${over?0.7:0.78}" stroke="${over?'#1f2a36':'#ffffff'}" stroke-width="${over?0.9:1.1}"/></g>`+
+       (S.style==='bw'?'':`<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${rad}" fill="url(#${pfx}gl)" pointer-events="none"/>`)+`</g>`;}
+  s=`<g clip-path="url(#${pfx}fr)">${ld}${s}</g>`;
   const [x,y]=pos||MAPS[v.map].legend;
   let l='';
   if(vmax>0){
@@ -710,7 +833,7 @@ function propSymbols(v,col,R,pfx,pos,over){
     const top=y+(col.unit?30:12);
     const cx=x+R1+2,base=top+2*R1+4;
     let g='';
-    vals.forEach(val=>{const rr=rmax*Math.sqrt(val/vmax);g+=`<circle cx="${cx}" cy="${(base-rr).toFixed(1)}" r="${rr.toFixed(1)}" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="1.1"/>`+`<line x1="${cx}" y1="${(base-2*rr).toFixed(1)}" x2="${cx+R1+12}" y2="${(base-2*rr).toFixed(1)}" stroke="#5f6b77" stroke-width="0.8"/>`+txt(cx+R1+16,base-2*rr+5,fmt(val,val<10?d:0),{size:14});});
+    vals.forEach(val=>{const rr=rmax*Math.sqrt(val/vmax);g+=`<circle cx="${cx}" cy="${(base-rr).toFixed(1)}" r="${rr.toFixed(1)}" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="1.1"/>`+`<line x1="${cx}" y1="${(base-2*rr).toFixed(1)}" x2="${cx+R1+12}" y2="${(base-2*rr).toFixed(1)}" stroke="#5f6b77" stroke-width="0.8"/>`+txt(cx+R1+16,base-2*rr+5,fmt(val,val<10?d:0),{size:14,w:500,tab:true});});
     const h=(base-y)+24;
     l=`<g>${legendBox(x,y,Math.max(170,2*R1+110),h)}${legendHead(x,y,col.name,col.unit)}${g}${txt(x,base+20,'圓的面積與數值成正比',{size:12,fill:'#4a5563'})}</g>`;
   }
@@ -720,7 +843,7 @@ function autoDotUnit(mid,col){
   const sum=valuesIn(mid,col).filter(v=>v>0).reduce((a,b)=>a+b,0);
   return niceNum(sum/1500)||1;
 }
-function dotSymbols(v,col,R){
+function dotSymbols(v,col,R,zk){
   if(v.dot.unitFor!==col.id+'|'+v.map){v.dot.unit=autoDotUnit(v.map,col);v.dot.unitFor=col.id+'|'+v.map;}
   const unit=v.dot.unit>0?v.dot.unit:1;
   let total=0;for(const r of R){const x=col.vals[r.id];if(x>0)total+=Math.round(x/unit);}
@@ -737,45 +860,52 @@ function dotSymbols(v,col,R){
     if(n>0&&r.c){for(let i=0;i<n;i++)pts.push((r.c[0]+(rnd()-.5)*4).toFixed(1),(r.c[1]+(rnd()-.5)*4).toFixed(1));}
   });
   const rr=v.dot.size,color=S.style==='bw'?'#000000':v.dot.color;
-  let dpath='';for(let i=0;i<pts.length;i+=2)dpath+=`M${pts[i]},${pts[i+1]}m-${rr},0a${rr},${rr} 0 1,0 ${2*rr},0a${rr},${rr} 0 1,0 -${2*rr},0`;
+  const r2=+(rr/(zk||1)).toFixed(2);
+  let dpath='';for(let i=0;i<pts.length;i+=2)dpath+=`M${pts[i]},${pts[i+1]}m-${r2},0a${r2},${r2} 0 1,0 ${2*r2},0a${r2},${r2} 0 1,0 -${2*r2},0`;
   const s=`<path d="${dpath}" fill="${color}" fill-opacity="0.85" pointer-events="none"/>`;
   v.dot.capped=ratio<1;v.dot.total=total;
   const [x,y]=MAPS[v.map].legend;
   const top=y+(col.unit?30:12);
-  const l=`<g>${legendBox(x,y,190,(top-y)+44)}${legendHead(x,y,col.name,col.unit)}<circle cx="${x+8}" cy="${top+10}" r="${Math.max(rr,2.8)}" fill="${color}"/>${txt(x+20,top+15,`1 點 = ${fmt(unit,decOf(unit))} ${col.unit||''}`,{size:14})}${txt(x,top+38,'點的位置在區域內隨機分布',{size:12,fill:'#4a5563'})}</g>`;
+  const l=`<g>${legendBox(x,y,190,(top-y)+44)}${legendHead(x,y,col.name,col.unit)}<circle cx="${x+8}" cy="${top+10}" r="${Math.max(rr,2.8)}" fill="${color}"/>${txt(x+20,top+15,`1 點 = ${fmt(unit,decOf(unit))} ${col.unit||''}`,{size:14,w:500})}${txt(x,top+38,'點的位置在區域內隨機分布',{size:12,fill:'#4a5563'})}</g>`;
   return {s,l};
 }
 function qualColorsV(v,n){const a=CB.qual[v.chart.pal]||CB.qual.Set2;return Array.from({length:n},(_,i)=>S.style==='bw'?['#000000','#555555','#999999','#cccccc','#ffffff','#777777'][i%6]:a[i%a.length]);}
-function chartSymbols(v,cs,R,pfx){
-  const cols=qualColorsV(v,cs.length);let s='';
-  const totals=R.map(r=>cs.reduce((a,c)=>a+(c.vals[r.id]>0?c.vals[r.id]:0),0));
-  const tmax=Math.max(0,...totals);
+function chartSymbols(v,cs,R,pfx,anchor){
+  const cols=qualColorsV(v,cs.length);
+  const totals={};R.forEach(r=>totals[r.id]=cs.reduce((a,c)=>a+(c.vals[r.id]>0?c.vals[r.id]:0),0));
+  const tmax=Math.max(0,...Object.values(totals));
   const allMax=Math.max(0,...cs.flatMap(c=>valuesIn(v.map,c)));
-  const small=v.map==='vn63';
-  R.forEach((r,ri)=>{
-    if(!r.c)return;const [cx,cy]=r.c;
-    const vs=cs.map(c=>c.vals[r.id]);if(vs.every(x=>x==null))return;
+  const small=v.map==='vn63',sc=v.chart.scale||1.35;
+  const bw=(small?4:6)*sc,Hh=(small?28:44)*sc;
+  let nodes=R.filter(r=>r.c&&!cs.every(c=>c.vals[r.id]==null)&&(v.chart.kind!=='pie'||totals[r.id]>0)).map(r=>{
+    const [ax,ay]=anchor(r);
+    const rad=v.chart.kind==='pie'?(v.chart.sized?7+19*Math.sqrt(totals[r.id]/tmax):(small?9:13))*sc:Math.max(cs.length*bw,Hh)/2;
+    return {id:r.id,ax,ay,r:rad};
+  });
+  nodes=layoutSymbols(v,nodes,v.chart.spread!==false);
+  let s='',ld='';
+  for(const n of nodes){
+    const vs=cs.map(c=>c.vals[n.id]);const cx=+n.x.toFixed(1),cy=+n.y.toFixed(1);ld+=leaderFor(n);
     if(v.chart.kind==='pie'){
-      const tot=totals[ri];if(!(tot>0))return;
-      const rad=v.chart.sized?7+19*Math.sqrt(tot/tmax):(small?9:13);
+      const tot=totals[n.id],rad=n.r;
       let a0=-Math.PI/2;let g='';
       vs.forEach((x,i)=>{if(!(x>0))return;const a1=a0+2*Math.PI*x/tot;
         if(x/tot>0.9999){g+=`<circle cx="${cx}" cy="${cy}" r="${rad.toFixed(1)}" fill="${cols[i]}"/>`;}
         else{const lg=a1-a0>Math.PI?1:0;g+=`<path d="M${cx},${cy}L${(cx+rad*Math.cos(a0)).toFixed(1)},${(cy+rad*Math.sin(a0)).toFixed(1)}A${rad.toFixed(1)},${rad.toFixed(1)} 0 ${lg},1 ${(cx+rad*Math.cos(a1)).toFixed(1)},${(cy+rad*Math.sin(a1)).toFixed(1)}Z" fill="${cols[i]}" stroke="#ffffff" stroke-width="0.9" stroke-linejoin="round"/>`;}
         a0=a1;});
-      s+=`<g filter="url(#${pfx}ss)">${g}<circle cx="${cx}" cy="${cy}" r="${rad.toFixed(1)}" fill="none" stroke="#3f4a55" stroke-width="0.8"/></g>`+(S.style==='bw'?'':`<circle cx="${cx}" cy="${cy}" r="${rad.toFixed(1)}" fill="url(#${pfx}gl)" opacity="0.7" pointer-events="none"/>`);
+      s+=`<g class="sym" data-sym="${esc(n.id)}"><g filter="url(#${pfx}ss)">${g}<circle cx="${cx}" cy="${cy}" r="${rad.toFixed(1)}" fill="none" stroke="#ffffff" stroke-width="1.6"/><circle cx="${cx}" cy="${cy}" r="${(rad+0.8).toFixed(1)}" fill="none" stroke="#3f4a55" stroke-width="0.8"/></g>`+(S.style==='bw'?'':`<circle cx="${cx}" cy="${cy}" r="${rad.toFixed(1)}" fill="url(#${pfx}gl)" opacity="0.7" pointer-events="none"/>`)+`</g>`;
     }else{
-      const bw=small?4:6,Hh=small?28:44;const w=cs.length*bw;const x0=cx-w/2,base=cy+Hh/2;
-      let g='';
-      vs.forEach((x,i)=>{if(!(x>0)||!(allMax>0))return;const h=Hh*x/allMax;g+=`<rect x="${x0+i*bw}" y="${(base-h).toFixed(1)}" width="${bw-0.8}" height="${h.toFixed(1)}" fill="${cols[i]}" stroke="#3f4a55" stroke-width="0.5"/>`;});
-      s+=`<g filter="url(#${pfx}ss)">${g}<line x1="${x0-2}" y1="${base}" x2="${x0+w+2}" y2="${base}" stroke="#3f4a55" stroke-width="1"/></g>`;
+      const w=cs.length*bw;const x0=cx-w/2,base=cy+Hh/2;
+      let g=`<rect x="${(x0-3).toFixed(1)}" y="${(cy-Hh/2-3).toFixed(1)}" width="${(w+6).toFixed(1)}" height="${(Hh+6).toFixed(1)}" rx="3" fill="#ffffff" fill-opacity="0.55"/>`;
+      vs.forEach((x,i)=>{if(!(x>0)||!(allMax>0))return;const h=Hh*x/allMax;g+=`<rect x="${(x0+i*bw).toFixed(1)}" y="${(base-h).toFixed(1)}" width="${(bw-0.8).toFixed(1)}" height="${h.toFixed(1)}" fill="${cols[i]}" stroke="#3f4a55" stroke-width="0.5"/>`;});
+      s+=`<g class="sym" data-sym="${esc(n.id)}"><g filter="url(#${pfx}ss)">${g}<line x1="${(x0-2).toFixed(1)}" y1="${base.toFixed(1)}" x2="${(x0+w+2).toFixed(1)}" y2="${base.toFixed(1)}" stroke="#3f4a55" stroke-width="1"/></g></g>`;
     }
-  });
+  }
+  s=`<g clip-path="url(#${pfx}fr)">${ld}${s}</g>`;
   const [x,y]=MAPS[v.map].legend;
-  let g='';cs.forEach((c,i)=>{g+=`<rect x="${x}" y="${y+12+i*24}" width="20" height="17" fill="${cols[i]}" stroke="#3f4a55" stroke-width="0.6"/>`+txt(x+28,y+26+i*24,`${c.name}${unitText(c)}`,{size:14});});
+  let g='';cs.forEach((c,i)=>{g+=`<rect x="${x}" y="${y+12+i*24}" width="20" height="17" fill="${cols[i]}" stroke="#3f4a55" stroke-width="0.6"/>`+txt(x+28,y+26+i*24,`${c.name}${unitText(c)}`,{size:14,w:500});});
   let extra='',h=cs.length*24+8;
-  const Hh=small?28:44;
-  if(v.chart.kind==='bar'&&allMax>0){extra=txt(x,y+h+14,`長條最高 ${Hh} 像素 = ${fmt(allMax,0)}`,{size:12,fill:'#4a5563'});h+=20;}
+  if(v.chart.kind==='bar'&&allMax>0){extra=txt(x,y+h+14,`長條最高 ${Math.round(Hh)} 像素 = ${fmt(allMax,0)}`,{size:12,fill:'#4a5563'});h+=20;}
   if(v.chart.kind==='pie'){extra=txt(x,y+h+14,v.chart.sized?'圓的大小依各欄合計':'扇形大小＝各欄占合計的比例',{size:12,fill:'#4a5563'});h+=20;}
   const w=Math.max(170,...cs.map(c=>(c.name+unitText(c)).length*14+30));
   const l=`<g>${legendBox(x,y,w,h)}${txt(x,y,'圖例',{size:15,bold:true})}${g}${extra}</g>`;
@@ -788,8 +918,10 @@ function renderMapTools(){
   const el=$('#maptools');if(!el)return;
   const cur=S.labelMode[S.map];
   const lname=(LABEL_MODES.find(x=>x[0]===cur)||[])[1];
-  let h=`<button class="tb" data-lmmenu aria-haspopup="true" title="地圖上的名稱或數值（N）">標籤<small>${lname}</small></button>`;
-  if(S.lmOpen)h+=`<div class="menu" style="top:0">${LABEL_MODES.map(([k,n])=>`<button data-lm="${k}" aria-pressed="${cur===k}">${n}</button>`).join('')}</div>`;
+  const zk=Math.round((S.zoom.k||1)*100);
+  let h=`<div class="zoomgrp"><button class="tb zb" data-z="in" title="放大（+）" aria-label="放大">＋</button><input type="range" class="zr" min="100" max="800" step="10" value="${zk}" data-zr aria-label="放大倍率"><button class="tb zb" data-z="out" title="縮小（-）" aria-label="縮小">－</button><button class="tb" data-z="fit" title="看整張（0）">整張<small>${zk}%</small></button></div>`;
+  h+=`<button class="tb" data-lmmenu aria-haspopup="true" title="地圖上的名稱或數值（N）">標籤<small>${lname}</small></button>`;
+  if(S.lmOpen)h+=`<div class="menu" style="top:178px">${LABEL_MODES.map(([k,n])=>`<button data-lm="${k}" aria-pressed="${cur===k}">${n}</button>`).join('')}</div>`;
   h+=`<button class="tb" data-cmp aria-pressed="${!!S.compare}" title="左右兩張地圖比較">並排<small>${S.compare?'開':'關'}</small></button>`;
   el.innerHTML=h;
 }
@@ -839,49 +971,64 @@ function info(html,label='說明'){return `<details class="info"><summary>ⓘ ${
 function renderPanel(){
   const p=$('#pbody');
   if(S.tab==='data')p.innerHTML=panelData();
-  else if(S.tab==='check')p.innerHTML=panelCheck();
   else if(S.tab==='style')p.innerHTML=panelStyle();
   else p.innerHTML=panelText();
 }
 function panelData(){
-  const d=D(),M=MAPS[S.map];
-  let h=`<p class="lead">選一張底圖，再把資料放進來。</p>`;
-  h+=`<h3>底圖</h3><div class="mapcards">${Object.entries(MAPS).map(([k,m],i)=>`<button data-map="${k}" aria-pressed="${S.map===k}">${k==='tw'?'臺灣':k==='vn34'?'越南':'越南（舊制）'}<small>${k==='tw'?'22 縣市':k==='vn34'?'34 省市':'63 省市'}｜按 ${i+1}</small></button>`).join('')}</div>`;
-  if(S.map==='vn63')h+=`<p class="hint">2025 年 7 月以前的行政區。資料放好後，可以在「② 檢查」合併成 34 省。</p>`;
-  h+=`<h3>放入資料</h3><div class="bigbtns">`+
+  const d=D(),R=regions(),M=MAPS[S.map],U=M.lang?'省市':'縣市';
+  let h=`<h3>底圖</h3><div class="mapcards">${Object.entries(MAPS).map(([k,m],i)=>`<button data-map="${k}" aria-pressed="${S.map===k}">${k==='tw'?'臺灣':k==='vn34'?'越南':'越南（舊制）'}<small>${k==='tw'?'22 縣市':k==='vn34'?'34 省市':'63 省市'}｜按 ${i+1}</small></button>`).join('')}</div>`;
+  h+=`<h3>放入資料 ${info('檔案只在這台電腦處理，不會傳到網路上。名稱寫法不同也認得，例如「台北」「臺北市」、「Ho Chi Minh」「胡志明」。範本已列好所有'+U+'名稱，填好數字再上傳。也可以在下方數值表任一格按 Ctrl+V，直接貼上從 Excel 複製的資料。')}</h3><div class="bigbtns">`+
     `<button class="btn" data-act="sample">載入範例資料<small>先試試看</small></button>`+
     `<button class="btn" data-act="paste">貼上 Excel 資料<small>從試算表複製</small></button>`+
     `<button class="btn" data-act="upload">上傳檔案<small>CSV 或 .xlsx</small></button>`+
     `<button class="btn" data-act="template">下載空白範本<small>Excel，名稱已列好</small></button></div>`;
-  h+=`<p class="hint">${info('檔案只在這台電腦處理，不會傳到網路上。範本已列好所有'+(M.lang?'省市名稱（中文、越南文）':'縣市名稱')+'，填好數字再上傳，名稱一定對得上。名稱寫法不同也認得，例如「台北」「臺北市」、「Ho Chi Minh」「胡志明」。')}</p>`;
-  if(d.cols.length)h+=`<div class="havedata">✓ 已有 ${d.cols.length} 欄資料：${d.cols.map(c=>esc(c.name)).join('、')}<br><small>按下方「下一步」檢查資料。</small></div><div class="row"><button class="btn sm" data-act="addcol">＋ 自己新增一欄</button><button class="btn sm" data-act="clear">清空資料</button></div>`;
-  else h+=`<div class="row" style="margin-top:8px"><button class="btn sm" data-act="addcol">＋ 自己新增一欄，手動輸入</button></div>`;
+  if(S.map==='vn63')h+=`<div class="alert info" style="margin:10px 0"><span>2025 年 7 月以前的 63 省。<b>總量</b>資料可以加起來變成 34 省。</span>${d.cols.length?'<button class="btn sm" data-act="merge">合併成 34 省</button>':''}</div>`;
+  h+=`<h3>資料欄位 ${info('<b>總量</b>：人口數、產量、面積等，可以相加，適合比例符號圖、點子圖。<br><b>比率</b>：百分比、密度、平均值等，不能直接相加，適合面量圖。<br>總量按「÷面積」可以算成密度。','總量和比率')}</h3>`;
+  if(!d.cols.length)h+=`<p class="hint">還沒有資料。用上面的按鈕放入，或 <button class="btn sm" data-act="addcol">＋ 自己新增一欄</button></p>`;
+  else{
+    h+=`<div class="collist">`+d.cols.map(c=>{
+      const miss=R.filter(r=>c.vals[r.id]==null).length;
+      return `<div class="colrow colcard" data-col="${c.id}"><input type="text" data-f="name" value="${esc(c.name)}" aria-label="欄位名稱"><input type="text" data-f="unit" value="${esc(c.unit)}" placeholder="單位" aria-label="單位"><button class="x" data-act="delcol" title="刪除這欄" aria-label="刪除這欄">×</button><span class="kind" role="group" aria-label="資料類型"><button data-act="kind" data-k="total" aria-pressed="${c.kind==='total'}">總量</button><button data-act="kind" data-k="ratio" aria-pressed="${c.kind==='ratio'}">比率</button></span>`+
+        (c.kind==='total'?`<button class="btn sm" data-act="density" title="除以面積，算成密度">÷ 面積算密度</button>`:'')+
+        `<div class="st">${miss?`<span style="color:var(--warn)">⚠ 缺 ${miss} 個${U}</span>`:`<span style="color:var(--ok)">✓ ${R.length} 個${U}都有</span>`}${c.unit?'':' ｜<span style="color:var(--warn)">請填單位</span>'}${c.src?`｜${esc(c.src.length>36?c.src.slice(0,36)+'…':c.src)}`:''}</div></div>`;}).join('')+`</div>`;
+    h+=`<div class="row"><button class="btn sm" data-act="addcol">＋ 新增一欄</button><button class="btn sm" data-act="clear">清空資料</button></div>`;
+  }
+  const unm=d.unmatched||[];
+  if(unm.length){
+    const opts=R.map(r=>`<option value="${esc(r.id)}">${esc(r.zh)}${r.vi?' '+esc(r.vi):''}</option>`).join('');
+    h+=`<div class="unm"><b style="color:var(--warn)">有 ${unm.length} 個名稱對不到</b>，請選要對應到哪個${U}：`+unm.map((u,i)=>`<div class="r"><b>${esc(u.name)}</b> → <select><option value="">選擇${U}…</option>${opts}</select><button class="btn sm" data-act="unmok" data-i="${i}">套用</button><button class="btn sm" data-act="unmdel" data-i="${i}">略過</button></div>`).join('')+`</div>`;
+  }
+  if(d.cols.length){
+    h+=`<h3>數值表 ${info('可以直接改數字；也可以點地圖上的'+U+'輸入。<br>從 Excel 複製一整欄或一整塊，點表格裡要開始的那一格，按 Ctrl+V 就會往下、往右填進去。若複製的第一欄是'+U+'名稱，會依名稱對應。','小技巧')}</h3><div class="tablewrap"><table class="dt"><thead><tr><th>${U}</th>${d.cols.map(c=>`<th data-h="${c.id}">${esc(c.name)}</th>`).join('')}</tr></thead><tbody>`;
+    for(const r of R){
+      h+=`<tr data-r="${esc(r.id)}"${S.hl===r.id?' class="hl"':''}><td class="nm" title="${esc(r.zh)} ${esc(r.vi||'')}">${esc(r.zh)}${r.vi?`<small>${esc(r.vi)}${r.to?' → '+esc(GEO.vn34.regions.find(x=>x.id===r.to).zh):''}</small>`:''}</td>`+
+        d.cols.map(c=>`<td><input inputmode="decimal" data-c="${c.id}" value="${c.vals[r.id]==null?'':c.vals[r.id]}" aria-label="${esc(r.zh)} ${esc(c.name)}"></td>`).join('')+`</tr>`;
+    }
+    h+=`</tbody></table></div>`;
+  }
   h+=storageNote();
   h+=footHtml();
   return h;
 }
-function panelCheck(){
-  const d=D(),R=regions(),M=MAPS[S.map];
-  if(!d.cols.length)return `<p class="lead">還沒有資料。</p><button class="btn" data-act="sample">載入範例資料</button> <button class="btn" data-act="gostep" data-k="data">回到 ① 資料</button>`+footHtml();
-  let h=`<p class="lead">確認每一欄的<b>單位</b>，和它是<b>總量</b>還是<b>比率</b>。${info('<b>總量</b>：人口數、產量、面積等，可以相加，適合比例符號圖、點子圖。<br><b>比率／密度</b>：百分比、人口密度、平均值等，不能直接相加，適合面量圖。<br>總量按「÷ 面積」可以算成密度。')}</p>`;
-  if(S.map==='vn63')h+=`<div class="alert info" style="margin-bottom:10px"><span>可以把<b>總量</b>資料加起來，變成 34 省的資料。</span><button class="btn sm" data-act="merge">合併成 34 省</button></div>`;
-  for(const c of d.cols){
-    const miss=R.filter(r=>c.vals[r.id]==null).length;
-    h+=`<div class="colcard" data-col="${c.id}"><input type="text" data-f="name" value="${esc(c.name)}" aria-label="欄位名稱"><button class="x" data-act="delcol" title="刪除這欄" aria-label="刪除這欄">×</button>`+
-      `<div class="meta">單位 <input type="text" data-f="unit" value="${esc(c.unit)}" placeholder="例：人、%" aria-label="單位"><span class="kind" role="group" aria-label="資料類型"><button data-act="kind" data-k="total" aria-pressed="${c.kind==='total'}">總量</button><button data-act="kind" data-k="ratio" aria-pressed="${c.kind==='ratio'}">比率／密度</button></span>`+
-      (c.kind==='total'?`<button class="btn sm" data-act="density" title="用內建面積算出密度">÷ 面積</button>`:'')+`</div>`+
-      `<div class="src">${miss?`<span style="color:var(--warn)">⚠ ${miss} 個${M.lang?'省市':'縣市'}沒有資料</span>`:`<span style="color:var(--ok)">✓ ${R.length} 個${M.lang?'省市':'縣市'}都有資料</span>`}${c.src?`｜來源：${esc(c.src)}`:''}</div></div>`;
-  }
-  h+=`<div class="row"><button class="btn sm" data-act="addcol">＋ 新增一欄</button></div>`;
-  h+=`<h3>數值表 ${info('也可以直接點地圖上的區域輸入數值。','小技巧')}</h3><div class="tablewrap"><table class="dt"><thead><tr><th>${M.lang?'省市':'縣市'}</th>${d.cols.map(c=>`<th data-h="${c.id}">${esc(c.name)}</th>`).join('')}</tr></thead><tbody>`;
-  for(const r of R){
-    h+=`<tr data-r="${esc(r.id)}"${S.hl===r.id?' class="hl"':''}><td class="nm" title="${esc(r.zh)} ${esc(r.vi||'')}">${esc(r.zh)}${r.vi?`<small>${esc(r.vi)}${r.to?' → '+esc(GEO.vn34.regions.find(x=>x.id===r.to).zh):''}</small>`:''}</td>`+
-      d.cols.map(c=>`<td><input inputmode="decimal" data-c="${c.id}" value="${c.vals[r.id]==null?'':c.vals[r.id]}" aria-label="${esc(r.zh)} ${esc(c.name)}"></td>`).join('')+`</tr>`;
-  }
-  h+=`</tbody></table></div>`;
-  h+=footHtml();
-  return h;
-}
+/* 數值表：直接貼上 Excel 的一整塊 */
+document.addEventListener('paste',e=>{
+  const t=e.target;if(!t.matches||!t.matches('#pbody input[data-c]'))return;
+  const txt=(e.clipboardData||window.clipboardData).getData('text');
+  if(!/[\t\n]/.test(txt.trim()))return;
+  e.preventDefault();
+  const grid=txt.replace(/\r/g,'').split('\n').filter(l=>l.trim()!=='').map(l=>l.split('\t').map(x=>x.trim()));
+  const R=regions(),cols=D().cols;
+  const c0=cols.findIndex(c=>c.id===t.dataset.c),r0=R.findIndex(r=>r.id===t.closest('tr').dataset.r);
+  const byName=grid.filter(g=>matchName(S.map,g[0])).length>=Math.max(2,grid.length/2);
+  snapshot('已貼上資料');let n=0;
+  grid.forEach((g,i)=>{
+    let rid,vals=g;
+    if(byName){rid=matchName(S.map,g[0]);vals=g.slice(1);}else{const r=R[r0+i];rid=r&&r.id;}
+    if(!rid)return;
+    vals.forEach((x,j)=>{const c=cols[c0+j];if(!c)return;const v=num(x);if(v!=null||x===''){c.vals[rid]=v;n++;}});
+  });
+  renderAll();toast(`已貼上 ${n} 格`);
+});
 function storageNote(){return `<p class="hint" style="margin-top:14px">💾 會自動存在這台電腦。<b>共用電腦用完請清除。</b> <button class="btn sm" data-act="wipe">清除暫存</button>${info('資料和設定存在這台電腦的瀏覽器，關掉再開還在；按「清除暫存」後，下一位同學就看不到。')}</p>`;}
 function colOptions(sel,filter){return D().cols.map(c=>`<option value="${c.id}"${c.id===sel?' selected':''}>${esc(c.name)}（${c.kind==='total'?'總量':'比率'}）</option>`).join('');}
 function panelStyle(){
@@ -906,7 +1053,7 @@ function panelStyle(){
       h+=`<input class="wide" data-set="custom" value="${cur.join(', ')}" placeholder="例：16, 18, 20, 22"><p class="hint">資料最小 ${cl?fmt(cl.min,cl.bd):'—'}、最大 ${cl?fmt(cl.max,cl.bd):'—'}；分界值要介於兩者之間。</p>`;
     }
     if(cl)h+=`<h3>資料分布 ${info('每個點是一個'+(MAPS[S.map].lang?'省市':'縣市')+'，黑色方塊可以左右拖曳，地圖會跟著改。<br>「分得好不好」：同一級裡的數值越接近、不同級差越多，分數越高（滿分 100）。','怎麼用')}</h3><div id="nlbox">${numberLine(V(),c)}</div><p class="hint gvf">${gvfText(cl)}</p><p class="hint counts">${countsText(cl)}</p>`;
-    h+=`<h3>配色 ${info('色票來自地圖學常用的 ColorBrewer。<b>單色漸層</b>由少到多，最常用，都<span class="badge">色盲友善</span>，黑白列印也分得出深淺。<b>雙向色</b>用在資料有正負，或要和中間值（例如全國平均）比較時。')}</h3>${S.style==='color'&&/Blues|PuBu|GnBu|YlGnBu|BuPu/.test(V().choro.pal)?'<p class="hint">藍色系和海的顏色接近，可在「④ 圖名與下載」改用簡潔風格。</p>':''}<p class="hint"><b>單色漸層</b></p><div class="pals">`;
+    h+=`<h3>配色 ${info('色票來自地圖學常用的 ColorBrewer。<b>單色漸層</b>由少到多，最常用，都<span class="badge">色盲友善</span>，黑白列印也分得出深淺。<b>雙向色</b>用在資料有正負，或要和中間值（例如全國平均）比較時。')}</h3>${S.style==='color'&&/Blues|PuBu|GnBu|YlGnBu|BuPu/.test(V().choro.pal)?'<p class="hint">藍色系和海的顏色接近，可在「③ 圖名與下載」改用簡潔風格。</p>':''}<p class="hint"><b>單色漸層</b></p><div class="pals">`;
     const K=cl?Math.max(3,Math.min(7,cl.K)):5;
     for(const n in SEQ_NAMES)h+=palBtn('seq',n,CB.seq[n][K],SEQ_NAMES[n],false,false);
     h+=`</div><p class="hint" style="margin-top:10px"><b>雙向色</b>（有正負時用）</p><div class="pals">`;
@@ -918,6 +1065,7 @@ function panelStyle(){
     h+=`<h3>底色（疊一張面量圖）</h3><div class="row"><select data-set="prop.base"><option value="">不疊底色</option>${D().cols.map(x=>`<option value="${x.id}"${x.id===V().prop.base?' selected':''}>${esc(x.name)}（${x.kind==='total'?'總量':'比率'}）</option>`).join('')}</select></div>`;
     if(V().prop.base)h+=`<p class="hint">底色用<b>比率</b>、圓圈用<b>總量</b>。${info('底色的級數、分級方法和配色，沿用「面量圖」的設定，切到面量圖就能調整。')}</p>`;
     h+=`<h3>最大的圓</h3><div class="row"><input type="range" min="14" max="60" value="${V().prop.rmax}" data-set="prop.rmax" aria-label="最大圓半徑"> 半徑 ${V().prop.rmax}</div>`;
+    h+=`<div class="row"><label class="ck"><input type="checkbox" data-set="prop.spread"${V().prop.spread?' checked':''}> 圓太擠時自動錯開（拉線）</label><button class="btn sm" data-act="symreset">位置重來</button></div><p class="hint">可以用滑鼠或手指<b>拖曳圓圈</b>到旁邊，會自動拉線。</p>`;
     h+=`<h3>顏色</h3>${colorBtns('prop')}`;
     h+=`<p class="hint">${info('圓的<b>面積</b>（不是半徑）與數值成正比：數值是 4 倍，圓的半徑是 2 倍。','圓的大小怎麼算')}</p>`;
   }else if(t==='dot'){
@@ -932,6 +1080,8 @@ function panelStyle(){
     const sel=chartColsV(V()).map(c=>c.id);
     h+=`<h3>要畫的欄位（選 2～6 欄）</h3>`;
     h+=D().cols.map(c=>`<label class="ck"><input type="checkbox" data-chartcol="${c.id}"${sel.includes(c.id)?' checked':''}> ${esc(c.name)}</label>`).join('');
+    h+=`<h3>圖表大小</h3><div class="row"><input type="range" min="0.6" max="2.4" step="0.05" value="${V().chart.scale||1.35}" data-set="chart.scale" aria-label="圖表大小"> <span>${Math.round((V().chart.scale||1.35)*100)}%</span></div>`;
+    h+=`<div class="row"><label class="ck"><input type="checkbox" data-set="chart.spread"${V().chart.spread!==false?' checked':''}> 重疊時自動錯開（拉線）</label><button class="btn sm" data-act="symreset">位置重來</button></div><p class="hint">也可以用滑鼠或手指<b>拖曳圖表</b>到想放的地方，會自動拉線。</p>`;
     h+=`<h3>圖形</h3><div class="seg" role="group"><button data-act="ckind" data-k="pie" aria-pressed="${V().chart.kind==='pie'}">圓餅圖</button><button data-act="ckind" data-k="bar" aria-pressed="${V().chart.kind==='bar'}">長條圖</button></div>`;
     h+=`<p class="hint">${V().chart.kind==='pie'?'圓餅圖：看各部分占整體的比例（結構）。':'長條圖：比較各欄數值的大小。'}</p>`;
     if(V().chart.kind==='pie')h+=`<label class="ck"><input type="checkbox" data-set="chart.sized"${V().chart.sized?' checked':''}> 圓的大小依各欄合計</label>`;
@@ -1002,13 +1152,14 @@ function panelText(){
   h+=`<p class="hint">${S.style==='color'?'適合投影與簡報。':S.style==='clean'?'白底，適合放進報告。':'灰色色票，影印也清楚。'}</p>`;
   h+=`<h3>指北針</h3><div class="norths">${Object.entries(NORTHS).map(([k,n])=>`<button data-act="north" data-k="${k}" aria-pressed="${S.north===k}" title="${n}" aria-label="${n}"><svg viewBox="-34 -40 68 72">${northArrow(k,0,0,STYLES.clean)}</svg></button>`).join('')}</div>`;
   if(M.lang)h+=`<h3>地名用</h3><div class="seg" role="group">${[['zh','中文'],['vi','越南文'],['both','中＋越']].map(([k,n])=>`<button data-act="lang" data-k="${k}" aria-pressed="${S.lang===k}">${n}</button>`).join('')}</div>`;
+  h+=`<h3>下載範圍</h3><div class="seg" role="group"><button data-act="ev" data-k="all" aria-pressed="${S.exportView!=='view'}">整張地圖</button><button data-act="ev" data-k="view" aria-pressed="${S.exportView==='view'}">目前畫面</button></div><p class="hint">${(S.zoom.k||1)>1.001?`地圖目前放大 ${Math.round(S.zoom.k*100)}%。選「目前畫面」只下載看到的範圍，圖名、圖例會保留。`:'地圖沒有放大時，兩者相同。'}</p>`;
   h+=`<h3>下載</h3><div class="row"><button class="btn pri" data-act="png">下載 PNG 圖片</button><button class="btn" data-act="print">列印／另存 PDF</button></div>`;
   h+=`<p class="hint" style="margin-top:12px">${info('好的統計地圖要有：圖名、圖例、指北針、比例尺、資料來源，本模型會自動加上。標籤可用地圖左上角的「標籤」或按 N 切換。列印時選「另存為 PDF」就能得到 PDF 檔。','小提醒')}</p>`;
   h+=footHtml();
   return h;
 }
 function footHtml(){
-  return `<div class="foot">${info('<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 換底圖　<kbd>4</kbd>～<kbd>7</kbd> 換地圖種類　<kbd>←</kbd><kbd>→</kbd> 上一步／下一步　<kbd>N</kbd> 標籤　<kbd>R</kbd> 設定重來　<kbd>F</kbd> 全螢幕','快捷鍵')} ${info('邊界：臺灣依內政部（taiwan-atlas）、越南依 Nguyễn Duy Liêm（2025）資料，經簡化；越南南海群島依越南官方行政區劃繪製。配色：ColorBrewer（Cynthia Brewer, Penn State）。理想化模型，僅供教學示意。','資料來源')}</div>`;
+  return `<div class="foot">${info('<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 換底圖　<kbd>4</kbd>～<kbd>7</kbd> 換地圖種類　<kbd>←</kbd><kbd>→</kbd> 上一步／下一步　<kbd>N</kbd> 標籤　<kbd>＋</kbd><kbd>－</kbd><kbd>0</kbd> 放大、縮小、整張　<kbd>R</kbd> 設定重來　<kbd>F</kbd> 全螢幕','快捷鍵')} ${info('邊界：臺灣依內政部（taiwan-atlas）、越南依 Nguyễn Duy Liêm（2025）資料，經簡化；越南南海群島依越南官方行政區劃繪製。配色：ColorBrewer（Cynthia Brewer, Penn State）。理想化模型，僅供教學示意。','資料來源')}</div>`;
 }
 
 /* ---------- 面板事件 ---------- */
@@ -1019,14 +1170,16 @@ pb.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;const card=b.closest('.colcard');const col=card&&colById(card.dataset.col);
   if(a==='gostep')goStep(b.dataset.k);
+  else if(a==='symreset'){const v=V();if(v.offsets)delete v.offsets[symKey(v)];renderAll();toast('圖表位置已重來');}
+  else if(a==='ev'){S.exportView=b.dataset.k;renderAll();}
   else if(a==='edit'){S.edit=b.dataset.k;renderAll();}
   else if(a==='sample')loadSamples();
   else if(a==='paste')openPaste();
   else if(a==='upload')$('#fileIn').click();
   else if(a==='merge')merge63();
   else if(a==='addcol'){D().cols.push(newCol({name:'資料'+(D().cols.length+1)}));renderAll();}
-  else if(a==='clear'){if(confirm('確定清空這張地圖的所有資料？')){D().cols=[];renderAll();}}
-  else if(a==='delcol'&&col){D().cols=D().cols.filter(c=>c!==col);renderAll();}
+  else if(a==='clear'){snapshot('已清空這張地圖的資料');D().cols=[];D().unmatched=[];renderAll();}
+  else if(a==='delcol'&&col){snapshot(`已刪除「${col.name}」`);D().cols=D().cols.filter(c=>c!==col);renderAll();}
   else if(a==='kind'&&col){col.kind=b.dataset.k;renderAll();}
   else if(a==='density'&&col){const n=makeDensity(col);toast(`已新增「${n.name}」`);renderAll();}
   else if(a==='k'){V().choro.k=+b.dataset.k;V().choro.custom=null;renderAll();}
@@ -1041,7 +1194,9 @@ pb.addEventListener('click',e=>{
   else if(a==='png')exportPNG();
   else if(a==='print')doPrint();
   else if(a==='template')downloadTemplate();
-  else if(a==='wipe'){if(confirm('確定清除這台電腦上的統計地圖暫存？畫面會重新開始。')){try{localStorage.removeItem(LS_KEY);}catch(_){}wiped=true;location.reload();}}
+  else if(a==='wipe'){ask('確定清除這台電腦上的統計地圖暫存？\n所有資料會清掉，畫面重新開始。','清除','取消').then(ok=>{if(ok){try{localStorage.removeItem(LS_KEY);}catch(_){}wiped=true;location.reload();}});}
+  else if(a==='unmok'){const sel=b.parentElement.querySelector('select');const i=+b.dataset.i;const u=(D().unmatched||[])[i];if(u&&sel&&sel.value){for(const [cid,v] of Object.entries(u.vals)){const c=colById(cid);if(c)c.vals[sel.value]=v;}D().unmatched.splice(i,1);toast(`「${u.name}」已對應到 ${sel.value}`);renderAll();}else toast('請先選要對應的地名');}
+  else if(a==='unmdel'){D().unmatched.splice(+b.dataset.i,1);renderAll();}
 });
 pb.addEventListener('input',e=>{
   const t=e.target;
@@ -1054,6 +1209,7 @@ pb.addEventListener('input',e=>{
   else if(k==='sub'){D().sub=t.value;drawMap();}
   else if(k==='custom'){V().choro.custom=t.value.split(/[,，、\s]+/).map(num).filter(v=>v!=null);drawMap();const c=classifyV(V(),pickColV(V(),'choro'));const el=pb.querySelector('.counts');if(el&&c)el.textContent=countsText(c);}
   else if(k==='prop.rmax'){V().prop.rmax=+t.value;t.nextSibling.textContent=' 半徑 '+t.value;drawMap();}
+  else if(k==='chart.scale'){V().chart.scale=+t.value;t.nextElementSibling.textContent=Math.round(+t.value*100)+'%';drawMap();}
   else if(k==='dot.size'){V().dot.size=+t.value;t.nextSibling.textContent=' '+t.value;drawMap();}
   else if(k==='dot.unit'){const v=num(t.value);if(v>0){V().dot.unit=v;drawMap();}}
 });
@@ -1069,6 +1225,8 @@ pb.addEventListener('change',e=>{
   if(k==='prop.base'){V().prop.base=t.value||null;renderAll();return;}
   if(k==='choro.col'||k==='prop.col'||k==='dot.col'){V()[k.split('.')[0]].col=t.value;if(k==='choro.col')V().choro.custom=null;D().title='';renderAll();}
   else if(k==='chart.sized'){V().chart.sized=t.checked;renderAll();}
+  else if(k==='chart.spread'){V().chart.spread=t.checked;renderAll();}
+  else if(k==='prop.spread'){V().prop.spread=t.checked;renderAll();}
 });
 
 /* ---------- 資料操作 ---------- */
@@ -1076,8 +1234,8 @@ function loadSamples(){
   const d=D();const ss=samples(S.map);
   const have=new Set(d.cols.map(c=>c.name));
   let n=0;for(const c of ss)if(!have.has(c.name)){d.cols.push(c);n++;}
-  if(S.tab==='data')S.tab='check';
-  renderAll();toast(n?`已載入 ${n} 欄範例資料，請檢查單位與類型`:'範例資料已經在表裡了');
+  S.tab='data';
+  renderAll();toast(n?`已載入 ${n} 欄範例資料，請看下方清單確認單位與類型`:'範例資料已經在表裡了');
 }
 function makeDensity(col){
   const R=regions();const unit=col.unit?`${col.unit}/平方公里`:'每平方公里';
@@ -1090,7 +1248,7 @@ function merge63(){
   const src=S.data.vn63.cols;
   if(!src.length){toast('63 省這邊還沒有資料');return;}
   const tot=src.filter(c=>c.kind==='total'),rat=src.filter(c=>c.kind==='ratio');
-  if(!tot.length){alert('目前的欄位都是「比率／密度」，不能直接相加。\n\n請準備「總量」資料（例如人口數、面積），分別合併後再相除，才能得到 34 省的比率。');return;}
+  if(!tot.length){say('目前的欄位都是「比率／密度」，不能直接相加。\n\n請準備「總量」資料（例如人口數、面積），分別合併後再相除，才能得到 34 省的比率。');return;}
   const R34=GEO.vn34.regions,R63=GEO.vn63.regions;const incomplete=[];
   for(const c of tot){
     const vals={};
@@ -1102,12 +1260,38 @@ function merge63(){
     }
     S.data.vn34.cols.push(newCol({name:c.name+'（由 63 省合併）',unit:c.unit,kind:'total',src:(c.src?c.src+'；':'')+'依 2025 年行政區合併相加',vals}));
   }
-  S.map='vn34';S.tab='check';renderAll();
+  S.map='vn34';S.tab='data';renderAll();
   let msg=`已把 ${tot.length} 欄總量資料合併成 34 省。`;
   if(rat.length)msg+=`\n\n「${rat.map(c=>c.name).join('、')}」是比率／密度，不能直接相加，所以沒有合併。\n要得到 34 省的比率，請把分子和分母（例如人口數與面積）各自合併後再相除。`;
   if(incomplete.length)msg+=`\n\n${[...new Set(incomplete)].join('、')} 有部分舊省缺資料，合併後留白。`;
-  setTimeout(()=>alert(msg),50);
+  setTimeout(()=>say(msg),50);
 }
+
+/* ---------- 頁內提示框（取代 alert／confirm，在受保護的框架裡也能用） ---------- */
+let msgResolve=null;
+function ask(text,ok='確定',cancel='取消'){
+  return new Promise(res=>{
+    msgResolve=res;$('#msgText').textContent=text;
+    $('#msgBtns').innerHTML=(cancel?`<button class="btn" data-m="0">${cancel}</button>`:'')+`<button class="btn pri" data-m="1">${ok}</button>`;
+    $('#msgModal').classList.add('on');setTimeout(()=>{const b=$('#msgBtns .pri');if(b)b.focus();},30);
+  });
+}
+function say(text){return ask(text,'知道了',null);}
+$('#msgBtns').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;$('#msgModal').classList.remove('on');const r=msgResolve;msgResolve=null;if(r)r(b.dataset.m==='1');});
+
+/* ---------- 復原 ---------- */
+let undoSnap=null,undoT=null;
+function snapshot(label){undoSnap={mid:S.map,cols:JSON.parse(JSON.stringify(D().cols)),unm:JSON.parse(JSON.stringify(D().unmatched||[])),label};showUndo();}
+function showUndo(){
+  const el=$('#undobar');if(!el||!undoSnap)return;
+  el.innerHTML=`<span>${esc(undoSnap.label)}</span><button class="btn sm" data-undo>復原</button>`;el.classList.add('on');
+  clearTimeout(undoT);undoT=setTimeout(()=>{el.classList.remove('on');undoSnap=null;},12000);
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('[data-undo]')||!undoSnap)return;
+  S.data[undoSnap.mid].cols=undoSnap.cols;S.data[undoSnap.mid].unmatched=undoSnap.unm;S.map=undoSnap.mid;undoSnap=null;
+  $('#undobar').classList.remove('on');renderAll();toast('已復原');
+});
 
 /* ---------- 貼上／上傳 ---------- */
 function openPaste(){$('#pasteModal').classList.add('on');$('#pasteArea').value='';setTimeout(()=>$('#pasteArea').focus(),30);}
@@ -1146,7 +1330,7 @@ function importRows(rows,how){
     toast(`這份資料看起來是「${MAPS[best.m].label}」，已切換過去`,3500);
     S.map=best.m;
   }
-  if(target.hits===0){alert('找不到可以對應的縣市或省名。\n請確認有一欄是名稱，例如「臺北市」「Hà Nội」「河內」。');return;}
+  if(target.hits===0){say('找不到可以對應的縣市或省名。\n請確認有一欄是名稱，例如「臺北市」「Hà Nội」「河內」。');return;}
   const mid=S.map,head=rows[0],nc=target.col;
   const matched=[],unmatched=[];
   const rowRid=rows.slice(1).map(r=>{const id=matchName(mid,r[nc]);if(id)matched.push(id);else if(r[nc])unmatched.push(r[nc]);return id;});
@@ -1160,24 +1344,28 @@ function importRows(rows,how){
     const m=name.match(/[（(]([^）)]+)[）)]\s*$/);
     const unit=m?m[1]:(/%|％|率|比例/.test(name)?'%':'');
     const kind=/率|比|%|％|密度|平均|每|指數|人均/.test(name)?'ratio':'total';
-    newCols.push(newCol({name:m?name.replace(m[0],'').trim():name,unit,kind,src:'',vals}));
+    newCols.push(newCol({name:m?name.replace(m[0],'').trim():name,unit,kind,src:'',vals,_j:j}));
   }
-  if(!newCols.length){alert('有對到名稱，但沒有讀到數字欄位。');return;}
+  if(!newCols.length){say('有對到名稱，但沒有讀到數字欄位。');return;}
   S.data[mid].cols.push(...newCols);
-  S.tab='check';renderAll();
+  const unm=[];
+  rows.slice(1).forEach((r,i)=>{if(rowRid[i]||!String(r[nc]||'').trim())return;const vals={};newCols.forEach(c=>{const v=num(r[c._j]);if(v!=null)vals[c.id]=v;});if(Object.keys(vals).length)unm.push({name:String(r[nc]).trim(),vals});});
+  newCols.forEach(c=>delete c._j);
+  S.data[mid].unmatched=(S.data[mid].unmatched||[]).concat(unm);
+  S.tab='data';renderAll();
   const total=GEO[mid].regions.length;
   let msg=`${how}完成：新增 ${newCols.length} 欄（${newCols.map(c=>c.name+'＝'+(c.kind==='total'?'總量':'比率')).join('、')}），對到 ${new Set(matched).size}／${total} 個區域。`;
-  if(unmatched.length)msg+=`\n\n這些名稱對不到，已略過：${unmatched.slice(0,12).join('、')}${unmatched.length>12?'…':''}`;
-  msg+=`\n\n請檢查每欄是「總量」還是「比率／密度」，不對可以在欄位卡片上改。`;
-  setTimeout(()=>alert(msg),50);
+  if(unmatched.length)msg+=`\n\n有 ${unmatched.length} 個名稱對不到，已用紅字列在下方，可以選要對應到哪裡。`;
+  msg+=`\n\n請看下方清單，確認每欄是「總量」還是「比率」。`;
+  setTimeout(()=>say(msg),50);
 }
 $('#fileIn').addEventListener('change',async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{
     if(/\.xlsx$/i.test(f.name))importRows(await readXlsx(f),'上傳');
-    else if(/\.xls$/i.test(f.name))alert('這是舊版 Excel（.xls）。請在 Excel 選「另存新檔」→ .xlsx 或 CSV 再上傳。');
+    else if(/\.xls$/i.test(f.name))say('這是舊版 Excel（.xls）。請在 Excel 選「另存新檔」→ .xlsx 或 CSV 再上傳。');
     else{const buf=await f.arrayBuffer();let t;try{t=new TextDecoder('utf-8',{fatal:true}).decode(buf);}catch(_){t=new TextDecoder('big5').decode(buf);}importRows(parseText(t),'上傳');}
-  }catch(err){alert('讀不到這個檔案：'+(err&&err.message||err)+'\n可以改用「貼上 Excel 資料」，或另存成 CSV 再上傳。');}
+  }catch(err){say('讀不到這個檔案：'+(err&&err.message||err)+'\n可以改用「貼上 Excel 資料」，或另存成 CSV 再上傳。');}
 });
 async function readXlsx(file){
   if(typeof DecompressionStream==='undefined')throw new Error('這個瀏覽器不支援讀取 Excel 檔');
@@ -1220,6 +1408,35 @@ async function readXlsx(file){
   return rows;
 }
 
+/* ---------- 放大縮小、拖曳地圖、拖曳圖表 ---------- */
+function clampZoom(){const g=GEO[S.map],z=S.zoom;if(z.k<=1.001){S.zoom={k:1,tx:0,ty:0};return;}z.tx=Math.min(0,Math.max(g.W*(1-z.k),z.tx));z.ty=Math.min(0,Math.max(g.H*(1-z.k),z.ty));}
+function zoomAt(p,z0,k,keepTools){k=Math.max(1,Math.min(8,k));const u=[(p[0]-z0.tx)/z0.k,(p[1]-z0.ty)/z0.k];S.zoom={k,tx:p[0]-u[0]*k,ty:p[1]-u[1]*k};clampZoom();drawMap(keepTools);}
+function zoomBy(f){const g=GEO[S.map];zoomAt([g.W/2,g.H/2],Object.assign({},S.zoom),S.zoom.k*f);}
+function svgOf(el){return el&&el.closest?el.closest('#map,#map2'):null;}
+function toSvg(svg,cx,cy){const m=svg.getScreenCTM();return [(cx-m.e)/m.a,(cy-m.f)/m.d];}
+let gest=null;const ptrs=new Map();
+$('#mapbox').addEventListener('wheel',e=>{const svg=svgOf(e.target);if(!svg)return;e.preventDefault();zoomAt(toSvg(svg,e.clientX,e.clientY),Object.assign({},S.zoom),S.zoom.k*(e.deltaY<0?1.15:1/1.15));},{passive:false});
+$('#mapbox').addEventListener('pointerdown',e=>{
+  const svg=svgOf(e.target);if(!svg||e.button>0)return;
+  S._dragged=false;ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===2){const [a,b]=[...ptrs.values()];gest={type:'pinch',svg,d0:Math.hypot(a[0]-b[0],a[1]-b[1])||1,z0:Object.assign({},S.zoom),mid:toSvg(svg,(a[0]+b[0])/2,(a[1]+b[1])/2),moved:true};return;}
+  const sym=e.target.closest('.sym');
+  if(sym&&(V().type==='prop'||V().type==='chart')){const v=svg.id==='map2'?S2:S;const p=v&&v._pos&&v._pos[sym.dataset.sym];if(p){gest={type:'sym',svg,v,id:sym.dataset.sym,sx:e.clientX,sy:e.clientY,p0:[p[0],p[1]],a:[p[2],p[3]],moved:false};try{svg.setPointerCapture(e.pointerId);}catch(_){}e.preventDefault();return;}}
+  if(S.zoom.k>1.001){gest={type:'pan',svg,sx:e.clientX,sy:e.clientY,z0:Object.assign({},S.zoom),moved:false};}
+});
+document.addEventListener('pointermove',e=>{
+  if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(!gest)return;
+  if(gest.type==='pinch'){if(ptrs.size<2)return;const [a,b]=[...ptrs.values()];zoomAt(gest.mid,gest.z0,gest.z0.k*Math.hypot(a[0]-b[0],a[1]-b[1])/gest.d0);S._dragged=true;return;}
+  if(!gest.moved&&Math.hypot(e.clientX-gest.sx,e.clientY-gest.sy)<4)return;
+  gest.moved=true;S._dragged=true;tip.style.display='none';
+  const sc=gest.svg.getScreenCTM().a,dx=(e.clientX-gest.sx)/sc,dy=(e.clientY-gest.sy)/sc;
+  if(gest.type==='pan'){S.zoom={k:gest.z0.k,tx:gest.z0.tx+dx,ty:gest.z0.ty+dy};clampZoom();drawMap(true);}
+  else if(gest.type==='sym'){const v=gest.v;v.offsets=v.offsets||{};const k=symKey(v);v.offsets[k]=v.offsets[k]||{};v.offsets[k][gest.id]=[gest.p0[0]+dx-gest.a[0],gest.p0[1]+dy-gest.a[1]];drawMap(true);}
+});
+function endPtr(e){ptrs.delete(e.pointerId);if(gest&&(ptrs.size===0||gest.type==='pinch')){const was=gest;gest=null;if(was.moved){renderMapTools();saveState();}}}
+document.addEventListener('pointerup',endPtr);document.addEventListener('pointercancel',endPtr);
+
 /* ---------- 地圖互動 ---------- */
 const tip=$('#tip'),mapbox=$('#mapbox'),pop=$('#pop');
 mapbox.addEventListener('pointermove',e=>{
@@ -1239,6 +1456,8 @@ function placeAt(el,cx,cy){
   el.style.left=x+'px';el.style.top=y+'px';
 }
 mapbox.addEventListener('click',e=>{
+  if(S._dragged){S._dragged=false;return;}
+  if(e.target.closest('.sym'))return;
   const svg=e.target.closest('svg');
   if(S.compare&&svg){const want=svg.id==='map2'?'R':'L';if(S.edit!==want){S.edit=want;renderTop();renderPanel();renderMapTools();$('#map').classList.toggle('editing',want==='L');$('#map2').classList.toggle('editing',want==='R');}}
   const t=e.target.closest('.rg');if(!t)return;
@@ -1265,7 +1484,7 @@ pop.addEventListener('click',e=>{
   const a=b.dataset.pop,rid=pop.dataset.r;
   if(a==='close')closePop();
   else if(a==='add'){D().cols.push(newCol({name:'資料1'}));const rr=pop.getBoundingClientRect();renderAll();openPop(rid,rr.left,rr.top);}
-  else if(a==='table'){pop.style.display='none';S.tab='check';renderAll();const tr=pb.querySelector(`tr[data-r="${CSS.escape(rid)}"]`);if(tr){tr.scrollIntoView({block:'center'});const i=tr.querySelector('input');if(i)i.focus({preventScroll:true});}}
+  else if(a==='table'){pop.style.display='none';S.tab='data';renderAll();const tr=pb.querySelector(`tr[data-r="${CSS.escape(rid)}"]`);if(tr){tr.scrollIntoView({block:'center'});const i=tr.querySelector('input');if(i)i.focus({preventScroll:true});}}
 });
 document.addEventListener('pointerdown',e=>{if(pop.style.display==='block'&&!pop.contains(e.target)&&!e.target.closest('.rg'))closePop();});
 
@@ -1292,11 +1511,11 @@ function checksFor(v,tag){
     if(v.chart.kind==='pie')add(new Set(cs.map(c=>c.unit)).size<=1&&new Set(cs.map(c=>c.kind)).size<=1,'圓餅圖各欄單位相同','圓餅圖要畫「同一個整體分成幾份」，例如一級、二級、三級產業人口');
   }
   const noUnit=used.filter(c=>c&&!String(c.unit||'').trim());
-  add(!noUnit.length,'資料有寫單位',noUnit.length?`「${noUnit.map(c=>c.name).join('、')}」沒有單位，請在「② 檢查」填寫`:'');
+  add(!noUnit.length,'資料有寫單位',noUnit.length?`「${noUnit.map(c=>c.name).join('、')}」沒有單位，請在「① 資料」填寫`:'');
   const o=mapSVG(v,'ck');
   add(/臺灣|台灣|越南|縣|省|市|[A-Za-z]/.test(o.title),'圖名寫出地點與主題',`圖名：「${o.title}」`);
-  add(/\d{4}|民國\s*\d+|\d+\s*年/.test(o.title+' '+(o.sub||'')),'圖名或副標題寫出時間','建議在「④ 圖名與下載」的副標題寫年份，例如「2025 年底」');
-  add(!!o.src,'寫出資料來源',o.src?'':'請在「④ 圖名與下載」填寫資料來源');
+  add(/\d{4}|民國\s*\d+|\d+\s*年/.test(o.title+' '+(o.sub||'')),'圖名或副標題寫出時間','建議在「③ 圖名與下載」的副標題寫年份，例如「2025 年底」');
+  add(!!o.src,'寫出資料來源',o.src?'':'請在「③ 圖名與下載」填寫資料來源');
   add(true,'圖例、指北針、比例尺','模型已自動加上');
   return out;
 }
@@ -1314,23 +1533,43 @@ $('#ckGo').addEventListener('click',()=>{$('#checkModal').classList.remove('on')
 $('#checkModal').addEventListener('click',e=>{if(e.target.id==='checkModal'){$('#checkModal').classList.remove('on');ckAfter=null;}});
 function doPrint(){gate(()=>window.print());}
 function exportPNG(){gate(()=>exportPNGNow());}
-function svgImage(svg,W,H){
+let fontCSS=null;
+async function getFontCSS(){
+  if(fontCSS!==null)return fontCSS;
+  if(location.protocol==='file:'||location.protocol==='about:'){fontCSS='';return fontCSS;}
+  try{
+    const r=await fetch('../vendor/fonts/NotoSansTC.woff2');if(!r.ok)throw 0;
+    const b=new Uint8Array(await r.arrayBuffer());let bin='';
+    for(let i=0;i<b.length;i+=0x8000)bin+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));
+    fontCSS=`@font-face{font-family:"Noto Sans TC";src:url(data:font/woff2;base64,${btoa(bin)}) format("woff2");font-weight:100 900;}`;
+  }catch(_){fontCSS='';}
+  return fontCSS;
+}
+function svgStrImage(str){
   return new Promise((res,rej)=>{
-    const c=svg.cloneNode(true);c.setAttribute('width',W);c.setAttribute('height',H);c.setAttribute('xmlns','http://www.w3.org/2000/svg');c.classList.remove('editing');c.removeAttribute('style');
-    const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(c)],{type:'image/svg+xml;charset=utf-8'}));
+    const url=URL.createObjectURL(new Blob([str],{type:'image/svg+xml;charset=utf-8'}));
     const img=new Image();img.onload=()=>{URL.revokeObjectURL(url);res(img);};img.onerror=()=>{URL.revokeObjectURL(url);rej();};img.src=url;
   });
 }
 async function exportPNGNow(){
-  const g=GEO[S.map];const list=[$('#map')];if(S.compare)list.push($('#map2'));
+  const g=GEO[S.map];const views=[S];if(S.compare&&S2){S2.map=S.map;views.push(S2);}
+  const z=S.exportView==='view'?S.zoom:{k:1,tx:0,ty:0};
   try{
-    const imgs=[];for(const s of list)imgs.push(await svgImage(s,g.W,g.H));
+    const css=await getFontCSS();
+    const imgs=[];let title='';
+    for(let i=0;i<views.length;i++){
+      const o=mapSVG(views[i],'x'+i,z,true);if(!i)title=o.title;
+      const str=`<svg xmlns="http://www.w3.org/2000/svg" width="${o.W}" height="${o.H}" viewBox="0 0 ${o.W} ${o.H}" font-family="${FONT.replace(/"/g,"'")}"><style>${css}</style>${o.svg}</svg>`;
+      imgs.push(await svgStrImage(str));
+    }
+    await new Promise(r=>setTimeout(r,60));
     const k=2,gap=16,c=document.createElement('canvas');c.width=(g.W*imgs.length+gap*(imgs.length-1))*k;c.height=g.H*k;
     const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
     imgs.forEach((im,i)=>ctx.drawImage(im,i*(g.W+gap)*k,0,g.W*k,g.H*k));
+    drawMap();
     c.toBlob(b=>{
       if(!b){toast('圖片產生失敗');return;}
-      saveBlob(b,($('#map').getAttribute('aria-label')||'統計地圖').replace(/[\\/:*?"<>|]/g,'')+(S.compare?'（並排）':'')+'.png');
+      saveBlob(b,(title||'統計地圖').replace(/[\\/:*?"<>|]/g,'')+(S.compare?'（並排）':'')+'.png');
       toast('已下載 PNG 圖片');
     },'image/png');
   }catch(_){toast('圖片產生失敗，請改用「列印／PDF」');}
@@ -1401,7 +1640,9 @@ function setStyle(k){
   else if(S.style==='bw'&&S.choro.pal==='seq:Greys'&&S.prevPal)S.choro.pal=S.prevPal;
   S.style=k;renderAll();
 }
+$('#maptools').addEventListener('input',e=>{if(e.target.matches('[data-zr]')){const g=GEO[S.map];zoomAt([g.W/2,g.H/2],Object.assign({},S.zoom),+e.target.value/100,true);}});
 $('#maptools').addEventListener('click',e=>{
+  const zb=e.target.closest('[data-z]');if(zb){const z=zb.dataset.z;if(z==='in')zoomBy(1.4);else if(z==='out')zoomBy(1/1.4);else{S.zoom={k:1,tx:0,ty:0};drawMap();}return;}
   if(e.target.closest('[data-lmmenu]')){S.lmOpen=!S.lmOpen;renderMapTools();return;}
   const b=e.target.closest('[data-lm]');if(b){S.lmOpen=false;setLabelMode(b.dataset.lm);return;}
   if(e.target.closest('[data-cmp]')){toggleCompare();return;}
@@ -1417,7 +1658,7 @@ document.addEventListener('pointerdown',e=>{if(S.lmOpen&&!e.target.closest('#map
 function resetSettings(){
   Object.assign(S.choro,{k:5,method:'quantile',custom:null,pal:'seq:YlOrRd'});
   Object.assign(S.prop,{rmax:34,color:SINGLE[0],base:null});
-  S.compare=false;S.edit='L';S2=null;
+  S.compare=false;S.edit='L';S2=null;S.zoom={k:1,tx:0,ty:0};S.offsets={};delete S.chart.scale;delete S.chart.spread;S.prop.spread=false;
   Object.assign(S.dot,{unitFor:null,size:2.2,color:SINGLE[2]});
   Object.assign(S.chart,{kind:'pie',sized:false,pal:'Set2'});
   S.style='color';S.north='half';
@@ -1433,7 +1674,10 @@ document.addEventListener('keydown',e=>{
   if(k==='f'||k==='F'){toggleFS();e.preventDefault();}
   else if(k==='r'||k==='R'){resetSettings();}
   else if(k==='n'||k==='N'){toggleLabels();}
-  else if(k==='ArrowRight'||k==='ArrowLeft'){const cur=stepIdx(),n=Math.max(0,Math.min(3,cur+(k==='ArrowRight'?1:-1)));if(n!==cur)goStep(STEPS[n][0]);e.preventDefault();}
+  else if(k==='+'||k==='='){zoomBy(1.4);}
+  else if(k==='-'||k==='_'){zoomBy(1/1.4);}
+  else if(k==='0'){S.zoom={k:1,tx:0,ty:0};drawMap();}
+  else if(k==='ArrowRight'||k==='ArrowLeft'){const cur=stepIdx(),n=Math.max(0,Math.min(2,cur+(k==='ArrowRight'?1:-1)));if(n!==cur)goStep(STEPS[n][0]);e.preventDefault();}
   else if(k==='1')setMap('tw');else if(k==='2')setMap('vn34');else if(k==='3')setMap('vn63');
   else{const t=Object.entries(TYPES).find(([,v])=>v.key===k);if(t)setType(t[0]);}
 });
