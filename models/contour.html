@@ -1040,6 +1040,7 @@ document.addEventListener('keydown',e=>{
   const ms=['origin','slope','landform','types','profile','game'];
   if(/^[1-6]$/.test(e.key) && S.mode!=='game'){ S.mode=ms[+e.key-1]; setupMode(); }
   else if(e.key==='t'||e.key==='T') $('bTop').click();
+  else if((e.key==='r'||e.key==='R') && S.mode!=='game') setupMode();
   else if(S.mode==='game' && (e.key==='ArrowRight'||e.key==='Enter') && $('gNext') && !$('gNext').disabled){ e.preventDefault(); gameNext(); }
   else if(S.mode==='profile' && e.key==='ArrowRight') $('pNext').click();
   else if(S.mode==='profile' && e.key==='ArrowLeft') $('pPrev').click();

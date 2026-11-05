@@ -755,6 +755,22 @@ document.getElementById('optNum').onchange=e=>{S.showNum=e.target.checked;req();
 new ResizeObserver(()=>resize()).observe(box);
 renderPanel(); renderTools(); resize();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>draw());
+
+/* ---------- 快捷鍵：← → 換步驟、1～4 跳到該步驟、R 重來、F 全螢幕（Esc 保留給網站回首頁） ---------- */
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey||e.defaultPrevented)return;
+  const t=e.target; if(t&&(/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)||t.isContentEditable))return;
+  const k=e.key;
+  if(k==='f'||k==='F'){try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}catch(_){}return;}
+  if(k==='r'||k==='R'){
+    if(S.mode==='challenge'){const b=document.getElementById('chAgain'); if(b)b.click();}
+    else if(S.mode==='explain'){S.pts=mk(S.v);S.cmp[S.v]=mk(S.v);S.sel=null;setStep(1);}
+    return;
+  }
+  if(S.mode!=='explain')return;
+  if(k==='ArrowRight'||k==='ArrowLeft'){e.preventDefault();const n=Math.min(4,Math.max(1,S.step+(k==='ArrowRight'?1:-1)));if(n!==S.step)setStep(n);}
+  else if(/^[1-4]$/.test(k))setStep(+k);
+});
 </script>
 
 </body>
