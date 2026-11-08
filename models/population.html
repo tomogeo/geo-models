@@ -53,7 +53,7 @@ main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 410px;
 .hint{font-size:1rem;color:var(--muted);padding:0 4px;min-height:1.5em}
 .legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:1rem;color:var(--muted);padding:0 4px}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:6px;vertical-align:-2px}
-.side{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto;padding:12px 14px}
+.side{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto;padding:12px 14px}
 .side>*{flex-shrink:0}
 .side h2{font-size:1.05rem;margin:0 0 4px;color:var(--muted);font-weight:500}
 .chips{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
@@ -61,8 +61,8 @@ main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 410px;
 .chip[aria-pressed="true"]{border-color:var(--accent);background:var(--paper);font-weight:700}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .row.between{justify-content:space-between}
-.row.ctl{flex-wrap:nowrap;gap:6px}
-.row.ctl .btn{padding:4px 7px;white-space:nowrap}
+.row.ctl{gap:6px}
+.row.ctl .btn{flex:1 1 auto;padding:4px 6px;white-space:nowrap}
 input[type=range]{flex:1;min-width:120px;accent-color:var(--accent);height:28px}
 button.btn{font:inherit;font-size:1rem;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 12px;cursor:pointer}
 button.btn:hover{border-color:var(--ink)}
@@ -100,7 +100,6 @@ kbd{font-family:inherit;font-size:.85rem;color:var(--muted);border:1px solid var
   .stage{height:68vh;min-height:380px}
   .side{overflow:visible}
   .seg{font-size:.85rem}
-  .row.ctl{flex-wrap:wrap}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
@@ -143,8 +142,8 @@ kbd{font-family:inherit;font-size:.85rem;color:var(--muted);border:1px solid var
     <div class="stagebox" id="labStage"></div>
     <div class="row ctl">
       <button class="btn" id="bPrev" aria-label="上一步">←</button>
-      <button class="btn" id="bNext">下一個 5 年 →</button>
-      <button class="btn" id="bPlay">▶ 自動播放</button>
+      <button class="btn" id="bNext" title="下一個 5 年">5 年 →</button>
+      <button class="btn" id="bPlay" title="自動走完一次人口轉型">▶ 播放</button>
       <button class="btn spd" title="切換播放速度">慢速</button>
       <button class="btn" id="bReset">重來</button>
     </div>
@@ -394,7 +393,7 @@ function startLabTimer(){
   clearInterval(lab.timer);
   lab.timer=setInterval(()=>{ if(lab.hist.length-1>=40){stopPlay();return;} labNext(); },SPEEDS[speed].lab);
 }
-function stopPlay(){ if(lab.timer){clearInterval(lab.timer);lab.timer=null;} $('bPlay').textContent='▶ 自動播放'; $('bPlay').classList.remove('on'); }
+function stopPlay(){ if(lab.timer){clearInterval(lab.timer);lab.timer=null;} $('bPlay').textContent='▶ 播放'; $('bPlay').classList.remove('on'); }
 function renderLab(){
   const h=lab.hist[lab.hist.length-1], I=ind(h.P);
   $('stTitle').innerHTML=`第 ${h.t} 年`;
@@ -410,7 +409,7 @@ function renderLab(){
   const xs=lab.hist.map(x=>x.t);
   const xmax=Math.max(200,xs[xs.length-1]);
   drawRates($('labChart'),xs,lab.hist.map(x=>x.b),lab.hist.map(x=>x.d),{x0:0,x1:xmax,xticks:[0,50,100,150,200].concat(xmax>200?[xmax]:[]),xfmt:x=>x+'年',cursor:h.t});
-  $('pyrHint').textContent=(lab.custom?'自訂模式：照拉桿的數值推算（按「重來」回到典型路徑）。':'典型路徑：每按一次「下一個 5 年」，拉桿會像自動播放一樣自己移動。')+(h.t===0?'':'　每一步：各年齡層往上移一格、扣掉死亡、底層補上新生兒。');
+  $('pyrHint').textContent=(lab.custom?'自訂模式：照拉桿的數值推算（按「重來」回到典型路徑）。':'典型路徑：每按一次「5 年 →」（或鍵盤 →），拉桿會像自動播放一樣自己移動。')+(h.t===0?'':'　每一步：各年齡層往上移一格、扣掉死亡、底層補上新生兒。');
   $('bPrev').disabled=lab.hist.length<2;
 }
 $('sB').addEventListener('input',e=>{stopPlay();lab.custom=true;lab.b=+e.target.value;$('oB').textContent=lab.b+'‰';renderLab();});
