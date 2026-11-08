@@ -61,6 +61,8 @@ main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 410px;
 .chip[aria-pressed="true"]{border-color:var(--accent);background:var(--paper);font-weight:700}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .row.between{justify-content:space-between}
+.row.ctl{flex-wrap:nowrap;gap:6px}
+.row.ctl .btn{padding:4px 7px;white-space:nowrap}
 input[type=range]{flex:1;min-width:120px;accent-color:var(--accent);height:28px}
 button.btn{font:inherit;font-size:1rem;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 12px;cursor:pointer}
 button.btn:hover{border-color:var(--ink)}
@@ -98,6 +100,7 @@ kbd{font-family:inherit;font-size:.85rem;color:var(--muted);border:1px solid var
   .stage{height:68vh;min-height:380px}
   .side{overflow:visible}
   .seg{font-size:.85rem}
+  .row.ctl{flex-wrap:wrap}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
@@ -138,10 +141,11 @@ kbd{font-family:inherit;font-size:.85rem;color:var(--muted);border:1px solid var
       <button class="btn" data-pre="0">一</button><button class="btn" data-pre="1">二</button><button class="btn" data-pre="2">三</button><button class="btn" data-pre="3">四</button><button class="btn" data-pre="4">五</button>
     </div>
     <div class="stagebox" id="labStage"></div>
-    <div class="row">
+    <div class="row ctl">
       <button class="btn" id="bPrev" aria-label="上一步">←</button>
       <button class="btn" id="bNext">下一個 5 年 →</button>
       <button class="btn" id="bPlay">▶ 自動播放</button>
+      <button class="btn spd" title="切換播放速度">慢速</button>
       <button class="btn" id="bReset">重來</button>
     </div>
     <div class="stats" id="labStats"></div>
@@ -154,6 +158,7 @@ kbd{font-family:inherit;font-size:.85rem;color:var(--muted);border:1px solid var
     <div class="chips" id="chips"></div>
     <div class="row">
       <button class="btn" id="rPlay" aria-label="播放年份">▶</button>
+      <button class="btn spd" title="切換播放速度">慢速</button>
       <input type="range" id="rYear" min="1950" max="2100" step="1" aria-label="年份">
     </div>
     <div class="row">
@@ -348,26 +353,30 @@ function seg(box,I){
   box.innerHTML=`<div style="width:${I.py}%;background:var(--young)">${I.py>=11?f1(I.py)+'%':''}</div><div style="width:${I.pw}%;background:var(--work)">${f1(I.pw)}%</div><div style="width:${I.po}%;background:var(--old)">${I.po>=11?f1(I.po)+'%':''}</div>`;
   box.setAttribute('aria-label',`幼年 ${f1(I.py)}%、青壯年 ${f1(I.pw)}%、老年 ${f1(I.po)}%`);
 }
-const stat=(k,v)=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`;
+const TIP={'扶養比':'（幼年＋老年）÷ 青壯年 × 100：每 100 位青壯年要扶養幾人','老化指數':'老年 ÷ 幼年 × 100','平均壽命':'這一年出生的嬰兒，預期平均可以活幾歲（不是全國人口的平均年齡）','年齡中位數':'把全部人口照年齡排隊，正中間那個人的年齡','出生率':'每年每 1000 人中的出生人數','死亡率':'每年每 1000 人中的死亡人數','總生育率':'一位婦女一生平均生幾個孩子','嬰兒死亡率':'每 1000 個出生嬰兒中，未滿 1 歲就死亡的人數','自然增加率':'出生率 − 死亡率'};
+const stat=(k,v)=>`<div class="stat"${TIP[k]?` title="${TIP[k]}"`:''}><span>${k}</span><b>${v}</b></div>`;
 
 /* ===== 分頁 1：實驗室 ===== */
-const lab={hist:[],b:40,d:35,timer:null,pin:null};
+const lab={hist:[],b:40,d:35,timer:null,pin:null,custom:false};
+const SPEEDS=[{name:'慢速',lab:2000,real:400},{name:'中速',lab:1000,real:200},{name:'快速',lab:500,real:100}];
+let speed=0;
 function stableStart(){
   let P=new Array(2*GROUPS).fill(1);
   for(let k=0;k<80;k++){ P=step(P,40,35).P; const t=P.reduce((a,v)=>a+v,0); P=P.map(v=>v*1e4/t); }
   return P;
 }
 const START=stableStart();
-function labReset(){ stopPlay(); lab.hist=[{t:0,b:40,d:35,P:START,idx:100}]; setSliders(40,35); renderLab(); }
+function labReset(){ stopPlay(); lab.custom=false; lab.hist=[{t:0,b:40,d:35,P:START,idx:100,custom:false}]; setSliders(40,35); renderLab(); }
 function setSliders(b,d){ lab.b=b; lab.d=d; $('sB').value=b; $('sD').value=d; $('oB').textContent=b+'‰'; $('oD').textContent=d+'‰'; }
 function labNext(){
   const h=lab.hist[lab.hist.length-1]; if(h.t>=300) return;
+  if(!lab.custom){ const [b,d]=pathAt(lab.hist.length); setSliders(b,d); } // 跟著典型路徑走一步（和自動播放相同）
   const r=step(h.P,lab.b,lab.d);
   const t0=h.P.reduce((a,v)=>a+v,0), t1=r.P.reduce((a,v)=>a+v,0);
-  lab.hist.push({t:h.t+5,b:lab.b,d:lab.d,P:r.P,idx:h.idx*t1/t0});
+  lab.hist.push({t:h.t+5,b:lab.b,d:lab.d,P:r.P,idx:h.idx*t1/t0,custom:lab.custom});
   renderLab();
 }
-function labPrev(){ if(lab.hist.length>1){ lab.hist.pop(); const h=lab.hist[lab.hist.length-1]; setSliders(h.b,h.d); renderLab(); } }
+function labPrev(){ if(lab.hist.length>1){ lab.hist.pop(); const h=lab.hist[lab.hist.length-1]; lab.custom=h.custom; setSliders(h.b,h.d); renderLab(); } }
 function pathAt(k){ // 自動播放：典型的人口轉型路徑（第 k 步）
   const sm=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a))); return t*t*(3-2*t);};
   const d=35-26*sm(3,16,k)+4*sm(26,40,k);
@@ -377,11 +386,13 @@ function pathAt(k){ // 自動播放：典型的人口轉型路徑（第 k 步）
 function playLab(){
   if(lab.timer){stopPlay();return;}
   if(lab.hist[lab.hist.length-1].t>=200) labReset();
+  lab.custom=false;
   $('bPlay').textContent='⏸ 暫停'; $('bPlay').classList.add('on');
-  lab.timer=setInterval(()=>{
-    const k=lab.hist.length-1; if(k>=40){stopPlay();return;}
-    const [b,d]=pathAt(k+1); setSliders(b,d); labNext();
-  },550);
+  labNext(); startLabTimer();
+}
+function startLabTimer(){
+  clearInterval(lab.timer);
+  lab.timer=setInterval(()=>{ if(lab.hist.length-1>=40){stopPlay();return;} labNext(); },SPEEDS[speed].lab);
 }
 function stopPlay(){ if(lab.timer){clearInterval(lab.timer);lab.timer=null;} $('bPlay').textContent='▶ 自動播放'; $('bPlay').classList.remove('on'); }
 function renderLab(){
@@ -399,16 +410,21 @@ function renderLab(){
   const xs=lab.hist.map(x=>x.t);
   const xmax=Math.max(200,xs[xs.length-1]);
   drawRates($('labChart'),xs,lab.hist.map(x=>x.b),lab.hist.map(x=>x.d),{x0:0,x1:xmax,xticks:[0,50,100,150,200].concat(xmax>200?[xmax]:[]),xfmt:x=>x+'年',cursor:h.t});
-  $('pyrHint').textContent=h.t===0?'調整拉桿後按「下一個 5 年」，或按「自動播放」走完一次人口轉型。':'每一步：每個年齡層往上移一格，扣掉死亡的人，最底層補上新生兒。';
+  $('pyrHint').textContent=(lab.custom?'自訂模式：照拉桿的數值推算（按「重來」回到典型路徑）。':'典型路徑：每按一次「下一個 5 年」，拉桿會像自動播放一樣自己移動。')+(h.t===0?'':'　每一步：各年齡層往上移一格、扣掉死亡、底層補上新生兒。');
   $('bPrev').disabled=lab.hist.length<2;
 }
-$('sB').addEventListener('input',e=>{lab.b=+e.target.value;$('oB').textContent=lab.b+'‰';renderLab();});
-$('sD').addEventListener('input',e=>{lab.d=+e.target.value;$('oD').textContent=lab.d+'‰';renderLab();});
-document.querySelectorAll('[data-pre]').forEach(btn=>{const i=+btn.dataset.pre; btn.title=STAGES[i].name+'：'+STAGES[i].feat; btn.setAttribute('aria-label',btn.title); btn.addEventListener('click',()=>{stopPlay();setSliders(...PRESET[i]);renderLab();});});
+$('sB').addEventListener('input',e=>{stopPlay();lab.custom=true;lab.b=+e.target.value;$('oB').textContent=lab.b+'‰';renderLab();});
+$('sD').addEventListener('input',e=>{stopPlay();lab.custom=true;lab.d=+e.target.value;$('oD').textContent=lab.d+'‰';renderLab();});
+document.querySelectorAll('[data-pre]').forEach(btn=>{const i=+btn.dataset.pre; btn.title=STAGES[i].name+'：'+STAGES[i].feat; btn.setAttribute('aria-label',btn.title); btn.addEventListener('click',()=>{stopPlay();lab.custom=true;setSliders(...PRESET[i]);renderLab();});});
 $('bNext').onclick=()=>{stopPlay();labNext();};
 $('bPrev').onclick=()=>{stopPlay();labPrev();};
 $('bPlay').onclick=playLab;
 $('bReset').onclick=labReset;
+document.querySelectorAll('.spd').forEach(b=>b.onclick=()=>{
+  speed=(speed+1)%SPEEDS.length;
+  document.querySelectorAll('.spd').forEach(x=>x.textContent=SPEEDS[speed].name);
+  if(lab.timer) startLabTimer(); if(real.timer) startRealTimer();
+});
 
 /* ===== 分頁 2：真實國家 ===== */
 const real={iso:'TWN',year:2024,mode:'pct',pin:null,track:null,timer:null};
@@ -454,8 +470,9 @@ function playReal(){
   if(real.timer){stopReal();return;}
   if(real.year>=2100) real.year=1950;
   $('rPlay').textContent='⏸'; $('rPlay').classList.add('on');
-  real.timer=setInterval(()=>{ if(real.year>=2100){stopReal();return;} real.year++; renderReal(); },120);
+  startRealTimer();
 }
+function startRealTimer(){ clearInterval(real.timer); real.timer=setInterval(()=>{ if(real.year>=2100){stopReal();return;} real.year++; renderReal(); },SPEEDS[speed].real); }
 function stopReal(){ if(real.timer){clearInterval(real.timer);real.timer=null;} $('rPlay').textContent='▶'; $('rPlay').classList.remove('on'); }
 $('rPlay').onclick=playReal;
 
