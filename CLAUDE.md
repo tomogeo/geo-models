@@ -11,7 +11,8 @@
 - 模型改版時，老師會把新的 HTML 放進 models/，一律以資料夾裡的檔案為準。
 
 ## 資料夾結構（目前）
-- models/<id>.html：每個模型一個獨立、可單獨開啟的 HTML（目前 11 個）
+- models/<id>.html：每個模型一個獨立、可單獨開啟的 HTML（目前 12 個）
+- tools/population_data.py：人口金字塔模型的資料整理程式（只在更新聯合國資料時執行，說明寫在檔案開頭）
 - registry.json：主題與模型清單，含每個模型的說明卡（格式見下）
 - template.html：首頁與播放畫面外框（含「說明卡」面板）
 - build.py：執行後產生兩個檔：
